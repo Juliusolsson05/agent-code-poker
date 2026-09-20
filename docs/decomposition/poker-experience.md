@@ -2,6 +2,22 @@
 
 ## Latest user priority — gameplay after accepted LAN appearance
 
+### B18–E18 solo bank/rebuy integration
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B18 | Completion/save-path catalog | App offers New table at stack0; existing scripted bank-bust hand | LAN bank does not provide solo rebuys | Source inspection, not browser bust evidence |
+| C18 | Joint solo checkpoint/transfer contracts | Legacy migration, bank corruption, illegal live transfer, debt and engine conservation, duplicate rejection | Never persist or install stack and debt independently | Replay existing deterministic engine fixture; synthetic fault cases labeled |
+| D18 | Neutral bank core, solo save adapter, shared public controls | Original UI, explicit confirmation, revision binding, freeze/retry on failed storage | No HostTable/private membership imports in solo; no duplicate bank math | New table explicitly ends debt; loans are not hand winnings |
+| E18 | Source/shipped bank UI and persistence evidence | Actual available controls, legal play, pause/reload plus full verify | Scripted bust/retry tests do not prove browser bust UX | Isolated QA saves; no user save mutation or graphics/FPS claims |
+
+App remains sole solo runtime authority. The bank core moves out of session/
+because both solo and HostTable need its accounting, not each other's lifecycle.
+Only each table owner may consume it; renderers receive no bank ledger. Save
+format keeps the existing key and atomically adds version/debt; absence is legacy,
+not permission to silently erase malformed new-format debt. Rejected proposals
+leave both owners unchanged. Storage retry reuses the staged checkpoint.
+
 The user says LAN looks good and explicitly redirects implementation to all
 non-LAN gameplay items. Do not keep expanding LAN panels ahead of gameplay.
 Accepted appearance is user feedback, not proof of unperformed networking or

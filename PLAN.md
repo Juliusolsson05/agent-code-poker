@@ -2,6 +2,21 @@
 
 ## Active direction — finish the non-LAN gameplay list
 
+### Next staged slice: solo practice bank
+
+Observed App completion path offers only New table to a busted player; the
+existing deterministic bank-bust fixture records a legal completed hand but is
+scripted, not browser evidence. Reuse the tested finite-reserve ledger outside
+LAN authority. One solo checkpoint must contain table, debt and preferences;
+legacy saves migrate to zero debt without changing chips. Stage a transfer on a
+restored engine before installing either half. Failed storage freezes play and
+Retry saves the same checkpoint, never re-executes borrowing. Explicit new-table
+confirmation ends this fictional room and its debt. Share public bank controls,
+retain original UI, and show historical hand net rather than treating a loan as
+poker winnings. Verify migration, invalid checkpoints, rejection/duplicate loan,
+repayment and save retry; then source/shipped UI checks. No hand art or LAN
+session changes. Commit this plan before implementation.
+
 Latest user direction: LAN looks good; stop prioritizing LAN and complete the
 remaining gameplay list. Preserve its accepted appearance. Work in dependency
 order: normal keyboard-first betting, solo bank/rebuys, drink ownership and
