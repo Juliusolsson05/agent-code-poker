@@ -33,6 +33,18 @@ launch only. Memory-only test sessions are separate from existing solo saves.
 Address-free discovery, durable hosting, 3D client projection and bank remain
 open. See B10–E10 for constraints; no extension sandbox bypass.
 
+Continuation19 implementation checkpoint: `server/` now owns bounded HTTP
+admission, private per-token views, ordered responses, host pause/lease and an
+explicitly disposable connection-test UI. Four actual loopback HTTP tests pass;
+full `npm run verify` passes107 tests, TypeScript/build,2 SDK contracts and
+exact-byte preview. Dist/lockfile unchanged. CUA source call/inspection/pause/
+reload restores hand1/stack1980/pot90; held props and five symmetric opponents
+seen. New port5192 is blocked by Chrome (`ERR_BLOCKED_BY_CLIENT`); no workaround
+or LAN-browser acceptance claimed. Final 3D LAN and durable sessions remain open.
+Shipped-preview CUA also passed call/inspection/pause/reload, restoring hand1/
+stack1980/pot100 after recovering an accessibility timeout. Both captures have
+empty warning/error logs; manual notes are retained in session19 observations.
+
 Latest user addition: NPC drinking grips appear to grab the glass from its
 inside. Track exterior-only vessel contact explicitly: palm/fingers wrap the
 outer surface, thumb opposes, no hand crosses the wall or hollow interior during

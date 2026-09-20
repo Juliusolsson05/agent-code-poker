@@ -1,0 +1,10 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent Code Poker · LAN test</title><link rel="stylesheet" href="/style.css"><script src="/client.js" type="module"></script></head>
+<body><main>
+<p class="eyebrow">AGENT CODE POKER · DEVELOPMENT</p><h1>Connection test</h1>
+<p>This is the LAN integration lobby, not the final 3D game. Practice chips only. Sessions end when the host process stops. Use a trusted network: HTTP is not encrypted.</p>
+<section id="entry"><label>Your name <input id="name" maxlength="24" autocomplete="off" value="Guest"></label><label>Lobby code <input id="code" maxlength="24" autocomplete="off" spellcheck="false"></label><div class="row"><button id="create">Create table on this computer</button><button id="join">Join table</button></div><p>Open the host’s printed URL first, then enter its code. Automatic LAN discovery is not available.</p></section>
+<p id="error" role="alert"></p><p id="connection" role="status">Not connected</p><button id="forget" hidden>Clear ended connection</button>
+<section id="table" hidden><h2 id="heading">Table</h2><p id="invite"></p><p id="phase"></p><p id="board"></p><p id="hand"></p><ol id="players"></ol><div class="row"><button id="start">Deal next hand</button><button id="pause">Pause table</button><button id="leave">Leave table</button></div><div id="actions" class="row"><button id="fold">Fold</button><button id="call">Check / call</button><button id="raise">Minimum raise</button></div></section>
+<button id="export">Export public diagnostics</button><p class="small">Diagnostics exclude lobby codes, credentials, names, board and private card values. Reconnect uses this tab’s session storage; a new tab is a separate player.</p>
+</main></body></html>

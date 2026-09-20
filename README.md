@@ -36,9 +36,28 @@ This is an evolving visual/gameplay implementation, not a finished realism bench
 `HostTable` owns six seats and the engine; `view.ts` explicitly projects public
 data plus the viewer's private cards. Mid-hand arrivals reserve a bot seat for
 the next deal. Principal-bound actions reject stale/duplicate wagers; disconnect
-permits host bot control without transferring the seat. No listener, lobby code,
-credentials, network persistence or client rendering is wired yet. Never send
-the solo app's full `GameState` or cast a redacted view back into one.
+permits host bot control without transferring the seat. Never send the solo
+app's full `GameState` or cast a redacted view back into one.
+
+### Experimental LAN connection test
+
+`npm run lan` starts a separate, memory-only HTTP test lobby at
+`http://127.0.0.1:5192/`. This is **not the 3D multiplayer game** and does not
+modify solo saves. Create a table on the host computer, then share its lobby
+code. `npm run lan -- --lan` explicitly enables private-LAN connections and
+prints the host IP URLs; guests must first open one of those URLs, then enter
+the code and a name. Address-free discovery is not implemented. HTTP is not
+encrypted: use a trusted LAN, never port-forward or publicly deploy this host.
+
+Six seats are maintained by the host, with NPCs filling unclaimed seats. Arrivals
+during a hand wait for the next deal without receiving the old NPC cards.
+Tab-scoped credentials resume the same seat after reload; a new tab is a new
+player. Guest absence permits bot fallback after 15 seconds; host absence
+suspends the table. Leaving as host or stopping the process ends this disposable
+session. Clear an ended connection explicitly; network errors never create a
+replacement table. Durable sessions, final 3D integration, bank debt and
+separate-device LAN acceptance remain open. The installed extension has no
+network-hosting API and does not load this standalone server.
 
 ## Visual evidence workflow
 

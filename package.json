@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "vite --config vite.dev.config.ts --host 127.0.0.1",
+    "lan": "tsx server/main.ts",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",

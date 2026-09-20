@@ -48,6 +48,29 @@ removal. Existing visual/performance gates remain open.
 
 ### Continuation19 transport slice — explicit standalone website host
 
+Implementation checkpoint: D10 exists in `server/http.ts` with exact static
+allowlist, private-peer/Host/Origin checks, admission nonce retry, bearer-bound
+commands, monotonic response observations, 4KiB bodies and bounded rates/sockets.
+`server/client/` is explicitly a disposable connection test, not final game UI.
+It exports bounded public metadata, excluding codes/tokens/names/card values;
+ended credentials have explicit local cleanup, while transient failures retain
+the seat. Four actual HTTP-socket integration tests cover admission/private
+views, hostile/malformed requests, action binding/pause/leases/reconnect and
+rate bounds. These are scripted loopback clients, not Wi-Fi/browser recordings.
+
+Full verify passes107 tests, TypeScript/build,2 SDK artifact checks and exact
+production-byte check. Production bundles and lockfile remain unchanged. E10
+is still open: Chrome blocked the new5192 URL with ERR_BLOCKED_BY_CLIENT; no
+security setting was changed and no alternate automation was used. Source
+regression via CUA passed call20, inspection, pause and reload (hand1, stack1980,
+pot90). Screenshot shows five symmetric guests, held cards/cigar and hearth;
+console warn/error capture was empty. Images viewed in tool output are not
+retained golden fixtures, and this is not animation-quality/FPS acceptance.
+Shipped preview also passed call20, inspection, pause and reload after CUA
+reattachment: hand1/stack1980/pot100 restored; held cards/cigar visible, no captured
+warn/errors. Fireplace remains absent in production by its existing gate.
+`session-19-observations.json` retains these manual notes, not fabricated raw data.
+
 A: verified HostTable owns six-seat authority and redacted SessionView; the
 installed extension SDK exposes no network listener. D: an explicitly launched
 Node host serves a same-origin connection-test lobby and bounded JSON API. Host
