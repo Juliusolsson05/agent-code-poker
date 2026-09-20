@@ -2,6 +2,18 @@
 
 ## Active direction — finish the non-LAN gameplay list
 
+### Next slice: visible, bounded window snow
+
+Retained10-29-18 camera/viewport and51.215PNG show sparse near-subpixel snow in
+the window. Pinned Three points shader applies size*bufferHeight/2/viewDepth;
+the current.010 size is under1pixel at the seated window. Keep84 seeds, one
+Points draw,24Hz uploads, no shadows and reduced-motion freeze. Isolate existing
+snow into environment/WindowSnow with Christmas as sole consumer; enlarge to
+.044 and opacity.65 (authored candidate, not visually accepted). Keep the same
+aperture/depth behind mullions. Test actual camera-derived pixel budget, original
+positions, buffer reuse and throttling before implementation. Record real source
+and shipped snowy-window motion when CUA returns; no FPS claim from math tests.
+
 ### Active slice: exterior NPC glass acquisition/release
 
 C21 failed already at time0: resting skin intersects tall ale by7.810mm. Revise

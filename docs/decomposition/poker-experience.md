@@ -2,6 +2,20 @@
 
 ## Latest user priority — gameplay after accepted LAN appearance
 
+### B22–E22 visible window snow without density growth
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B22 | Existing raw camera/viewport and51.215PNG; point-size catalog | Retained image inspected; pinned Three points shader/source confirms perspective attenuation | Bigger flakes are not more particles or global DPR | Actual10-29-18 source capture, size.010/opacity.40 source |
+| C22 | Recorded-camera pixel-budget regression | Old flakes project under1buffer pixel; candidate3–6px at recorded seated camera; identical seed positions,84count,24Hz cap | Geometry math cannot claim actual perceptual quality | Actual camera plus explicitly synthetic projection/clock probes |
+| D22 | environment/WindowSnow, one Christmas consumer | Existing aperture/mullion depth, reusable buffer, reduced freeze, one draw | Snow owns no room/UI/engine state | Existing deterministic seeds and bounded update loop |
+| E22 | Fresh source/shipped window motion/images and timings | Noticeable falling flakes without static noise or interior spill | No FPS inference from low particle count | CUA unavailable; visual/performance gate stays open |
+
+Candidate.044 point size and.65 opacity retain the84particle density. Material,
+texture and simulation are owned by one replaceable module. Do not add per-flake
+meshes/lights/shadows or raise global resolution. Unknowns: final contrast/motion
+on narrow/retina views and actual GPU cost; keep these open, not synthetic claims.
+
 ### B21–E21 exterior NPC acquisition and release
 
 A: raw10-29-18 actual wrist/vessel matrices, legacy Human rest-reset then blended
