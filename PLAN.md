@@ -1,5 +1,13 @@
 # Agent Code Poker
 
+Latest user scope overrides the broad goal-loop text: stop hand-animation work;
+retain folded backs on felt; readable chip lettering; center human dealer;
+efficient deliberate mouse-look; actual-drink-only intoxication; proper player/
+NPC drinking mechanics without hand-animation iteration; fireplace; licensed
+natural fire audio and realistic chip audio; autonomous staged implementation.
+The exact numbered list is at the top of `docs/decomposition/poker-experience.md`.
+Preserve other existing features, but do not re-add omitted wishlist items.
+
 Refs #1. Deliver a standalone API-v2 extension: six-seat No-Limit Texas Hold’em against five local opponents in a spacious, procedural block-built 3D card room.
 
 1. Build a deterministic, UI-independent poker engine and exhaustive five-card evaluator used for best-of-seven hands. Protect legal betting, heads-up order, full-raise reopening, side pots, ties, odd chips, and conservation with behavioral tests and simulated tournaments.

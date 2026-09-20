@@ -1,5 +1,29 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## Current user scope — supersedes older goal-loop boilerplate
+
+The user explicitly narrowed active work to this exact list. Keep older sections
+as evidence/history, not permission to resume their omitted work:
+
+1. Stop hand-animation work; focus on the other features.
+2. Folded NPC cards land face-down on the table and remain visible.
+3. Fix low-resolution chip lettering.
+4. Add a dedicated human dealer opposite the player, in the center.
+5. Deliberate mouse-look, with performance efficiency.
+10. Intoxication only after actually drinking, never ordering/selecting.
+11. Proper player/NPC drinking mechanics without resuming hand-animation work.
+12. Add a tavern fireplace.
+13. Excellent natural fire crackling using licensed recordings.
+14. Satisfying realistic chip audio.
+15. Include these in staged decomposition and implement autonomously.
+
+Numbering intentionally preserves the user's list; missing numbers are not
+inferred requirements. Board placement, snow and general lighting additions
+are not active new tasks here. Preserve already-working features. Fireplace
+lighting may support its own presentation, not reopen an unrelated room pass.
+The existing engine/privacy, save safety, testing, committed bundles and no-merge
+constraints remain in force. Hand/contact art is deferred, not approved.
+
 Status: Stage B baseline captured; C/D1 hero ownership/connected reach implemented
 and replayed through actual production bones. Fresh source recording confirms
 bounded reach and safe interrupted return. D2 block props and safe ordering are
