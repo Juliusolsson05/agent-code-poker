@@ -2,6 +2,15 @@
 
 ## Active direction — full multiplayer first (restarted goal loop)
 
+Bank B14–E14 begins with explicit fictional accounting while LAN browser
+acceptance remains open. Default rebuy is2000 (the starting stack), busted only,
+between hands, no interest. Optional repayment is between hands from the
+player's stack. Debt follows authenticated identity across reconnect/restart,
+never the chair; departed debts remain in the session ledger. No real money.
+First isolate reserve/debt proposals and an engine boundary transfer; then
+atomic host checkpoint/sequence integration, then visible LAN bank controls.
+Do not claim the bank available from isolated tests or silently mutate snapshots.
+
 Latest user sequencing: finish the entire non-animation feature list first,
 then reopen hand animations and the other animations for a dedicated polish
 pass. Hands are paused now, not permanently excluded from the final game.

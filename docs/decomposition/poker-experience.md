@@ -1,5 +1,46 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## Fictional-chip bank — B14–E14
+
+A: pure PokerGame conserves its table total; HostTable persists authenticated
+membership and accepted wagers. There is no rebuy. A scripted existing six-seat
+all-in hand ended with one12000 stack and five zero stacks; startHand then has
+fewer than two funded seats. No completed/busted hand exists in the retained
+browser trace corpus, so this new probe is explicitly scripted, not browser use.
+D: a busted human can deliberately borrow2000 practice chips between hands,
+see debt, repay from winnings between hands, and recover the exact ledger after
+reconnect/restart. Neither duplicate commands nor chair replacement mint money
+or transfer another person's debt. All original poker privacy/conservation stays.
+
+Product defaults made explicit:2000 matches the starting buy-in; no interest,
+cash, purchases or external accounts. Debt is scoped to this room and stable
+principal. Leaving does not erase it or give it to the next occupant; ending
+the entire room ends its fictional ledger. A bounded outside reserve plus table
+chips totals1,000,000, matching the engine's existing numeric ceiling. Repayment
+may be partial. At most256 positive-debt identities per room bounds private
+checkpoint size; zero debt removes its entry. Hitting a safety limit must show a
+reason, never reset the bank. These are implementation defaults, not real loans.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B14 | Public scripted bust capture and accounting catalog | Current host runs all-in to settlement; browser absence disclosed | A displayed zero stack is not a new bank authority | Recorded HostTable output, existing real wager corpus |
+| C14 | Pure PracticeBank proposals and engine boundary-transfer contracts | Reserve+table conservation, debt sum, partial repayment, failed-command atomicity, restore and hand-history preservation | No renderer mutation or second mutable stack ledger | Recorded settled stacks; corruption/boundaries explicitly injected |
+| D14 | Host identity/sequence/checkpoint integration | Real HTTP duplicate/stale/reconnect/crash tests; old checkpoint migration | Chips/debt/receipt must commit together before ACK | Existing actual socket/recovery fixtures plus new recorded bank exchanges |
+| E14 | Compact bank controls and full room integration | CUA bust/borrow/repay/reload across clients; solo integration separately accounted | Pure arithmetic cannot prove actionable UI or recovery UX | Actual browser evidence required; current LAN navigation gate remains open |
+
+PracticeBank lives in src/session/bank, consumed only by HostTable once D14 is
+connected. It returns a validated next-ledger proposal plus signed table delta;
+the engine owns applying a boundary-only transfer. Engine/scene/audio/client
+must never import private bank internals. Host validates all before mutating,
+then commits engine, bank and accepted command in the same private checkpoint.
+No debt identities on wire; own debt/limits and public table amounts suffice.
+Solo bank integration must share accounting, not copy the ledger into UI;
+its storage migration remains an explicit later integration requirement.
+
+Unknowns: multi-client stale confirmation UX, solo persistence migration,
+abandoned-debt display, disk failure during bank ACK and actual bank-chip
+arrival animation. Keep animation art deferred until other features are done.
+
 ## Final sequencing correction — features first, animation polish last
 
 The user explicitly requests that once ALL remaining feature work is complete,

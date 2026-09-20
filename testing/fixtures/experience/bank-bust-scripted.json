@@ -1,0 +1,19 @@
+{
+  "source":"scripted-current-HostTable-all-in-hand-not-browser",
+  "events":[
+    {"seat":3,"action":{"type":"raise","to":2000},"code":"accepted"},
+    {"seat":4,"action":{"type":"call"},"code":"accepted"},
+    {"seat":5,"action":{"type":"call"},"code":"accepted"},
+    {"seat":0,"action":{"type":"call"},"code":"accepted"},
+    {"seat":1,"action":{"type":"call"},"code":"accepted"},
+    {"seat":2,"action":{"type":"call"},"code":"accepted"}
+  ],
+  "complete":{"phase":"complete","handNumber":1,"players":[
+    {"seat":0,"stack":0,"bet":0,"committed":0},
+    {"seat":1,"stack":0,"bet":0,"committed":0},
+    {"seat":2,"stack":0,"bet":0,"committed":0},
+    {"seat":3,"stack":12000,"bet":0,"committed":0},
+    {"seat":4,"stack":0,"bet":0,"committed":0},
+    {"seat":5,"stack":0,"bet":0,"committed":0}
+  ]}
+}
