@@ -1,6 +1,22 @@
 # Agent Code Poker
 
-## Active direction — full multiplayer first (restarted goal loop)
+## Active direction — finish the non-LAN gameplay list
+
+Latest user direction: LAN looks good; stop prioritizing LAN and complete the
+remaining gameplay list. Preserve its accepted appearance. Work in dependency
+order: normal keyboard-first betting, solo bank/rebuys, drink ownership and
+completed-player-alcoholic-sip-only intoxication, deliberate mouse-look, larger
+visible snow, cozy lighting/fireplace/audio, and measured performance/integration
+acceptance. Only then resume hand and other animation polish. Dealer canceled.
+This sequencing supersedes older multiplayer-first text, but does not turn
+unverified LAN/Electron requirements into completed work or authorize host edits.
+
+B8/E8 continuation: actual keyboard recording09-55-42 now retains B, fine/coarse
+arrows, all-in/cancel/reopen, native preset Enter and deliberate raise140. It
+reveals Cancel leaves amount2000 behind on reopen. Before enabling normal play,
+test this recorded case and reset canceled drafts to legal.min, retain submission
+latch, remove the legacy amount/slider path and DEV gate, and document all keys.
+Source AND shipped browser checks must verify cancel/confirm/focus/pause/restore.
 
 Shared-UI implementation checkpoint (B16–D16): original PokerChrome components
 now serve solo and LAN controllers, using original room/board/seat/action styles.

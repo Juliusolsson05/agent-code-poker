@@ -1,5 +1,33 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## Latest user priority — gameplay after accepted LAN appearance
+
+The user says LAN looks good and explicitly redirects implementation to all
+non-LAN gameplay items. Do not keep expanding LAN panels ahead of gameplay.
+Accepted appearance is user feedback, not proof of unperformed networking or
+Electron tests. Host/SDK edits remain outside current authority. Finish betting,
+bank/rebuys, sip-only intoxication/drink ownership, mouse-look and atmosphere/
+performance before final hand/animation polish. The dealer remains canceled.
+
+### B8–E8 normal keyboard betting integration
+
+A: existing opt-in BettingControls, isolated draft controller and engine/save
+authority; retained actual09-55-42 browser trace and canvas image. D: normal
+source/shipped play uses the same compact keyboard tray, without a slider or
+amount input, and cancellation cannot retain an abandoned all-in draft.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B8 follow-up | Raw09-55-42 capture and manifest hash | Actual downloaded JSON/PNG, input/public-state order | Native preset Enter differs from table Enter | CUA B/arrows/4/Esc/Enter/B/native-Min/Shift-arrow/Enter; stack2000 to1860 |
+| C8 follow-up | Regression against recorded cancel/reopen | Red test preserves record but requires discarded amount; no intent before confirmation | Historical bad amount is evidence, not expected output | Recorded open2000 after cancel, confirmed by live DOM |
+| D8 follow-up | Single normal BettingControls path | Remove DEV query and legacy App amount inputs, retain engine/save owner | Two amount owners would drift | Existing reducer and actual input record |
+| E8 follow-up | Source/shipped keyboard/focus/restore evidence | Actual UI cancel, presets, fine/coarse, confirm, pause/reload | Synthetic reducer tests do not establish browser input behavior | Fresh isolated QA, no user saves touched |
+
+Do not change poker rules or hand art. Cancel resets the uncommitted amount to
+the current legal minimum while preserving any submission latch. Native Enter
+on a preset selects only that preset. Unknowns still needing browser checks:
+pause/resume while sizing, focus recovery and normal shipped compact layout.
+
 ## Installed-extension hosting requirement — B17–E17
 
 User now requires starting LAN from inside Agent Code. Terminal instructions
