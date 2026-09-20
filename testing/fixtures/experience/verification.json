@@ -1,10 +1,10 @@
 {
-  "checkpoint": "D2 block drinks, recessed ashtray/cigar and safe free ordering; not finished-game acceptance",
+  "checkpoint": "D2 surface-fitted glass/cigar grips and shared opponent contact frames; not finished-game acceptance",
   "date": "2026-09-20",
   "automated": {
     "command": "npm run verify",
     "result": "passed",
-    "coverage": "41 tests including recorded all-drink ordering/disposal integration, block surfaces/anchors/ashtray raycasts, closed hand/sleeve topology, silhouette-preserving painting, real-input ownership replay, production skeleton integration and import boundary; TypeScript/build, 2 SDK packaging checks and exact-byte preview HTTP integration",
+    "coverage": "Full verify passed 46 tests including the newest 155-pose trace replay, actual triangle/prop envelopes, opposing supports, old penetrating-grip negative control and all five opponents at 81 held-phase samples, plus existing rules/ownership/props tests; TypeScript/build, 2 SDK packaging checks and exact-byte HTTP preview integration also pass.",
     "limitation": "Passing tests do not approve the recorded contact, anatomy, lighting or performance defects"
   },
   "sourceBrowser": {
@@ -45,5 +45,12 @@
     "measurement": "2303 instrumented frames, 772 poses, p50/p95 frame30/33.5ms and CPU submission5.9/7.9ms. Not controlled performance acceptance.",
     "visual": "Six recorded canvas images. Recessed tray and block drink contents visible; grips are still awkward and not signed off. Menu screenshots inspected in CUA transcript; no approved image golden."
   },
-  "remaining": ["opponent interaction ownership/contact", "visible finger/prop grip contact", "character anatomy/face refinement", "tree clearance", "cozy lighting", "controlled performance comparison", "reduced motion and visibility interruption checks", "fresh final source/production visual acceptance"]
+  "gripCheckpoint": {
+    "trace": "poker-evidence-2026-09-20T04-23-47-481Z.json.gz",
+    "source": "Paused sip, inspection safe return, cigar retrieval, call20 and reload retaining hand1 preflop stack1980 pot70. No console warnings/errors observed. A first trace download was missing; a new actual session was recorded and its raw file verified on disk.",
+    "production": "Shipped bundle sip, interrupted return/inspection, cigar pickup, legal call20, pause and reload retaining hand1 preflop stack1980 pot90. No console warnings/errors observed. QA left paused; Electron host not exercised.",
+    "measurement": "219 instrumented frames,155 poses; frame p50/p95 86.5/140.2ms, CPU submission6.2/8.5ms. Poor frame delivery; uncontrolled desktop load, no GPU timing and no performance-improvement claim.",
+    "visual": "Actual four-view hero glass/cigar and complete opponent sip images. Held contacts visibly improved; angular finger silhouette/card pose and gesture transitions remain open. CUA production screenshots inspected separately, not exported or called golden images."
+  },
+  "remaining": ["opponent interaction ownership/interruption", "grip transition sweeps and card-hand silhouette", "character anatomy/face refinement", "tree clearance", "cozy lighting", "controlled performance comparison", "reduced motion and visibility interruption checks", "fresh final source/production visual acceptance"]
 }

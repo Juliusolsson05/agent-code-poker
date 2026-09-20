@@ -3,6 +3,7 @@ import { Leisure } from './interactions/Leisure'
 import type { Calibration, Quat } from './interactions/contracts'
 import { PLAYER_LAYOUT } from './environment/layout'
 import { CIGAR, drinkAnchors, isDrinkKind, type DrinkKind } from './props/specs'
+import { CIGAR_HAND_CONTACT, GLASS_HAND_CONTACT, GLASS_HAND_ROTATION } from './HandGrips'
 
 export type { InteractionPose } from './interactions/contracts'
 const rotation = (x: number, y: number, z: number): Quat => new Quaternion().setFromEuler(new Euler(x, y, z)).toArray()
@@ -16,10 +17,9 @@ export class InteractionDirector {
   readonly calibration: Calibration
   private leisure: Leisure
   constructor() {
-    const glassRotation = basis(new Vector3(0, 1, 0), new Vector3(0, 0, -1), new Vector3(-1, 0, 0))
     const trayRotation = basis(new Vector3(-1, 0, 0), new Vector3(0, 0, -1), new Vector3(0, -1, 0))
     const smokeRotation = rotation(-.39, -.30, -.10)
-    const handCigarContact: [number, number, number] = [-.009, .091, .031]
+    const handCigarContact: [number, number, number] = [...CIGAR_HAND_CONTACT]
     const bite = new Vector3(...CIGAR.bite).add(new Vector3(...handCigarContact)).applyQuaternion(new Quaternion(...smokeRotation))
     this.calibration = {
       shoulder: [...PLAYER_LAYOUT.shoulder], armLengths: [.285, .285],
@@ -28,7 +28,7 @@ export class InteractionDirector {
       drinkHome: { position: [...PLAYER_LAYOUT.drink], rotation: [0, 0, 0, 1] },
       drinkMouth: { position: [.005, 1.245, 1.32], rotation: rotation(.24, 0, .08) },
       smokeHand: { position: new Vector3(.015, 1.335, 1.37).sub(bite).toArray(), rotation: smokeRotation },
-      glassHandRotation: glassRotation, handGlassContact: [-.004, .079, .047], glassContact: [.032, .040, 0], handCigarContact,
+      glassHandRotation: [...GLASS_HAND_ROTATION], handGlassContact: [...GLASS_HAND_CONTACT], glassContact: [.032, .040, 0], handCigarContact,
     }
     this.leisure = new Leisure(this.calibration)
     this.calibrateDrink('old-fashioned')

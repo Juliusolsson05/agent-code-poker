@@ -38,9 +38,14 @@ export function mountStudio(container: HTMLElement): void {
   const human = buildHuman(actorSeat, geometry, humanMaterial()); human.root.position.set(-1, 0, 0); scene.add(human.root)
   human.cards.add(createHeldCardFan(() => texture(null)).fan)
   const targets: Record<string, THREE.Object3D> = { ...hero.inspectionTargets, 'Opponent whole rig': human.root, 'Opponent left arm': human.leftRig.hand.root, 'Opponent right arm': human.rightRig.hand.root, 'Opponent face': human.head }
+  targets['Player drink grip'] = hero.inspectionTargets['Player cigar']
   const subject = container.querySelector('select')!, action = container.querySelectorAll('select')[1]
   Object.keys(targets).forEach(name => { const option = document.createElement('option'); option.textContent = name; subject.append(option) })
   const timeline = container.querySelector('input[type=range]') as HTMLInputElement, markers = container.querySelector('input[type=checkbox]') as HTMLInputElement
+  // A range is good for scrubbing, but an exact input makes the same held frame
+  // reproducible through keyboard/assistive UI without canvas coordinate hacks.
+  const exactTime = document.createElement('input'); exactTime.type = 'number'; exactTime.min = '0'; exactTime.max = '6.2'; exactTime.step = '.02'; exactTime.value = '0'
+  exactTime.setAttribute('aria-label', 'Exact animation time'); exactTime.style.width = '60px'; timeline.after(exactTime)
   const joints = new THREE.Group(); human.root.add(joints)
   const dots: THREE.Mesh[] = []
   for (const color of ['#46dddf', '#e280d9', '#ebc879', '#46dddf', '#e280d9', '#ebc879']) {
@@ -58,7 +63,6 @@ export function mountStudio(container: HTMLElement): void {
     if (action.value === 'drink') hero.sipDrink()
     hero.frame(time, false)
     hero.showInspectionSubject(opponent ? '' : selection)
-    Object.entries(hero.inspectionTargets).forEach(([name, object]) => { object.visible = !opponent && name === selection })
     human.sipAt = action.value === 'drink' ? 0 : -100; human.nextSip = 100
     poseHuman(human, time, { reduced: false, active: false, folded: action.value === 'fold', showing: false, hasCards: true, dealt: 1, action: action.value, actionAge: time, gaze: 0 })
     joints.visible = markers.checked
@@ -70,6 +74,7 @@ export function mountStudio(container: HTMLElement): void {
     targets[selection].traverse(o => { if (o instanceof THREE.SkinnedMesh) o.computeBoundingBox() })
     let bounds = new THREE.Box3().setFromObject(targets[selection])
     if (selection === 'Player cigar') bounds.union(new THREE.Box3().setFromObject(hero.tableProps.getObjectByName('player-cigar')!))
+    if (selection === 'Player drink grip') bounds.union(new THREE.Box3().setFromObject(hero.inspectionTargets['Old Fashioned']))
     if (selection === 'Opponent left arm' || selection === 'Opponent right arm') {
       const rig = selection.includes('left') ? human.leftRig : human.rightRig
       rig.mesh.computeBoundingBox(); bounds.union(new THREE.Box3().setFromObject(rig.mesh))
@@ -84,6 +89,8 @@ export function mountStudio(container: HTMLElement): void {
     })
   }
   subject.addEventListener('change', render); action.addEventListener('change', render); timeline.addEventListener('input', render); markers.addEventListener('change', render)
+  timeline.addEventListener('input', () => { exactTime.value = timeline.value })
+  exactTime.addEventListener('input', () => { timeline.value = String(THREE.MathUtils.clamp(Number(exactTime.value), 0, 6.2)); render() })
   container.querySelector('button')!.addEventListener('click', () => {
     render(); const link = document.createElement('a'); link.download = 'poker-rig-' + subject.value.toLowerCase().replaceAll(' ', '-') + '-seat' + actorSeat + '-' + action.value + '-' + timeline.value + '.png'; link.href = renderer.domElement.toDataURL('image/png'); link.click()
   })

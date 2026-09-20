@@ -7,8 +7,11 @@ type Pose = { curl: number[][]; spread: number[]; thumb: [number, number, number
 const POSES: Record<HandPose, Pose> = {
   rest: { curl: [[.12, .22, .12], [.16, .28, .14], [.21, .34, .19], [.29, .40, .22]], spread: [-.055, -.015, .02, .06], thumb: [-.66, .20, .22] },
   cards: { curl: [[.07, .12, .12], [1.20, 1.30, .80], [1.23, 1.30, .85], [1.25, 1.30, .85]], spread: [-.03, 0, .02, .06], thumb: [-.25, .40, -.25] },
-  cigar: { curl: [[.42, .68, .34], [.49, .79, .43], [.86, 1.20, .66], [.94, 1.18, .70]], spread: [-.04, .01, .045, .09], thumb: [-.50, .65, .43] },
-  glass: { curl: [[.58, .65, .34], [.65, .72, .38], [.72, .75, .42], [.82, .80, .44]], spread: [-.08, -.025, .025, .07], thumb: [-.90, .45, .35] },
+  cigar: { curl: [[0, .50, .405], [.60, .295, 0], [.45, .65, .40], [.55, .70, .45]], spread: [-.04, .01, .045, .09], thumb: [-.50, .65, .43] },
+  // Fit against the shared HandGrips contact frame and actual voxel skin, not
+  // just fingertip bones. Shorter digits cannot reach the middle finger's wrap
+  // angle without entering the glass; the little finger supports its near arc.
+  glass: { curl: [[.20, .40, .79], [.20, .70, .63], [.20, .40, .835], [.20, .10, .645]], spread: [-.08, -.025, .025, .07], thumb: [-.295, 1.20, .12] },
   push: { curl: [[.10, .08, .07], [.10, .07, .06], [.15, .09, .07], [.22, .12, .09]], spread: [-.09, -.02, .025, .085], thumb: [-.82, .16, .16] },
 }
 

@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { anatomyMaterial, VoxelSculpt } from './Voxel'
 import { SeatedArm } from './Arm'
 import { coaster, TableDrink, type DrinkKind } from './Drinks'
+import { GLASS_HAND_CONTACT, GLASS_HAND_ROTATION } from './HandGrips'
 
 export const humanMaterial = () => anatomyMaterial(.91)
 const PEOPLE = [
@@ -135,7 +136,7 @@ export function buildHuman(seat: number, _geometry: THREE.BoxGeometry, material:
   // time/actions only. A sip is never a hidden-strength tell.
   const kinds: DrinkKind[] = ['old-fashioned', 'beer', 'wine', 'water', 'old-fashioned', 'beer']
   const drink = new TableDrink(kinds[seat]), drinkHome = new THREE.Vector3(.27, .796, .46)
-  drink.root.position.copy(drinkHome); root.add(drink.root)
+  drink.root.position.copy(drinkHome); drink.root.rotation.y = Math.PI; root.add(drink.root)
   const mat = coaster(); mat.position.copy(drinkHome); mat.position.y -= .002; root.add(mat)
   return { root, head, leftArm: leftRig.forearm, rightArm: rightRig.forearm, leftRig, rightRig, cards, eyes, pupils, drink, drinkHome, seat, sipAt: -100, nextSip: 4 + seat * 3.7 }
 }
@@ -169,19 +170,29 @@ export function poseHuman(h: Human, time: number, options: { reduced: boolean; a
   const sipAge = time - h.sipAt, sipping = moving && sipAge >= 0 && sipAge < 6
   let rightTarget = new THREE.Vector3(.20, .857, .385), rightRotation = new THREE.Euler(Math.PI / 2, 0, -.12)
   rightRig.hand.pose('rest')
-  drink.root.position.copy(drinkHome); drink.root.quaternion.identity()
+  // The hero faces local -Z; an opponent faces local +Z. Rotate the complete
+  // vessel/contact frame, not just the wrist, so its near rim and grip remain on
+  // the body side. Copying the hero's unrotated frame sent the opponent wrist
+  // behind the far rim and hit the reach clamp 65mm before contact.
+  drink.root.position.copy(drinkHome); drink.root.rotation.set(0, Math.PI, 0)
   if (sipping) {
     const lift = sipAge < 2 ? THREE.MathUtils.smoothstep(sipAge, .8, 2) : sipAge < 3.3 ? 1 : 1 - THREE.MathUtils.smoothstep(sipAge, 3.3, 4.8)
     const grip = sipAge < .8 ? THREE.MathUtils.smoothstep(sipAge, 0, .8) : sipAge < 4.8 ? 1 : 1 - THREE.MathUtils.smoothstep(sipAge, 4.8, 6)
-    const mouth = new THREE.Vector3(.045, 1.365 - drink.rim.y, .14)
-    drink.root.position.lerp(mouth, lift); drink.root.rotation.x = -.24 * lift
-    const wristRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(-.10 - lift * .24, -.15, -1.18))
-    const contact = new THREE.Vector3(.036, .040, .008).applyQuaternion(drink.root.quaternion).add(drink.root.position)
-    const wrist = contact.sub(new THREE.Vector3(-.004, .079, .047).applyQuaternion(wristRotation))
+    head.rotation.x -= lift * .035
+    drink.root.rotation.x = -.24 * lift
+    head.updateWorldMatrix(true, false)
+    const mouth = h.root.worldToLocal(head.localToWorld(new THREE.Vector3(0, -.046, .076)))
+      .sub(drink.rim.clone().applyQuaternion(drink.root.quaternion))
+    drink.root.position.lerp(mouth, lift)
+    // The same local hand/glass frame must apply to hero and opponents. An
+    // unrelated Euler wrist rotation matched one point while rotating fingers
+    // through the vessel. The prop's rotation transports the entire grip frame.
+    const wristRotation = drink.root.quaternion.clone().multiply(new THREE.Quaternion(...GLASS_HAND_ROTATION))
+    const contact = drink.grip.clone().applyQuaternion(drink.root.quaternion).add(drink.root.position)
+    const wrist = contact.sub(new THREE.Vector3(...GLASS_HAND_CONTACT).applyQuaternion(wristRotation))
     rightTarget.lerp(wrist, grip)
     rightRotation.setFromQuaternion(new THREE.Quaternion().setFromEuler(rightRotation).slerp(wristRotation, grip))
     rightRig.hand.pose('glass', grip)
-    head.rotation.x -= lift * .035
   } else if (moving && options.action === 'bet' && beat) {
     rightTarget.add(new THREE.Vector3(-beat * .035, beat * .025, beat * .11)); rightRig.hand.pose('push')
   } else if (moving && options.action === 'check' && options.actionAge < .7) {

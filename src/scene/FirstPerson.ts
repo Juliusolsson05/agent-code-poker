@@ -97,8 +97,9 @@ export class FirstPerson {
     // it here is explicit view isolation, not replacement geometry.
     this.leftRig.mesh.visible = false
     this.rightRig.mesh.visible = false
-    this.left.root.visible = name === 'Player cards'; this.right.root.visible = name === 'Player cigar'
-    this.cigar.visible = name === 'Player cigar'; this.drink.root.visible = name === 'Old Fashioned'
+    this.left.root.visible = name === 'Player cards'; this.right.root.visible = name === 'Player cigar' || name === 'Player drink grip'
+    this.tableProps.children.forEach(object => { object.visible = false })
+    this.cigar.visible = name === 'Player cigar'; this.drink.root.visible = name === 'Old Fashioned' || name === 'Player drink grip'
   }
   update(cards: Card[], folded: boolean, hand: number, now = this.now): void {
     if (hand !== this.lastHand) { this.dealtAt = now; this.lastHand = hand }

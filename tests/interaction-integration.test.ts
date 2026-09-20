@@ -52,7 +52,7 @@ test('actual recorded four-drink ordering replaces only idle props and disposes 
   }
 })
 
-test('real recorded inputs drive the actual hero mesh with attached wrists and world-space props', () => {
+for (const recording of ['2026-09-20T03-19-01-705Z', '2026-09-20T04-23-47-481Z']) test(`real ${recording} inputs drive the actual hero mesh with attached wrists and world-space props`, () => {
   // Canvas rasterization is not tested here. A minimal canvas supplies only the
   // smoke texture constructor; actual production bones, skin, transforms and
   // interaction entry points run unchanged. Browser images remain art evidence.
@@ -66,18 +66,18 @@ test('real recorded inputs drive the actual hero mesh with attached wrists and w
   try {
     hero = new FirstPerson(new THREE.BoxGeometry(), () => texture)
     scene.add(hero.root, hero.tableProps)
-    const trace = JSON.parse(gunzipSync(readFileSync(new URL('../testing/fixtures/experience/poker-evidence-2026-09-20T03-19-01-705Z.json.gz', import.meta.url))).toString())
+    const trace = JSON.parse(gunzipSync(readFileSync(new URL(`../testing/fixtures/experience/poker-evidence-${recording}.json.gz`, import.meta.url))).toString())
     const sleeve = hero.root.getObjectByName('right-continuous-sleeve') as THREE.SkinnedMesh
     assert.ok(sleeve.isSkinnedMesh && sleeve.geometry.getAttribute('position').count > 100)
     let samples = 0
     for (const entry of trace.entries) {
+      // Sample the captured visual clock BEFORE dispatching an input, including
+      // commands between frames. Pause appears as repeated identical times.
+      hero.frame(entry.visualSeconds, false)
       if (entry.kind === 'playing') hero.setActive(entry.data.playing)
       if (entry.kind === 'drink') hero.sipDrink()
       if (entry.kind === 'smoke') hero.smokeCigar()
       if (entry.kind === 'inspection') hero.setInspection(entry.data.active)
-      // Production Room also supplies visual clock samples before UI commands.
-      // Input timing is preserved by sampling at each captured event timestamp.
-      if (entry.kind === 'frame' || entry.kind === 'pose') hero.frame(entry.visualSeconds, false)
       if (entry.kind !== 'pose') continue
       const result = hero.diagnosticPose(), hand = result.right as { world: number[] }
       const position = new THREE.Vector3().setFromMatrixPosition(new THREE.Matrix4().fromArray(hand.world))
@@ -90,7 +90,7 @@ test('real recorded inputs drive the actual hero mesh with attached wrists and w
       assert.equal(hero.root.parent, scene); assert.equal(hero.tableProps.parent, scene)
       samples++
     }
-    assert.equal(samples, 500)
+    assert.equal(samples, trace.counts.pose)
   } finally {
     hero?.dispose(); texture.dispose()
     scene.traverse(o => { if (o instanceof THREE.Mesh || o instanceof THREE.Sprite) {

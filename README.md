@@ -28,8 +28,13 @@ This is an evolving visual/gameplay implementation, not a finished realism bench
 trace recorder. Record evidence, exercise the real controls, capture views, then
 save the trace. It records public actions, transforms and frame timings—not deck
 or hole-card values—and never uploads telemetry. `/dev/?studio&seat=1` inspects
-the actual production rig from four angles with a scrubbed timeline. Studio
-poses are controlled inspections, not recordings of live gameplay.
+the actual production rig from four angles with a scrubbed timeline and exact
+time input. Select **Player drink grip**, **Drink**, time **2.6** to inspect hand
+and glass together. Studio poses are controlled inspections, not recordings of
+live gameplay. `npx tsx testing/audit-grip.ts` runs an offline calibration aid;
+the stronger triangle-envelope tests, not its sampled fit, guard runtime grips.
+Confirm downloaded evidence exists before leaving a session: browsers may
+block subsequent automatic downloads. A missing export is not retained proof.
 
 The current failing baseline and provenance live in `testing/fixtures/experience/`;
 these are not approved visual goldens. The staged plan is

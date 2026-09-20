@@ -28,3 +28,11 @@ the failing baseline: unbounded detached hero reach, bar/tree overlap, flat
 facial-hair slab, poor bent fingers, and slow frame delivery. Preserve these
 recordings while isolating ownership/coordinates, building the drink menu and
 block props, and validating layout, lighting and measured performance.
+
+The next verified D2 checkpoint fits glass/cigar poses against actual skin
+surfaces and shares contact frames across the cast. A failing opponent reach
+test exposed wrong-side seat coordinates; the corrected vessel frame avoids
+clamping without stretching arms. Exact-time four-view inspection, real source
+trace and shipped-preview checks preserve this progress. This does not close
+the broader anatomy/transition, Christmas layout/lighting or performance gates;
+continue from the detailed decomposition's surface-contact checkpoint.

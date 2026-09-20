@@ -4,10 +4,38 @@ import * as THREE from 'three'
 import { AnatomicalHand } from '../src/scene/Hand'
 import { createHeldCardFan } from '../src/scene/CardGrip'
 import { buildHuman, humanMaterial, poseHuman } from '../src/scene/Human'
+import { GLASS_HAND_CONTACT } from '../src/scene/HandGrips'
 
 function dispose(root: THREE.Object3D): void {
   root.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose()); if (o instanceof THREE.SkinnedMesh) o.skeleton.dispose() } })
 }
+
+test('every opponent keeps the shared glass contact attached throughout lift, sip and return', () => {
+  const material = humanMaterial(), box = new THREE.BoxGeometry()
+  for (let seat = 1; seat <= 5; seat++) {
+    const human = buildHuman(seat, box, material)
+    // A transformed seat catches accidental world/local mixing hidden by the
+    // neutral inspector. The hand must not reach an IK clamp while the vessel
+    // continues on its own independent trajectory.
+    human.root.position.set(1.3, 0, -.4); human.root.rotation.y = 1.7
+    human.sipAt = 0; human.nextSip = 100
+    for (let frame = 0; frame <= 80; frame++) {
+      const time = .8 + frame * .05
+      poseHuman(human, time, { reduced: false, active: false, folded: false, showing: false, hasCards: true, dealt: 1, actionAge: time, gaze: 0 })
+      human.root.updateMatrixWorld(true)
+      const hand = human.rightRig.hand.root.localToWorld(new THREE.Vector3(...GLASS_HAND_CONTACT))
+      const glass = human.drink.root.localToWorld(human.drink.grip.clone())
+      assert.ok(hand.distanceTo(glass) < 1e-7, `seat ${seat} at ${time}: ${hand.distanceTo(glass) * 1000}mm detached grip`)
+      if (time >= 2 && time <= 3.3) {
+        const lip = human.head.localToWorld(new THREE.Vector3(0, -.046, .076))
+        const rim = human.drink.root.localToWorld(human.drink.rim.clone())
+        assert.ok(lip.distanceTo(rim) < 1e-7, `seat ${seat}: rim misses the animated mouth`)
+      }
+    }
+    dispose(human.root)
+  }
+  material.dispose(); box.dispose()
+})
 
 test('the actual card fan does not intersect any finger or palm triangle', () => {
   const hand = new AnatomicalHand('left'); hand.pose('cards')

@@ -3,6 +3,15 @@
   "semanticsSource": "Julius's reported requirements: connected arms, credible grips, no prop/furniture clipping, private cards, cozy Christmas lighting, block props, compact drink ordering and smooth performance",
   "cases": [
     {
+      "id": "surface-contact-and-opponent-frame",
+      "trace": "poker-evidence-2026-09-20T04-23-47-481Z.json.gz",
+      "images": ["contact-player-glass.png", "contact-player-cigar.png", "contact-opponent-sip.png"],
+      "evidence": "Offline measurement of a661198's authored glass pose finds over 20mm penetration despite matching anchors. Applying the shared hero frame unchanged to an opposite-facing opponent fails a production-rig test with 64.829mm detachment at the reach clamp. These are explicitly synthetic measurements of real production geometry, not browser metrics.",
+      "expected": "Actual skin triangles clear voxel prop envelopes; every supporting digit remains near its surface, with opposing supports. Same grip frame transported by each vessel; all five opponents retain contact and rim/mouth alignment without arm stretching.",
+      "status": "held-surface-and-cast-contact-contracts-verified; transition-and-anatomy-art-open",
+      "candidate": "New tests check full triangle projections, not just sampled vertices or bones. Shared hand calibration plus opponent vessel rotation fixes wrong-side reaching. Fresh live trace replays 155 actual hero poses; source/production sip, interruption, cigar and saves checked. Three four-view images preserve the current angular silhouette; not final visual approval."
+    },
+    {
       "id": "block-props-and-free-ordering",
       "trace": "poker-evidence-2026-09-20T04-02-22-844Z.json.gz",
       "frequency": { "orders": 4, "sips": 4 },

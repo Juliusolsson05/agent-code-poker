@@ -324,3 +324,58 @@ menu choices, ale/wine/water sipping, disabled mid-motion orders, pause/resume,
 inspection return and cigar pickup. Orders leave the stack at 2,000; call 20
 spends only that legal wager. Reload retains hand 1 flop, stack 1,980 and pot
 252. No production console warnings/errors observed. Electron host is separate.
+
+### D2 surface contacts and opposite-facing grips
+
+The block props exposed a false invariant: equal attachment anchors did not
+mean the skin touched the correct surface. An offline audit of the a661198
+glass pose measured over 20mm of penetration, with the palm 38mm away. Preserve
+that authored pose as a negative control. `testing/audit-grip.ts` is a disposable-
+process, deterministic calibration aid, not runtime IK. Runtime uses static
+grip frames/poses. `grip-surfaces.test.ts` measures the entire deformed triangle
+projection against conservative voxel-cylinder envelopes, not only fingertips
+or sampled vertices. This caught the first cigar candidate that a sparse vertex
+audit missed. Supporting fingers must also stay close, with thumb/fingers or
+index/middle on opposing sides; moving the prop out of reach cannot pass.
+
+The glass now sits closer to the palm and the thumb opposes the finger wrap.
+The cigar has an index/middle pinch and less tightly curled unused fingers.
+`HandGrips.ts` is the shared contact-frame source for hero and opponents. A new
+cast-wide test failed at 64.829mm wrist/glass separation: opponents face local
++Z, unlike the hero's -Z. Rotating the complete vessel/contact frame to its
+near side fixes the reach assumption without changing arm lengths, moving the
+coaster, or independently clamping the held prop. All five opponents now retain
+contact at 81 samples across lift/sip/return; their actual rim targets the
+animated head's mouth rather than a separately guessed height. Their legacy
+scheduling/ownership still needs migration and interruption/reduced-motion work.
+
+The studio now isolates the actual hand AND glass together, with an exact-time
+numeric control for repeatable contact frames. Three fresh four-view PNGs show
+hero glass/cigar and the complete opponent sip. Sleeves are explicitly hidden
+only in hand close-ups, never in the complete rig or live game. Finger silhouette
+remains angular, the card pose is stiff, and transition collision sweeps are not
+yet accepted. Research reference: Blender's official Armature Modifier manual
+describes volume loss under ordinary rotational blending; that supports keeping
+deformation quality separate from collision tests, not claiming a new volume-
+preserving skinning implementation (none was added):
+https://docs.blender.org/manual/en/latest/modeling/modifiers/deform/armature.html
+
+Source browser checks include sip/pause/inspection return/cigar, legal call20,
+and reload retaining hand1 preflop stack1980 pot70, with no warnings/errors.
+The first live trace export did not appear on disk (only its paused-sip PNG did);
+do not invent that missing trace. A new actual recording was exported and
+confirmed: `2026-09-20T04-23-47-481Z`, 219 frames/155 poses. Its inputs are replayed
+through the production hero alongside the original failing baseline. Frame
+p50/p95 86.5/140.2ms and CPU submission6.2/8.5ms are poor, uncontrolled samples
+on a busy desktop, not a controlled comparison or GPU timing. Performance is
+still an explicit open gate. No source/production artwork is called perfect.
+
+Final `npm run verify` passes 46 tests, TypeScript/build, two SDK contract checks
+and exact-byte production-preview HTTP integration. The shipped bundle was
+independently exercised for sip, interrupted return/inspection, cigar, call20,
+pause and reload retaining hand1 preflop stack1980 pot90. No warnings/errors
+observed. Three rig PNGs, one seated PNG and the raw trace are committed with
+their honest provenance; production screenshots were inspected in CUA only.
+Electron host remains unverified. Next gates: grip/ownership transition sweeps,
+card-hand/character silhouette, then Christmas clearance/light and controlled
+performance profiling (do not carry this poor uncontrolled timing as baseline).
