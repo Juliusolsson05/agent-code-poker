@@ -764,3 +764,16 @@ zero reach correction, preserving the old matrices as negative controls. Then
 integrate shared calibration without changing ownership clocks, arm lengths,
 card transforms or engine rules. Actual presenter and browser motion remain
 separate gates: a pure endpoint test cannot approve a silhouette or comfort.
+
+### D2 thumb silhouette reopened from user image
+
+User screenshot `user-thumb-silhouette-before.png` shows the cigar-pose thumb
+curling as a raised hook across the palm, with a bulbous base and no visible
+thumbnail. This is actual user evidence, not a synthetic golden. Preserve it
+and compare the same production hand. The cigar is supported by index/middle,
+so the thumb should rest abducted along the palm's side, not oppose an absent
+glass. Isolate cigar-pose splay from the necessary glass-opposition pose; flatten
+the thenar mound, taper the thumb and add a small dorsal nail for anatomical
+readability. Verify existing glass/cigar triangle clearance, closed deformation
+and card nonpenetration unchanged. A thumb-tip side-of-palm test protects this
+specific pose error, but only actual images can approve the overall silhouette.

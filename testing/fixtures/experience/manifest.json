@@ -187,6 +187,7 @@
     }
   ],
   "rigImages": [
+    { "file": "user-thumb-silhouette-before.png", "subject": "User-reported cigar thumb silhouette", "candidate": "Actual user screenshot supplied during continuation8. Bulky hooked thumb over palm; failing baseline, not art approval. No renderer timing or exact capture time supplied." },
     { "file": "poker-fixed-2026-09-20T05-06-31-602Z.png", "subject": "Legacy canvas AA fixed-time lobby", "candidate": "Rejected pixel comparison baseline: old sampler still inherited NPC sip history. Preserve as diagnostic negative control, not visual golden." },
     { "file": "poker-fixed-2026-09-20T05-09-06-358Z.png", "subject": "No canvas AA fixed-time lobby", "candidate": "Rejected comparison candidate: differences around two NPC arms/glasses reflect stateful scheduling. Canonical rest-pose pair still required; no equivalence or speed claim." },
     { "file": "christmas-before-lighting.png", "url": "/dev/?qa=christmas-clearance&stats&record", "subject": "Seated room before lighting pass", "candidate": "Actual browser canvas export 2026-09-20T04-32-10-582Z at 9.961s, after tree placement but before illumination/decor mounting corrections. Raw trace not retained. Different animated frame; not a pixel-aligned golden pair." },
