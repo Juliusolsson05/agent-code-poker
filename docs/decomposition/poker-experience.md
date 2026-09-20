@@ -23,6 +23,14 @@ Unknown: comfortable timing and exterior skin throughout all intermediate poses;
 reject/revise corridor if triangle or reach checks fail, without weakening tests.
 Do not change bones, finger poses, arm lengths, glass dimensions or sip duration.
 
+C21 immediately exposed a bad starting assumption: seat1's resting hand already
+enters the tall ale vessel by7.810mm at time0, before acquisition. The route
+cannot begin collision-free from that anchor. Revise the shared resting wrist
+3cm toward the body center (x.20→.17), leaving glass/coaster and finger art
+unchanged; validate the entire rest→clearance→contact route and reverse. This is
+a contact landmark correction, not another anatomy pass. Preserve the old rest
+matrix as a second negative control; do not skip time0 to make tests pass.
+
 ### B20–E20 normal mouse-look integration
 
 Checkpoint: B20/C20 retained raw evidence plus exact-delta replay pass; D20

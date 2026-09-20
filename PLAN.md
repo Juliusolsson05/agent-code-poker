@@ -4,6 +4,10 @@
 
 ### Active slice: exterior NPC glass acquisition/release
 
+C21 failed already at time0: resting skin intersects tall ale by7.810mm. Revise
+the starting wrist3cm inward before designing the corridor; preserve this new
+negative control. Do not weaken the finite-glass test or change hand geometry.
+
 The10-29-18 raw wrist/glass matrices admit a source-assisted reconstruction of
 the legacy rest→glass blend.201 transition samples penetrate the vessel; worst
 14.868mm at seat1/time13.1773. This is reconstructed skin, not captured vertices.
