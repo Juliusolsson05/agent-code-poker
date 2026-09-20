@@ -1,3 +1,5 @@
+import { FIREPLACE_LAYOUT } from './layout'
+
 /** Actual rendered room placements, in metres. The renderer and clearance tests
  * consume this one plan: a separately drawn test rectangle can quietly bless
  * furniture intersections when the production bar or wall changes. No DOM,
@@ -7,7 +9,7 @@ type Glow = [color: string, x: number, y: number, z: number, sx: number, sy: num
 type Sign = [text: string, x: number, y: number, z: number, width: number, height: number, small?: boolean]
 type Practical = [color: string, power: number, x: number, y: number, z: number]
 
-export function createRoomPlan() {
+export function createRoomPlan(options: { fireplace?: boolean } = {}) {
   const blocks: RoomBlock[] = [], glows: Glow[] = [], signs: Sign[] = [], lights: Practical[] = []
   const glow = (...args: Glow) => glows.push(args)
   const sign = (...args: Sign) => signs.push(args)
@@ -55,6 +57,21 @@ export function createRoomPlan() {
     for (let row = 0; row < 9; row++) b('#51412d', x, 2.76 - row * .014, -.06, .18 + row * .040, .015, .15 + row * .027)
     glow('#ffdca1', x, 2.637, -.06, .42, .008, .29, 5)
   }
-  return { blocks, glows, signs, lights }
+  if (!options.fireplace) return { blocks, glows, signs, lights }
+  // The requested back-wall hearth cannot be placed behind an intact counter:
+  // that both intersects masonry and hides the fire. Split the *same* authored
+  // back-bar plan around its shared bay, including shelf glows. Preserve back wall,
+  // floor, ceiling, outer window/decor and all table/chair coordinates. Keeping
+  // the uncut plan available preserves the actual browser baseline in tests.
+  const split = (b: RoomBlock): RoomBlock[] => {
+    if (b.position[2] >= -2.75 || b.position[2] <= -5.24 || b.position[1] <= 0) return [b]
+    const min = b.position[0] - b.size[0] / 2, max = b.position[0] + b.size[0] / 2
+    const { bayMinX, bayMaxX } = FIREPLACE_LAYOUT
+    if (max <= bayMinX || min >= bayMaxX) return [b]
+    return [[min, Math.min(max, bayMinX)], [Math.max(min, bayMaxX), max]]
+      .filter(([lo, hi]) => hi - lo >= .035)
+      .map(([lo, hi]) => ({ color: b.color, position: [(lo + hi) / 2, b.position[1], b.position[2]], size: [hi - lo, b.size[1], b.size[2]] }))
+  }
+  return { blocks: blocks.flatMap(split), glows: glows.flatMap(([color, x, y, z, sx, sy, sz, strength]) =>
+    split({ color, position: [x, y, z], size: [sx, sy, sz] }).map(b => [color, ...b.position, ...b.size, strength] as Glow)), signs, lights }
 }
-

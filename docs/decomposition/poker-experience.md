@@ -2,6 +2,36 @@
 
 ## D4 fireplace geometry checkpoint — continuation 15
 
+**Latest user correction supersedes both placements below:** enlarge the hearth
+and offset it between the dealer and another person. Candidate is now 2.21m
+wide, centered at back-wall x=1.4 (right of future dealer); shared bay bounds
+drive both masonry placement and bar clipping. The actual native-CUA centered
+preview showed the central opponent hiding the fire, confirming why mere
+collision clearance is insufficient. No hand animation changes.
+
+Creator Assets' YouTube fireplace loop is now acquired from its official
+download endpoint. CC0 provenance and byte checksum live beside the MP3.
+Source-only candidate playback uses one gesture-unlocked streaming media
+element, pause/mute/focus gates and explicit disposal. Lifecycle tests are
+synthetic; listening quality and shipped playback are not yet verified.
+
+Final automated checkpoint: `npm run verify` passes83 tests, TypeScript/build,
+two SDK packaging checks and exact-byte HTTP preview. Fresh browser checks did
+not reach production: extension connection failed, and native QA was interrupted
+when focus returned to the user's ordinary game. Do not operate that tab. The
+earlier centered source view and hand entry were observed in CUA only, not
+exported as new golden files. No proof of actual drag, latest offset visibility,
+audio quality, seamless loop or FPS improvement. Continue those gates, dealer,
+drinking/intoxication and chip audio; do not resume paused hand-animation work.
+
+**User correction:** the hearth must be centered on the main back wall behind
+the future dealer, not in the side bay. Supersedes the placement below. Split
+the back bar/counter/shelves around a 1.64m central bay; preserve the original
+recorded plan as a negative control showing the intersections a simple move
+would create. Test the derived production plan and unchanged outer furniture,
+and retain actual visual acceptance as open. User requests YouTube fire audio;
+verify an explicit reuse license and bundle locally with provenance before use.
+
 Hands remain paused. CUA cannot reconnect to the owned camera QA tab, so the
 mouse-look candidate stays development-only. Continue the independently
 testable fireplace slice, without treating geometry tests as visual approval.

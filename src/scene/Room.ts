@@ -7,6 +7,7 @@ import { ChipField } from './Chips'
 import { CardField } from './Cards'
 import { createHeldCardFan } from './CardGrip'
 import { ChristmasTavern } from './Christmas'
+import { Fireplace } from './environment/Fireplace'
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import { createTableSurface, dealerPosition, TABLE } from './Table'
 import { SceneCapture, transform } from './diagnostics/SceneCapture'
@@ -29,6 +30,7 @@ export class PokerRoom {
   // Keep this integration explicitly opt-in until real source/shipped checks
   // pass; a synthetic controller test is not permission to change live play.
   readonly experimentalLook = import.meta.env.DEV && new URLSearchParams(location.search).has('look')
+  private readonly experimentalFireplace = import.meta.env.DEV && new URLSearchParams(location.search).has('fireplace')
   private seatedLook = new SeatedLook()
   private lookPlaying = false
   private lookBlocked = false
@@ -68,6 +70,7 @@ export class PokerRoom {
   private gaze = new THREE.Vector2()
   private dust: THREE.Points
   private christmas: ChristmasTavern
+  private fireplace?: Fireplace
   private stats: HTMLOutputElement | null = null
   private measuredAt = performance.now()
   private measuredFrames = 0
@@ -116,6 +119,12 @@ export class PokerRoom {
     this.scene.add(createTavernLighting())
     this.buildRoom()
     this.christmas = new ChristmasTavern(); this.scene.add(this.christmas.root)
+    // Clearance/resource tests cannot approve composition or fire motion.
+    // Stage the asset in isolated source QA until actual browser evidence is
+    // retained; the user-facing shipped room must not silently inherit it.
+    if (this.experimentalFireplace) {
+      this.fireplace = new Fireplace(); this.scene.add(this.fireplace.root)
+    }
     const skinMaterial = humanMaterial(); this.materials.set('humans', skinMaterial)
     for (let seat = 1; seat < 6; seat++) {
       const human = buildHuman(seat, this.geometry, skinMaterial); const [x, z] = SEATS[seat]
@@ -146,6 +155,10 @@ export class PokerRoom {
         treeBounds: this.christmas.treeBounds.min.toArray().concat(this.christmas.treeBounds.max.toArray()),
         decorBounds: [...this.christmas.decorBounds].map(([name, bounds]) => ({ name, bounds: bounds.min.toArray().concat(bounds.max.toArray()) })),
         roomBlocks: this.roomBlocks,
+        fireplace: this.fireplace ? {
+          bounds: new THREE.Box3().setFromObject(this.fireplace.root).min.toArray().concat(new THREE.Box3().setFromObject(this.fireplace.root).max.toArray()),
+          flameInstances: this.fireplace.flames.count, geometryBatches: 2, extraShadowPasses: 0,
+        } : null,
         table: { feltY: TABLE.feltY }, exposure: this.renderer.toneMappingExposure, pipeline: this.post.diagnostics(),
         prints: { chips: this.chips.printDiagnostics(), felt: {
           width: this.textures.get('felt')!.image.width, height: this.textures.get('felt')!.image.height,
@@ -245,7 +258,7 @@ export class PokerRoom {
     mesh.position.set(x, y, z); mesh.scale.set(sx, sy, sz); this.scene.add(mesh)
   }
   private buildRoom(): void {
-    const plan = createRoomPlan(), blocks = this.roomBlocks = plan.blocks
+    const plan = createRoomPlan({ fireplace: this.experimentalFireplace }), blocks = this.roomBlocks = plan.blocks
     plan.glows.forEach(args => this.glow(...args))
     plan.signs.forEach(args => this.sign(...args))
     plan.lights.forEach(([color, power, x, y, z]) => {
@@ -440,6 +453,7 @@ export class PokerRoom {
     })
     this.dust.rotation.y = this.reduced.matches ? 0 : Math.sin(t * .02) * .08
     this.christmas.frame(t, this.reduced.matches)
+    this.fireplace?.frame(t, this.reduced.matches)
     this.chips.frame(now / 1000, this.reduced.matches); this.cardField.frame(now / 1000, this.reduced.matches)
     if (this.stats || this.capture) this.renderer.info.reset()
     this.capture?.beforeRender()

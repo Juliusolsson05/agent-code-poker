@@ -3,6 +3,13 @@
   "semanticsSource": "Julius's reported requirements: connected arms, credible grips, no prop/furniture clipping, private cards, cozy Christmas lighting, block props, compact drink ordering and smooth performance",
   "cases": [
     {
+      "id": "offset-back-wall-fireplace-and-local-recording",
+      "trace": "poker-evidence-2026-09-20T04-36-26-293Z.json.gz",
+      "evidence": "Retained actual room/decor geometry proves an uncut bar intersects a new rear hearth. Native CUA source qa=fireplace-native-15 showed the first centered chimney but central opponent hid the fire. Source entered Q-clubs/8-diamonds hand, pot70/stack2000 and audio-playing indicator; no exported new trace or listening evidence. User then requested larger offset placement.",
+      "expected": "Larger fireplace on main wall between dealer and adjacent player, no furniture intersections, bounded block flames and local licensed natural recording with pause/mute/disposal safety.",
+      "status": "source-only-fireplace-flag; enlarged-offset-candidate-and-synthetic-clearance/audio-tests-pass; latest-visual-listening-production-performance-open"
+    },
+    {
       "id": "seated-camera-parallax-not-deliberate-look",
       "trace": "poker-evidence-2026-09-20T05-52-49-020Z.json.gz",
       "frequency": { "seatedPoses": 325 },

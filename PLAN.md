@@ -8,6 +8,14 @@ natural fire audio and realistic chip audio; autonomous staged implementation.
 The exact numbered list is at the top of `docs/decomposition/poker-experience.md`.
 Preserve other existing features, but do not re-add omitted wishlist items.
 
+Latest fireplace direction: larger and offset on the main back wall between the
+future dealer and another player, not centered behind a torso or on a side wall.
+The source-only `&fireplace` candidate widens it to2.21m atx1.4 with a matching
+bar opening. Creator Assets' YouTube fire loop is downloaded from its official
+CC0 endpoint and wired locally with pause/mute/focus gates. Initial native-CUA
+centered view exposed occlusion; latest offset framing/listening/source-shipped
+acceptance remain open. Hand-animation work remains paused.
+
 Refs #1. Deliver a standalone API-v2 extension: six-seat No-Limit Texas Hold’em against five local opponents in a spacious, procedural block-built 3D card room.
 
 1. Build a deterministic, UI-independent poker engine and exhaustive five-card evaluator used for best-of-seven hands. Protect legal betting, heads-up order, full-raise reopening, side pots, ties, odd chips, and conservation with behavioral tests and simulated tournaments.

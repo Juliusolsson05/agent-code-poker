@@ -40,3 +40,13 @@ export const CHRISTMAS_LAYOUT = {
   // wreath stays below the lowest beam face at y=3.285 and ahead of the mirror.
   garlandDepth: -4.68, wreath: [0, 2.94, -4.63] as [number, number, number],
 } as const
+
+/** Back-wall fireplace is intentionally offset right: from the seated eye,
+ * x=1.4 at the rear wall projects between the future central dealer and the
+ * right-center opponent, rather than disappearing behind the central torso.
+ * Widen the hearth, not the room or camera. Bar clipping uses this same bay so
+ * a later fireplace move cannot silently leave shelves running through it. */
+export const FIREPLACE_LAYOUT = {
+  position: [1.4, 0, -4.91] as [number, number, number],
+  widthScale: 1.7, bayMinX: .12, bayMaxX: 2.68,
+} as const

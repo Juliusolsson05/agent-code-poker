@@ -1,11 +1,19 @@
-// All sounds are synthesized after a genuine gesture. A modest master gain and
+import { FireAmbience } from './audio/FireAmbience'
+
+// Action sounds are synthesized after a genuine gesture. A modest master gain and
 // short envelopes keep six players' actions from becoming an exhausting chorus.
 export class PokerAudio {
   private context: AudioContext | null = null
   private master: GainNode | null = null
   muted = false
+  private fire?: FireAmbience
+  constructor(fireSource?: string) {
+    if (fireSource) this.fire = new FireAmbience(new Audio(fireSource))
+  }
+  setAmbienceActive(active: boolean): void { this.fire?.setActive(active) }
   unlock(): void {
     if (this.muted) return
+    this.fire?.unlock()
     try {
       if (!this.context) {
         this.context = new AudioContext()
@@ -18,6 +26,7 @@ export class PokerAudio {
   }
   setMuted(muted: boolean): void {
     this.muted = muted
+    this.fire?.setMuted(muted)
     if (this.context && this.master) this.master.gain.setTargetAtTime(muted ? 0 : 0.18, this.context.currentTime, 0.02)
   }
   play(kind: 'card' | 'chip' | 'turn' | 'win' | 'fold'): void {
@@ -37,5 +46,5 @@ export class PokerAudio {
       osc.onended = () => { osc.disconnect(); env.disconnect() }
     })
   }
-  dispose(): void { void this.context?.close().catch(() => {}); this.context = null; this.master = null }
+  dispose(): void { this.fire?.dispose(); void this.context?.close().catch(() => {}); this.context = null; this.master = null }
 }

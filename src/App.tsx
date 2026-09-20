@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { PokerApi } from './api'
 import { PokerAudio } from './audio'
+import fireplaceRecording from './assets/audio/fireplace-creator-assets.mp3?inline'
 import { evaluate } from './engine/cards'
 import { chooseAction, observe } from './engine/bots'
 import { CHARACTERS, PokerGame, STREETS, type Action, type GameState, type Legal } from './engine/game'
@@ -49,7 +50,7 @@ export function App({ api }: { api: PokerApi }) {
 
   useEffect(() => {
     alive.current = true
-    audio.current = new PokerAudio()
+    audio.current = new PokerAudio(import.meta.env.DEV && new URLSearchParams(location.search).has('fireplace') ? fireplaceRecording : undefined)
     let current = true
     void api.storage.get<Save>(SAVE_KEY).then(saved => {
       if (!current) return
@@ -97,6 +98,15 @@ export function App({ api }: { api: PokerApi }) {
   }, [gameState, sceneReady])
   useEffect(() => { scene.current?.setOrbit(orbit); setSceneReady(n => n + 1) }, [orbit])
   useEffect(() => { scene.current?.setPlaying(!lobby) }, [lobby, sceneReady])
+  useEffect(() => {
+    // The ambience follows the same explicit table pause gates as gameplay.
+    // Hide/blur stops the media immediately, not after React commits; returning
+    // focus does not resume betting or audio without the existing resume flow.
+    const sync = () => audio.current?.setAmbienceActive(!document.hidden && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed)
+    const blur = () => audio.current?.setAmbienceActive(false)
+    document.addEventListener('visibilitychange', sync); window.addEventListener('blur', blur); sync()
+    return () => { document.removeEventListener('visibilitychange', sync); window.removeEventListener('blur', blur) }
+  }, [api, lobby, paused, panel, confirmNew, error, sceneFailed])
   // One paused visual clock preserves the exact grip/deal/chip contact across
   // dialogs and focus loss. Wall-clock animation would teleport to its ending.
   useEffect(() => { scene.current?.setPaused(paused || !!panel || confirmNew || !!error || sceneFailed) }, [paused, panel, confirmNew, error, sceneFailed, sceneReady])
