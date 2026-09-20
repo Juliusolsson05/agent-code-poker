@@ -2,6 +2,20 @@
 
 ## Active direction — finish the non-LAN gameplay list
 
+### Next slice: completed-sip feedback, no anatomy edits
+
+The existing Leisure sampler owns reach/lift/sip/return on the paused visual
+clock but emits no completed-sip receipt. Recordings already retain real drink
+orders and interruptions; add tests at the existing sip-end3s boundary before
+implementation. One receipt per completed player sip, none for pre-contact
+interruption, ordering, smoke or water exposure. Add a bounded cosmetic warmth
+accumulator consuming receipts, not keys/frames; decay to sober over ten active
+minutes at maximum, reset on leaving/reloading, freeze when paused. A room-only
+static edge tint has no camera roll, blur, HUD filtering or new render target.
+Off/Subtle/Soft control; reduced-motion remains static. Verify actual source/
+shipped order-only, completed sip, water and off behavior; do not call the
+unresolved NPC exterior-grip/hand anatomy visually approved by this feature.
+
 ### Next staged slice: solo practice bank
 
 Checkpoint: solo bank implemented with shared private accounting and one v2

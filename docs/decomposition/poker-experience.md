@@ -2,6 +2,28 @@
 
 ## Latest user priority — gameplay after accepted LAN appearance
 
+### B19–E19 completed-sip feedback
+
+Existing real player drink/interruption recordings and calibrated ownership
+sampler are the baseline. Current source emits requests but no completion; no
+intoxication effect exists. Preserve geometry and all motion timing.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B19 | Completion boundary catalog | Existing Leisure: sip2.1–3.0, return3.0–4.2; actual prior orders/interruption traces | A D-key request is not a consumed sip | Source audit plus retained drink recordings |
+| C19 | Receipt and cosmetic state tests | Once per sip, skipped samples, pre-sip interruption, pause, order/smoke/water exclusion, cap/off/decay | Neither frames nor drink selection may cause exposure | Boundary injections explicitly synthetic |
+| D19 | Single player receipt owner and cheap optional scene tint | Director tags drink identity; Room drains receipt once; no engine/odds/camera/HUD changes | Visual effect cannot own drinking mechanics | Static edge warmth, no blur or postprocess allocation |
+| E19 | Actual source/shipped menu/sip/off/restore evidence | CUA actions and captured receipts, readable same original UI | Synthetic state is not motion/comfort acceptance | NPC exterior grip and final anatomy remain open |
+
+Policy: six completed alcoholic sips saturate a bounded cosmetic warmth value;
+water never increments it. Linear decay reaches zero in ten active minutes from
+the cap, freezes with the visual clock and resets on leaving/reload. Off disables
+and clears exposure, without accumulating hidden debt for re-enable. Subtle and
+Soft scale only the edge tint; reduced-motion has no oscillation/roll. Settings
+are session-local initially and disclosed as such. No claim of BAC simulation.
+This staged completion mechanism does not close the separate observed exterior
+NPC grip or player hand-art/contact acceptance; those remain required later.
+
 ### B18–E18 solo bank/rebuy integration
 
 D18/E18 checkpoint: neutral ledger shared by exactly HostTable and solo/table;
