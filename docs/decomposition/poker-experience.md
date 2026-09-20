@@ -1,5 +1,65 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## New feature backlog — LAN table, player identity and practice-chip bank
+
+User explicitly requested these additions to the feature list, not immediate
+network implementation. This supersedes the historical *planned scope*
+restriction against networking; the current shipped game remains local-only.
+Do not start a LAN listener, change host/firewall permissions or add external
+services merely because this backlog is recorded. Hands remain paused.
+
+16. **Host/join LAN session:** create a table on the local network, show a lobby
+    code, and let another user enter that code to join. No public matchmaking,
+    cloud account or Internet relay requested. Transport, code-to-host discovery,
+    browser/extension runtime support and host lifecycle need staged design.
+17. **Always six playing seats:** humans replace NPC occupants; bots fill all
+    remaining seats. No extra seventh player. A dedicated dealer is a separate
+    non-playing character, not a betting seat. Define full-lobby rejection,
+    disconnect/reconnect and safe bot takeover before implementation.
+18. **Name entry:** enter a display name when entering the lobby; show the right
+    name on that player's seat for everyone. Treat names as untrusted plain text,
+    with length limits, never markup or identity/authentication secrets.
+19. **Player character model:** author a model representing each human player,
+    visible to the other participants. Preserve the self-authored block style.
+    This does not resume the explicitly paused hand-animation pass or imply
+    custom avatar uploads/editor work.
+20. **Personal first-person seat:** every client sees themselves at the existing
+    local player location. Rotate/remap other players and NPCs for that client's
+    view; users need not choose a camera seat. Stable authoritative seat IDs,
+    turn order, dealer button, balances and card ownership must remain unchanged
+    beneath this presentation mapping. Never rotate the engine itself or expose
+    an opponent's private cards because their display slot becomes zero.
+21. **Practice-chip bank:** when out of chips, request a rebuy and record chips
+    owed to the bank. Interpretation: fictional chips and fictional debt only;
+    no real-money payments, lending or purchases. Rebuy amounts, limits,
+    repayment and persistence are unresolved product rules, not silently chosen.
+
+### Required decomposition before implementation
+
+- Record the current local lobby/start/restore/bust/rebuy behavior; catalog
+  differences rather than claiming multiplayer already works.
+- Isolate contracts for stable player/seat identity, per-client seat projection,
+  redacted state delivery, host-owned actions, session admission and an explicit
+  bank ledger. Add deterministic fixtures for duplicates, stale actions,
+  reconnects, full tables, mid-hand joins and name validation.
+- Proposed safety rule to evaluate: stage a human-for-bot substitution at a safe
+  hand boundary so joining cannot reveal an in-progress NPC hand. Joining must
+  not duplicate bankrolls or retroactively change who made a wager.
+- One authoritative host owns deck, engine and chip/debt transactions. Clients
+  submit validated intentions, not mutable game snapshots. Existing bot privacy
+  alone is insufficient for network privacy: send each client only public data
+  and its own private cards; never send the full deck to hide it in UI.
+- Bank issuance must be explicit accounting (table chips, outside reserve and
+  debt), not a rendering adjustment or a relaxation of within-hand conservation.
+  Exactly-once rebuy IDs and reconnect/save behavior require tests.
+- Implement isolated units before connecting LAN transport; test at least two
+  real clients plus NPCs, client-relative seating, concealed hands, host loss,
+  reconnect and rebuys. Actual LAN/browser/host evidence is distinct from mocks.
+
+These are additive future stages after the current confirmed list; they do not
+erase fireplace/audio, dealer, mouse-look, folded-card, lettering or drinking/
+actual-sip-only intoxication requirements. No multiplayer/bank work is complete.
+
 ## D4 fireplace geometry checkpoint — continuation 15
 
 **Latest user correction supersedes both placements below:** enlarge the hearth

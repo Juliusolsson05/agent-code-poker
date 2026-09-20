@@ -1,5 +1,14 @@
 # Agent Code Poker
 
+New backlog addition (planning only): LAN host/join by lobby code; exactly six
+playing seats with humans replacing NPCs and NPCs filling the remainder; display
+name entry; self-authored player character models; per-client presentation that
+always places the local human at the existing first-person seat; fictional-chip
+bank rebuys with tracked fictional debt. Dealer remains separate from six seats.
+See the top of `docs/decomposition/poker-experience.md` for numbered requirements,
+privacy/accounting contracts and unresolved rules. Current runtime stays local;
+this request does not yet start networking or resume hand-animation work.
+
 Latest user scope overrides the broad goal-loop text: stop hand-animation work;
 retain folded backs on felt; readable chip lettering; center human dealer;
 efficient deliberate mouse-look; actual-drink-only intoxication; proper player/
