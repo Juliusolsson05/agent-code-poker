@@ -16,6 +16,22 @@ imports. Existing HTTP admission/retry and CUA reload evidence are the substrate
 new storage-denial/closed-tab/cross-tab probes are labeled synthetic until a real
 CUA session is captured. Tests precede implementation. Normal CLI stays gated.
 
+E12 ownership revision: the exclusive PID file is a safe refusal, but cannot
+provide automatic crash recovery without unsafe stale-lock guessing. Replace
+new ownership with a long-lived SQLite EXCLUSIVE transaction used only as an
+OS-released lease, not as another poker ledger. The atomic JSON checkpoint
+remains the source of truth. Node's built-in sqlite avoids a native package;
+supported Node becomes22.13 LTS or24+, and its experimental warning is disclosed.
+SQLite locking reference: https://www.sqlite.org/lockingv3.html; Node API/version
+reference: https://nodejs.org/api/sqlite.html. One host consumes the lease through
+CheckpointStore. A child-process SIGKILL test must demonstrate that a competing
+writer is refused while alive and may restore after death. This is deliberate
+crash injection, not a production recording. No filesystem lock file is stolen.
+Legacy host.lock still refuses startup to protect older running writers. Under
+the acquired lease, preserve an interrupted regular table.pending file as a
+private uniquely named archive; never promote an unacknowledged partial write.
+Unknown directories/symlinks remain errors. Existing disk-fault tests stay intact.
+
 A: `HostTable` owns private state and last accepted command, but `server/http.ts`
 loses all of it on close. Client credentials live only in sessionStorage.
 D: restarting the explicit host preserves one authoritative six-seat ledger;
