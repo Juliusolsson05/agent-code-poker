@@ -1,5 +1,34 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## Full multiplayer integration — restarted loop, B11–E11
+
+A: `HostTable` and bounded HTTP transport return private-view DTOs, while Room,
+Cards and ChipLedger still expect full local GameState. D: the actual3D room
+projects only public facts plus the local player's allowed cards, with six
+stable authority IDs and a separate symmetric display rotation. Never invent
+hidden Card values or cast a viewer DTO back to GameState.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B11 | Renderer input catalog and retained public traces | Enumerate deck/seat/hole consumers and missing network evidence | Existing renderer has private-state assumptions invisible in HTTP tests | Actual04-02 folds and05-52 wager/pose recordings; session19 CUA |
+| C11 | Presentation snapshot contracts and pre-implementation tests | Recorded balances/folds for all6 rotations; synthetic hidden/queued/showdown/reset cases labeled | Stable authority seats must not become action seat IDs | Retained raw traces unchanged; real HTTP checks remain separate |
+| D11 | One RoomProjection boundary consumed by PokerRoom | Renderer/cards/chips use minimal explicit state, no deck or fake faces; duplicate/missed revisions safe | No renderer-local arbitration between local and remote truth | C11 and existing folded-card/chip regressions |
+| E11 | Standalone3D website client and compiled asset allowlist | Two CUA clients join/name/play, own-card visibility, relative seats, pause/reconnect; source/shipped regressions | A diagnostic lobby is not the requested experience | Real browser recordings; separate-device test remains separately labeled |
+
+Presentation-only rotations also map actor/button/results and chip accounts;
+wire actions continue using authenticated identity, never rotated seat IDs.
+RoomProjection alone may import local GameState and the public TableView type;
+Cards/Chips/ChipLedger must not import session authority or engine GameState.
+An opaque local deal generation preserves reset semantics without copying the
+private deck into presentation. Hidden cards are a count, visible cards explicit
+values. Waiting joiners cannot inspect the replaced NPC's hand.
+
+Unknowns: network revision gaps versus animation replay, stable avatar identity
+across different seat rotations, client asset CSP/bundling, host tab visibility
+versus connectivity, persistence and ended-session recovery. Existing renderer
+geometry and hand art are not redesigned by this stage. This is the user's
+requested boundary change, not permission to weaken recorded fold/chip tests.
+
 ## Release scope and priority — continuation17
 
 The user confirms the whole agreed list is the remaining production scope and

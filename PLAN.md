@@ -1,5 +1,15 @@
 # Agent Code Poker
 
+## Active direction — full multiplayer first (restarted goal loop)
+
+The user explicitly asks to finish multiplayer in the actual3D game before
+moving to bank/keyboard/drinking/audio/snow. The test lobby is scaffolding, not
+the deliverable. Next B11–E11 isolate renderer input from private GameState,
+preserve recorded card/chip behavior for every relative seat, then connect the
+standalone website to the real room and controls. Dealer canceled, hand art
+paused. Follow with durable reconnect/session lifecycle and real two-client
+acceptance; do not mark LAN complete from loopback HTTP tests.
+
 **Scope correction — dealer removed (September 20):** the user rejected the
 human-dealer experiment: it did not work well and made the seating awkward,
 with clustered center figures and an isolated/clipped edge guest. Remove the
