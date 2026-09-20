@@ -32,6 +32,14 @@ This is an evolving visual/gameplay implementation, not a finished realism bench
 
 `src/engine/` owns the ledger and legal decisions; `src/scene/` projects state into cards, chips, voxel humans and first-person hands; `src/App.tsx` owns controls, pacing and storage. Rendering never changes chip balances. Keep WHY comments beside these invariants. Full Electron-host verification is separate from the browser preview.
 
+`src/session/` is the isolated LAN foundation, not an available multiplayer mode.
+`HostTable` owns six seats and the engine; `view.ts` explicitly projects public
+data plus the viewer's private cards. Mid-hand arrivals reserve a bot seat for
+the next deal. Principal-bound actions reject stale/duplicate wagers; disconnect
+permits host bot control without transferring the seat. No listener, lobby code,
+credentials, network persistence or client rendering is wired yet. Never send
+the solo app's full `GameState` or cast a redacted view back into one.
+
 ## Visual evidence workflow
 
 Keyboard-betting candidate: `/dev/?qa=keyboard&betkeys&record&stats` replaces the

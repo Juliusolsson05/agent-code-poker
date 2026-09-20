@@ -44,9 +44,41 @@ byte production HTTP check. Attempting to reattach the isolated source CUA tab
 timed out; no fresh visual or production-browser acceptance is claimed for this
 removal. Existing visual/performance gates remain open.
 
-## Latest addition — NPCs grip glass interiors
+## Continuation18 — LAN authority and private-view boundary first
 
-### Continuation18 — LAN authority and private-view boundary first
+C9/D9 checkpoint: HostTable and the explicit view projection now exist, with
+eleven tests. Nine actual public-game records replay unchanged for all six
+viewer seats. New admission, hidden-card noninterference, stale/duplicate input,
+disconnect, complete-versus-new-deal and side-pot cases are explicitly synthetic.
+Tests were authored before implementation; their initial missing-module failure
+is not evidence of a reproduced real networking bug. The negative control shows
+why serializing an existing full local snapshot is unsafe. No tests weakened.
+Default host shuffle uses Web Crypto separately from bot randomness. Production
+and solo App do not import this layer; real authentication/transport is still
+required before claiming a secure or playable LAN session.
+
+Actual solo regression observations are recorded in
+`testing/fixtures/experience/session-18-observations.json` (manual CUA notes,
+not a raw trace or image fixture). Source call20/stack1980 and inspection passed
+before the capture/pause batch timed out; no new export survived. Production
+call76, inspection, pause and reload restored hand1/stack1924/pot1012/Call597;
+captured warn/error log was empty. Screenshots were inspected in tool output,
+not saved as goldens. No source-restoration, LAN, listening, FPS or Electron claim.
+
+Final continuation18 verification: `npm run verify` passes103 tests,
+TypeScript/build,2 SDK artifact checks and exact-byte production preview. The
+shipped dist and lockfile are unchanged because the host layer is not imported
+by the solo view. Worktree review found no engine/scene/UI mutation.
+
+Next transport constraint, verified against the installed pinned SDK README
+(Lifetime and communication): network APIs are not exposed to extensions.
+Do not bypass the extension sandbox or patch Agent Code. Implement/test the
+website-first host as an explicit standalone process in this repository; keep
+extension LAN hosting deferred until a supported API exists. Browser code cannot
+open a listening TCP socket. Lobby-code discovery, same-origin client delivery,
+authentication, bounded payloads/rate limits, lifecycle and private wire-state
+captures need their own staged contract before exposing LAN access. This is an
+integration limitation, not a reason to abandon the authorized web game.
 
 A: App currently owns PokerGame, saves full GameState and runs bots/timers; Room
 receives that complete state. That is a trusted local pipeline, NOT a network
@@ -83,6 +115,8 @@ names in structured action history, real relative-seat rendering, and LAN-host
 support in the extension. Do not expose a listener or claim multiplayer complete
 from this authority slice. The latest explicit LAN request supersedes historical
 no-networking boilerplate; no public relay, firewall edits or host-repo changes.
+
+## Latest addition — NPCs grip glass interiors
 
 23. User reports NPC drinking looks wrong because hands grab from **inside**
     the glass instead of around its outside. Preserve as an explicit drinking
