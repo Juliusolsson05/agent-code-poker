@@ -24,7 +24,9 @@ test('larger offset fireplace needs a split bar and clears the derived productio
     assert.equal(padded.intersectsBox(box(b)), false, `room block ${JSON.stringify(b)}`)
   }
   for (const [color, x, y, z, sx, sy, sz] of candidate.glows) assert.equal(padded.intersectsBox(box({ color, position: [x, y, z], size: [sx, sy, sz] })), false, 'shelf strips cross the chimney')
-  const outer = (b: RoomBlock) => b.position[0] + b.size[0] / 2 <= FIREPLACE_LAYOUT.bayMinX || b.position[0] - b.size[0] / 2 >= FIREPLACE_LAYOUT.bayMaxX || b.position[2] >= -2.75 || b.position[2] <= -5.24
+  // The complete back bar is intentionally redesigned, not clipped. Outside
+  // that authored furniture zone the actual wall/window/table remain fixed.
+  const outer = (b: RoomBlock) => Math.abs(b.position[0]) > 2.85 || b.position[2] >= -2.75 || b.position[2] <= -5.24 || b.position[1] < 0
   for (const b of (actual.roomBlocks as RoomBlock[]).filter(outer)) assert.ok(candidate.blocks.some(c => JSON.stringify(c) === JSON.stringify(b)), 'outer furniture moved to conceal a collision')
   for (const d of actual.decorBounds) {
     const decor = new Box3(new Vector3(...d.bounds.slice(0, 3)), new Vector3(...d.bounds.slice(3)))
@@ -50,14 +52,29 @@ test('fire uses two opaque batches, one bounded light, no shadow and stable fram
     fire.flames.computeBoundingBox(); fire.root.updateMatrixWorld(true)
     assert.ok(envelope.containsBox(fire.flames.boundingBox!.clone().applyMatrix4(fire.flames.matrixWorld)), 'flame escapes hearth envelope')
     assert.equal(fire.flames.geometry, geometry); assert.equal(fire.flames.instanceMatrix.array, array)
-    assert.ok(fire.light.intensity >= 2.7 && fire.light.intensity <= 3.3)
+    assert.ok(fire.light.intensity >= 1.59 && fire.light.intensity <= 1.81)
   }
-  assert.equal(fire.flames.count, 18)
+  assert.equal(fire.flames.count, 128)
   const version = matrix.version
   fire.frame(359 / 60, false)
   assert.equal(matrix.version, version, 'same paused visual time must not upload again')
   fire.frame(20, true); const still = matrix.array.slice(), frozenVersion = matrix.version
   fire.frame(100, true)
   assert.deepEqual(matrix.array, still); assert.equal(matrix.version, frozenVersion)
-  assert.equal(fire.light.intensity, 3, 'reduced motion freezes light as well as flame')
+  assert.equal(fire.light.intensity, 1.7, 'reduced motion freezes light as well as flame')
+})
+
+test('redesigned left bar has complete shelf ends, bottles and cabinet panels, not clipped fragments', () => {
+  const plan = createRoomPlan({ fireplace: true })
+  const shelves = plan.blocks.filter(b => b.color === '#4a3526')
+  assert.equal(shelves.length, 3)
+  for (const shelf of shelves) {
+    assert.equal(shelf.size[0], 2.45)
+    assert.ok(shelf.position[0] + shelf.size[0] / 2 < FIREPLACE_LAYOUT.bayMinX)
+  }
+  assert.ok(plan.blocks.some(b => b.color === '#705333' && b.position[0] === .08 && b.size[1] === 2.3), 'shelf needs a finished full-height end upright')
+  assert.ok(plan.blocks.some(b => b.color === '#34241c' && b.position[0] === .075 && b.size[2] === .6), 'counter needs an authored side panel')
+  const bodies = plan.blocks.filter(b => b.position[2] === -4.87 && b.size[0] === .078)
+  assert.equal(bodies.length, 30)
+  assert.ok(bodies.every(b => b.position[0] + b.size[0] / 2 < .08), 'no cut bottle beside the shelf end')
 })

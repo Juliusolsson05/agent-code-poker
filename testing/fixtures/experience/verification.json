@@ -1,6 +1,7 @@
 {
   "checkpoint": "Hands paused. Larger offset hearth and local CC0 fire recording now enabled on ordinary source /dev/. Read-only native CUA screenshot confirms visible opening between center and right-center guests. Production and listening acceptance remain open; mouse-look still requires source look flag.",
   "fireplaceCheckpoint": {
+    "latestRevision": "User rejected clipped shelf/candle fire. Candidate now authors a complete shorter left bar, darker masonry, mantel greenery/stockings and128 connected flame/core/ember block instances in the same two batches. Spatial graph uses one media source,HRTF panner and quiet.045 ambience bus; actual camera matrix drives listener at30Hz. User confirms crackle audible; no agent listening/turning acceptance. Native read-only latest view was paused/blurred, so new art is not approved by that screenshot.",
     "geometry": "2.21m wide, x1.4 rear wall; shared bay clips bar/counter/shelves without moving outer furniture. Actual recorded room is negative control; isolated rendered solids clear derived room, recorded decor and oriented chairs with3cm padding. Two mesh batches,18 flame blocks,one extra point light,no additional shadow; no measured performance approval.",
     "audio": "Creator Assets YouTube wdCzrjcO4OU official MP3 downloaded unmodified:59.031917s,44100Hz stereo,1423119bytes. CC0 primary-source provenance and SHA256 beside asset. Single media element with gesture/pause/mute/hidden/disposal gates; synthetic lifecycle tests, not listening proof.",
     "browser": "Extension browser disconnected/timeouts; native CUA separate qa=fireplace-native-15 window showed centered first candidate and source hand Q-clubs/8-diamonds,pot70/stack2000. Audio-playing UI indicator seen, not audible assessment. User correction moved/enlarged candidate afterward. Native window switched to user /dev/; stopped sending inputs. No new image files/raw trace retained; latest offset/source interactions and production browser checks remain open.",
@@ -25,7 +26,7 @@
   "automated": {
     "command": "npm run verify",
     "result": "passed",
-    "coverage": "83 tests pass, including fireplace clearance against recorded obstacles, fixed resource buffers, pause/reduced-motion and downloaded asset hash plus synthetic audio lifecycle. Full TypeScript/build/packaging/HTTP preview result recorded in decomposition; no listening or new browser acceptance implied.",
+    "coverage": "Full npm run verify passes85 tests, TypeScript/build,2SDK checks and exact-byte HTTP preview. Includes complete authored bar, fireplace clearance, bounded flame buffers, synthetic HRTF graph/camera axes, quiet gain, audio lifecycle and downloaded asset hash. No listening, latest-art or production-browser acceptance implied.",
     "limitation": "Passing tests do not approve the recorded contact, anatomy, lighting or performance defects"
   },
   "sourceBrowser": {

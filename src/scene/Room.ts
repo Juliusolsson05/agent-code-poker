@@ -26,6 +26,8 @@ import { PostProcessing, RENDERER_OPTIONS } from './rendering/PostProcessing'
  * Fine voxel anatomy and a perspective lens are the foundation here; glow
  * cannot compensate for the wrong scale or viewpoint. */
 export class PokerRoom {
+  onAudioListener?: (matrix: ArrayLike<number>) => void
+  private lastAudioPose = -Infinity
   // Fresh drag/comfort evidence is unavailable while CUA is disconnected.
   // Keep this integration explicitly opt-in until real source/shipped checks
   // pass; a synthetic controller test is not permission to change live play.
@@ -424,6 +426,10 @@ export class PokerRoom {
     if (this.diagnosticWide && !this.probeMode) {
       this.camera.position.set(3.8, 2.7, 2.8); this.camera.lookAt(0, 1.35, -3.15)
       this.camera.fov = 75; this.camera.updateProjectionMatrix()
+    }
+    if (t - this.lastAudioPose >= 1 / 30 || this.lastAudioPose > t) {
+      this.lastAudioPose = t; this.camera.updateMatrixWorld()
+      this.onAudioListener?.(this.camera.matrixWorld.elements)
     }
     if (this.experimentalLook) {
       // Project labels in the same frame as the scene without React frame

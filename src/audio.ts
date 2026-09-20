@@ -7,13 +7,13 @@ export class PokerAudio {
   private master: GainNode | null = null
   muted = false
   private fire?: FireAmbience
-  constructor(fireSource?: string) {
+  constructor(fireSource?: string, private firePosition?: readonly number[]) {
     if (fireSource) this.fire = new FireAmbience(new Audio(fireSource))
   }
   setAmbienceActive(active: boolean): void { this.fire?.setActive(active) }
+  setListenerMatrix(matrix: ArrayLike<number>): void { this.fire?.setListenerMatrix(matrix) }
   unlock(): void {
     if (this.muted) return
-    this.fire?.unlock()
     try {
       if (!this.context) {
         this.context = new AudioContext()
@@ -21,6 +21,8 @@ export class PokerAudio {
         this.master.gain.value = 0.18
         this.master.connect(this.context.destination)
       }
+      if (this.firePosition) this.fire?.connectSpatial(this.context, this.firePosition)
+      this.fire?.unlock()
       void this.context.resume().catch(() => {})
     } catch { /* Silent play stays available on hosts without audio. */ }
   }

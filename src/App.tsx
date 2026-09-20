@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { PokerApi } from './api'
 import { PokerAudio } from './audio'
 import fireplaceRecording from './assets/audio/fireplace-creator-assets.mp3?inline'
+import { FIREPLACE_LAYOUT } from './scene/environment/layout'
 import { evaluate } from './engine/cards'
 import { chooseAction, observe } from './engine/bots'
 import { CHARACTERS, PokerGame, STREETS, type Action, type GameState, type Legal } from './engine/game'
@@ -50,7 +51,8 @@ export function App({ api }: { api: PokerApi }) {
 
   useEffect(() => {
     alive.current = true
-    audio.current = new PokerAudio(import.meta.env.DEV ? fireplaceRecording : undefined)
+    audio.current = new PokerAudio(import.meta.env.DEV ? fireplaceRecording : undefined,
+      [FIREPLACE_LAYOUT.position[0], .4, FIREPLACE_LAYOUT.position[2] + .05])
     let current = true
     void api.storage.get<Save>(SAVE_KEY).then(saved => {
       if (!current) return
@@ -80,6 +82,7 @@ export function App({ api }: { api: PokerApi }) {
       if (document.hidden || room) return
       try {
         room = new PokerRoom(stage.current!, () => { setSceneFailed(true); setPaused(true) }, () => setSceneReady(n => n + 1), setLeisure)
+        room.onAudioListener = matrix => audio.current?.setListenerMatrix(matrix)
         scene.current = room; setSceneReady(n => n + 1)
         room.update(game.current?.snapshot() ?? new PokerGame().snapshot())
       } catch (reason) { console.error('Poker room initialization failed', reason); setSceneFailed(true) }

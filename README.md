@@ -35,9 +35,12 @@ This is an evolving visual/gameplay implementation, not a finished realism bench
 Fireplace candidate is visible on the ordinary source `/dev/` page. For isolated
 recording use `/dev/?qa=fireplace&record&stats&look`. This enlarged
 back-wall hearth is offset between the future dealer and right-center guest;
-the bar is split around it. It remains pending visual/performance acceptance.
+the shorter left bar is authored beside it with complete shelf ends. The hearth
+has mantel greenery, stockings and layered block flames, pending final visual/performance acceptance.
 It includes the Creator Assets CC0 fire recording, starts after a gesture and
-stops for pause/mute/hidden views. See `src/assets/audio/README.md` for provenance.
+stops for pause/mute/hidden views. A quiet HRTF source follows the hearth's world
+position and actual camera orientation, including look/inspection; no flat
+duplicate playback. See `src/assets/audio/README.md` for provenance.
 Listening and browser acceptance remain open. Production remains unchanged.
 
 Mouse-look candidate: add `&look` to a source QA URL. Left-drag the scene,

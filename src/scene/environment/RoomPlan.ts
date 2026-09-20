@@ -1,5 +1,3 @@
-import { FIREPLACE_LAYOUT } from './layout'
-
 /** Actual rendered room placements, in metres. The renderer and clearance tests
  * consume this one plan: a separately drawn test rectangle can quietly bless
  * furniture intersections when the production bar or wall changes. No DOM,
@@ -21,20 +19,26 @@ export function createRoomPlan(options: { fireplace?: boolean } = {}) {
   for (let x = -4; x <= 4; x++) b('#221d18', x, 3.40, -1.1, .12, .23, 8)
   // Dark back-bar mirror, brass uprights and individually labelled bottles
   // supply scale/depth. Their highlights stay subordinate to faces and felt.
-  b('#14181a', 0, 1.93, -5.15, 4.50, 2.5, .08)
-  for (const x of [-2.3, -.76, .76, 2.3]) b('#705333', x, 1.87, -5.00, .035, 2.3, .10)
+  // Author a complete shorter cabinet beside the hearth, not a rectangular
+  // subtraction from an old shelf. Subtraction left amputated bottles, missing
+  // end uprights and floating shelf edges. The legacy variant is retained only
+  // for the recorded baseline/production gate; both layouts have whole parts.
+  const hearth = !!options.fireplace, shelfX = hearth ? -1.125 : 0
+  b('#14181a', shelfX, 1.93, -5.15, hearth ? 2.3 : 4.50, 2.5, .08)
+  for (const x of hearth ? [-2.3, -1.11, .08] : [-2.3, -.76, .76, 2.3]) b('#705333', x, 1.87, -5.00, .035, 2.3, .10)
   for (const y of [1.13, 1.80, 2.48]) {
-    b('#4a3526', 0, y, -4.89, 4.65, .055, .47); glow('#f2b269', 0, y - .032, -4.95, 4.3, .012, .03)
-    for (let i = 0; i < 20; i++) {
+    b('#4a3526', shelfX, y, -4.89, hearth ? 2.45 : 4.65, .055, .47); glow('#f2b269', shelfX, y - .032, -4.95, hearth ? 2.15 : 4.3, .012, .03)
+    for (let i = 0; i < (hearth ? 10 : 20); i++) {
       const x = -2.10 + i * .22, h = .22 + i % 4 * .038, color = ['#574125', '#253e30', '#65452a', '#334132', '#604029'][i % 5]
       b(color, x, y + h / 2 + .032, -4.87, .078, h, .078); b(color, x, y + h + .06, -4.87, .039, .076, .039)
       b('#a49673', x, y + h + .106, -4.87, .043, .018, .043); b(i % 3 ? '#9c8863' : '#3c332a', x, y + h * .47, -4.825, .063, h * .34, .003)
     }
   }
-  b('#201712', 0, .55, -3.82, 5.4, 1.1, .68)
-  for (let x = -2.5; x < 2.6; x += .39) { b('#34241c', x, .54, -3.46, .35, .91, .027); b('#6b5032', x, .91, -3.44, .30, .016, .016) }
-  b('#392e26', 0, 1.12, -3.76, 5.7, .10, .92); b('#8b673d', 0, .16, -3.18, 5.3, .035, .035)
-  for (const x of [-1.7, -.55, .65, 1.8]) {
+  b('#201712', hearth ? -1.35 : 0, .55, -3.82, hearth ? 2.82 : 5.4, 1.1, .68)
+  for (let x = -2.5; x < (hearth ? -.1 : 2.6); x += .39) { b('#34241c', x, .54, -3.46, .35, .91, .027); b('#6b5032', x, .91, -3.44, .30, .016, .016) }
+  b('#392e26', hearth ? -1.365 : 0, 1.12, -3.76, hearth ? 2.97 : 5.7, .10, .92); b('#8b673d', hearth ? -1.37 : 0, .16, -3.18, hearth ? 2.7 : 5.3, .035, .035)
+  if (hearth) b('#34241c', .075, .54, -3.82, .035, .91, .60) // finished cabinet end panel
+  for (const x of hearth ? [-1.7, -.55] : [-1.7, -.55, .65, 1.8]) {
     b('#171818', x, .36, -2.98, .036, .69, .036); b('#2b201c', x, .72, -2.98, .36, .09, .36); b('#27221d', x, .045, -2.98, .34, .06, .34)
   }
   b('#151719', -3.55, 2.01, -5.17, 1.35, 2.15, .15)
@@ -57,21 +61,5 @@ export function createRoomPlan(options: { fireplace?: boolean } = {}) {
     for (let row = 0; row < 9; row++) b('#51412d', x, 2.76 - row * .014, -.06, .18 + row * .040, .015, .15 + row * .027)
     glow('#ffdca1', x, 2.637, -.06, .42, .008, .29, 5)
   }
-  if (!options.fireplace) return { blocks, glows, signs, lights }
-  // The requested back-wall hearth cannot be placed behind an intact counter:
-  // that both intersects masonry and hides the fire. Split the *same* authored
-  // back-bar plan around its shared bay, including shelf glows. Preserve back wall,
-  // floor, ceiling, outer window/decor and all table/chair coordinates. Keeping
-  // the uncut plan available preserves the actual browser baseline in tests.
-  const split = (b: RoomBlock): RoomBlock[] => {
-    if (b.position[2] >= -2.75 || b.position[2] <= -5.24 || b.position[1] <= 0) return [b]
-    const min = b.position[0] - b.size[0] / 2, max = b.position[0] + b.size[0] / 2
-    const { bayMinX, bayMaxX } = FIREPLACE_LAYOUT
-    if (max <= bayMinX || min >= bayMaxX) return [b]
-    return [[min, Math.min(max, bayMinX)], [Math.max(min, bayMaxX), max]]
-      .filter(([lo, hi]) => hi - lo >= .035)
-      .map(([lo, hi]) => ({ color: b.color, position: [(lo + hi) / 2, b.position[1], b.position[2]], size: [hi - lo, b.size[1], b.size[2]] }))
-  }
-  return { blocks: blocks.flatMap(split), glows: glows.flatMap(([color, x, y, z, sx, sy, sz, strength]) =>
-    split({ color, position: [x, y, z], size: [sx, sy, sz] }).map(b => [color, ...b.position, ...b.size, strength] as Glow)), signs, lights }
+  return { blocks, glows, signs, lights }
 }
