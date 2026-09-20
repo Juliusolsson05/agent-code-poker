@@ -32,6 +32,14 @@ This is an evolving visual/gameplay implementation, not a finished realism bench
 
 ## Visual evidence workflow
 
+Keyboard-betting candidate: `/dev/?qa=keyboard&betkeys&record&stats` replaces the
+slider/number field with a compact draft tray. **B** opens, arrows change by one
+chip, **Shift + arrows** by one big blind, **1–4** select min/half-pot/pot/all-in,
+**Enter** confirms with table focus, **Esc** cancels. Tab and native button
+Enter/Space retain their meanings. No chips move until confirmation or F/C.
+Pause/menu/revision changes discard the draft. This remains source-only opt-in
+until real browser keyboard/focus/layout checks pass; ordinary play is unchanged.
+
 Fireplace candidate is visible on the ordinary source `/dev/` page. For isolated
 recording use `/dev/?qa=fireplace&record&stats&look`. This enlarged
 back-wall hearth is offset between the future dealer and right-center guest;

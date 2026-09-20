@@ -11,6 +11,7 @@ import { DRINKS, type DrinkKind } from './scene/props/specs'
 import { DrinkMenu } from './components/DrinkMenu'
 import { PlayingCard } from './components/PlayingCard'
 import { CommunityBoard } from './components/CommunityBoard'
+import { BettingControls, type BettingHandle } from './components/BettingControls'
 
 const SAVE_KEY = 'poker.table.v1'
 type Save = { table: GameState | null; muted: boolean; speed: 'relaxed' | 'brisk' }
@@ -34,6 +35,10 @@ export function App({ api }: { api: PokerApi }) {
   const [confirmNew, setConfirmNew] = useState(false)
   const [raiseTo, setRaiseTo] = useState(40)
   const [raiseOpen, setRaiseOpen] = useState(false)
+  // Keep the new ownership/focus path isolated until actual keyboard sessions
+  // pass. Pure reducer tests cannot establish browser native-button behavior.
+  const keyboardBetting = import.meta.env.DEV && new URLSearchParams(location.search).has('betkeys')
+  const betting = useRef<BettingHandle>(null)
   const [inspecting, setInspecting] = useState(false)
   const [drinkMenu, setDrinkMenu] = useState(false)
   const [leisure, setLeisure] = useState<{ kind: DrinkKind; available: boolean }>({ kind: 'old-fashioned', available: false })
@@ -152,7 +157,7 @@ export function App({ api }: { api: PokerApi }) {
     void persist(next)
   }
   const perform = (action: Action) => {
-    if (locked.current || !game.current || game.current.snapshot().actor !== 0 || paused || sceneFailed || error) return
+    if (locked.current || !game.current || game.current.snapshot().actor !== 0 || paused || panel || confirmNew || drinkMenu || lobby || sceneFailed || error) return false
     try {
       audio.current?.unlock()
       game.current.act(0, action)
@@ -162,7 +167,8 @@ export function App({ api }: { api: PokerApi }) {
       // table-scoped shortcuts (including Escape and inspect) silently stop.
       root.current?.focus({ preventScroll: true })
       publish()
-    } catch (reason) { setError(reason instanceof Error ? reason.message : 'That action is unavailable.') }
+      return true
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'That action is unavailable.'); return false }
   }
 
   useEffect(() => {
@@ -228,7 +234,7 @@ export function App({ api }: { api: PokerApi }) {
   const legal: Legal = game.current?.legal() ?? { fold: false, check: false, call: 0, raise: false, min: 0, max: 0, shortOnly: false }
   const ours = s?.players[0]
   const turn = s?.phase === 'betting' && s.actor === 0
-  const blocked = !turn || paused || !!panel || saving || !!error || sceneFailed
+  const blocked = !turn || paused || !!panel || saving || !!error || sceneFailed || drinkMenu || confirmNew || lobby
   const live = s?.players.filter(p => p.stack > 0).length ?? 6
   const finished = s?.phase === 'complete'
   const champion = finished && live === 1
@@ -246,7 +252,20 @@ export function App({ api }: { api: PokerApi }) {
   return <main className={`poker ${inspecting ? 'inspecting' : ''}`} ref={root} tabIndex={-1} data-phase={s?.phase ?? 'lobby'} data-actor={s?.actor ?? ''}
     onPointerDown={() => audio.current?.unlock()}
     onKeyDown={event => {
+      const editing = isEditing(event.target)
+      const key = event.key.toLowerCase()
+      // Do not turn a gameplay recorder into a keylogger: text fields emit only
+      // a category, and unrelated letters are discarded. No input values,
+      // future player names, hole cards or clipboard content enter this trace.
+      if (editing || ['b', 'f', 'c', 'r', '1', '2', '3', '4', 'arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'enter', 'escape', 'tab'].includes(key)) {
+        scene.current?.recordBettingInput({ key: editing ? 'editing' : key,
+          target: editing ? 'editing' : isInput(event.target) ? 'control' : 'table',
+          repeat: event.repeat, shift: event.shiftKey, modified: event.altKey || event.ctrlKey || event.metaKey,
+          revision: s?.revision ?? -1, open: betting.current?.snapshot().open ?? raiseOpen, amount: betting.current?.snapshot().amount ?? boundedRaise, blocked,
+          legal: { ...legal }, currentBet: s?.currentBet ?? 0, pot, ownBet: ours?.bet ?? 0, stack: ours?.stack ?? 0 })
+      }
       if (event.metaKey || event.ctrlKey || event.altKey || event.nativeEvent.isComposing) return
+      if (keyboardBetting && betting.current?.handleKey(event, editing ? 'editing' : isInput(event.target) ? 'control' : 'table')) return
       if (event.key === 'Escape') {
         event.preventDefault(); event.stopPropagation()
         if (confirmNew) setConfirmNew(false)
@@ -258,6 +277,9 @@ export function App({ api }: { api: PokerApi }) {
         return
       }
       if (drinkMenu) return
+      // Sizing owns the interaction; don't start inspection or prop motion
+      // behind the draft. Tab/native buttons remain usable without a focus trap.
+      if (keyboardBetting && raiseOpen && ['s', 'd', 'r', ' '].includes(key)) return
       if (event.key.toLowerCase() === 's' && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed && !(event.target instanceof HTMLElement && event.target.closest('input, select, textarea, [contenteditable]'))) {
         event.preventDefault(); if (!event.repeat) scene.current?.smokeCigar(); return
       }
@@ -274,9 +296,8 @@ export function App({ api }: { api: PokerApi }) {
         return
       }
       if (event.repeat) return
-      const key = event.key.toLowerCase()
       if (key === 'm') { event.preventDefault(); toggleMute() }
-      if (!blocked) {
+      if (!blocked && !keyboardBetting) {
         if (key === 'f') { event.preventDefault(); perform({ type: 'fold' }) }
         if (key === 'c') { event.preventDefault(); perform({ type: legal.check ? 'check' : 'call' }) }
       }
@@ -340,7 +361,9 @@ export function App({ api }: { api: PokerApi }) {
       <div className="sr-only" aria-label="Your hand">{ours?.hole.map(c => <PlayingCard card={c} key={c} />)}</div>
       <div className={`table-whisper ${turn || finished ? 'with-actions' : ''}`} role="status" aria-live="polite"><strong>{status}</strong><small>{saving ? 'Saving…' : paused ? 'Paused' : finished ? `Net ${ours!.stack - ours!.startStack >= 0 ? '+' : ''}${chips(ours!.stack - ours!.startStack)}` : s.log.at(-1)}</small></div>
       {(turn || finished) && !paused && !panel && !error && <section className="quick-actions" aria-label="Poker actions">
-        {finished ? <button className="primary" disabled={saving || sceneFailed} onClick={champion || busted ? () => setConfirmNew(true) : nextHand}>{champion || busted ? 'New table' : 'Deal next hand'} <span>→</span></button> : <>
+        {finished ? <button className="primary" disabled={saving || sceneFailed} onClick={champion || busted ? () => setConfirmNew(true) : nextHand}>{champion || busted ? 'New table' : 'Deal next hand'} <span>→</span></button> : keyboardBetting ? <BettingControls ref={betting} revision={s.revision} blocked={blocked} legal={legal}
+          pot={pot} currentBet={s.currentBet} ownBet={ours?.bet ?? 0} bigBlind={s.bigBlind} onAction={perform}
+          onOpenChange={setRaiseOpen} focusTable={() => root.current?.focus({ preventScroll: true })} /> : <>
           {raiseOpen && <div className="raise-popover" role="group" aria-label="Set your raise">
           <div className="raise-controls"><label htmlFor="raise-size">{s.currentBet === 0 ? 'BET' : 'RAISE'} TO</label><input id="raise-size" type="number" inputMode="numeric" min={legal.min} max={legal.max} step={1} value={raiseTo} onChange={event => setRaiseTo(Number(event.target.value))} disabled={blocked || !legal.raise} />
             <div className="bet-presets">{[['Min', legal.min], ['½ pot', s.currentBet + Math.round((pot + legal.call) / 2)], ['Pot', s.currentBet + pot + legal.call], ['All-in', legal.max]].map(([label, amount]) => <button key={label} disabled={blocked || !legal.raise} onClick={() => setRaiseTo(Math.max(legal.min, Math.min(legal.max, Number(amount))))}>{label}</button>)}</div>

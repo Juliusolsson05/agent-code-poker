@@ -11,6 +11,7 @@ import { Fireplace } from './environment/Fireplace'
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import { createTableSurface, dealerPosition, TABLE } from './Table'
 import { SceneCapture, transform } from './diagnostics/SceneCapture'
+import type { TraceValue } from './diagnostics/Recorder'
 import { CHAIR_BLOCKS, PLAYER_LAYOUT, SEATS, seatYaw } from './environment/layout'
 import { createFeltPrint } from './TablePrint'
 import { SeatedLook } from './camera/SeatedLook'
@@ -352,6 +353,11 @@ export class PokerRoom {
   orderDrink(kind: import('./props/specs').DrinkKind): boolean {
     const accepted = !this.paused && !this.inspecting && !this.seatedLook.contactPending && this.hero.orderDrink(kind)
     this.capture?.event('order-drink', { kind, accepted }); this.publishLeisure(); return accepted
+  }
+  recordBettingInput(data: { [key: string]: TraceValue }): void {
+    // Only opt-in local QA has a capture. The UI supplies bounded command/focus
+    // categories and public legal amounts, never DOM values or private cards.
+    this.capture?.event('betting-input', data)
   }
   update(state: GameState): void {
     this.capture?.event('public-game', { hand: state.handNumber, phase: state.phase, actor: state.actor,

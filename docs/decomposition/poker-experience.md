@@ -1,6 +1,39 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## Latest addition — NPCs grip glass interiors
+
+23. User reports NPC drinking looks wrong because hands grab from **inside**
+    the glass instead of around its outside. Preserve as an explicit drinking
+    mechanics acceptance requirement, without restarting the paused hand-art/
+    animation pass. This is user-observed, not a newly reproduced agent result.
+    Record close-up outside/side views of each distinct vessel during pickup,
+    lift, sip and return. Catalog the actual inner/outer wall, contact normals,
+    palm/thumb/finger geometry and which coordinate frame owns the vessel.
+    Require opposing exterior support (thumb versus palm/fingers), no skin in
+    the hollow interior or passing through walls, and continuity at transfers.
+    Matching anchors or a connected wrist does not prove the grip is external.
+    Revisit ownership/local-axis assumptions before changing poses; retain the
+    faulty recording as a negative control, then geometry tests plus actual
+    NPC motion/image checks. Do not claim existing grip tests close this report.
+
 ## D8 keyboard-first betting — continuation16
+
+Checkpoint: `betting-catalog.json` separates real public-action data from derived
+engine bounds and synthetic keys. B8 fresh raw key/focus capture is still missing:
+CUA created the isolated tab but DOM requests timed out and screenshot reported
+browser unavailable. No substitute browser driver or claimed fake recording.
+C8 isolated controller + tests and D8 opt-in `&betkeys` UI are implemented to
+continue safe local work; **this is provisional, not completion of B8/E8**.
+The sole runtime consumer is BettingControls; production and ordinary source
+retain existing controls until real native-focus/repeat/layout checks pass.
+Wager dispatch synchronously latches within one revision before React updates,
+while App/engine preserve authoritative validation/save locks. Pause/menu and
+new revisions discard drafts; text editing and native button Enter/Space are
+not commandeered. Final integration must delete the old slider path and gate,
+not leave two permanent amount owners. No fresh visual/FPS/listening approval.
+`npm run verify` passes92 tests, TypeScript/build,2 SDK contracts and the shipped
+HTTP preview check. Those are not source/production browser acceptance; the
+browser connection became unavailable during continuation16. No new raw export.
 
 **A:** `PokerGame.legal()/act()` own legal amounts and atomic wagers. Current
 `App.tsx` offers F/C, a pointer-opened raise popover, number input and range

@@ -1,5 +1,24 @@
 # Agent Code Poker
 
+Latest user addition: NPC drinking grips appear to grab the glass from its
+inside. Track exterior-only vessel contact explicitly: palm/fingers wrap the
+outer surface, thumb opposes, no hand crosses the wall or hollow interior during
+pickup/sip/return. Treat this as a reported failure pending close-up recordings;
+matching grip anchors alone is not proof. Retain under drinking mechanics;
+do not resume the paused hand-animation/art pass just to address this note.
+
+Continuation16: isolated keyboard draft/controller and compact betting tray are
+implemented at source `&betkeys`, with public-action replay and explicitly
+synthetic focus/repeat/interruption/short-all-in tests. New opt-in recorder
+captures bounded input categories/public legal context, never typed values.
+Fresh CUA recording failed (timeouts/disconnected browser), so normal source
+and production retain established betting controls. Next collect actual key,
+native-button, pause/reload and responsive evidence, then remove the gate and
+legacy slider together. No hand-animation changes. See D8/catalog for limits.
+Verification:92 tests, TypeScript/build,2 SDK artifact contracts and exact-byte
+production HTTP preview pass. Browser connection unavailable; no new actual
+keyboard session, source/shipped graphics check, FPS or Electron-host claim.
+
 **Current goal:** user now authorizes autonomous implementation of the full
 updated feature list, including the previously planning-only LAN/player/bank
 and keyboard-first UI additions. Continue staged contracts and verification;

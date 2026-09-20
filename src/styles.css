@@ -218,6 +218,23 @@ h2 { font-family: Georgia, serif; font-size: 33px; font-weight: 400; letter-spac
 .raise-popover .bet-presets button { padding: 5px 9px; }
 .raise-popover .raise-slider { margin: 13px 0; }
 .confirm-raise { display: block; width: 100%; }
+/* The candidate keeps amount choice transient and fully keyboard-operable.
+ * Native buttons offer the same commands; no precision dragging or text entry.
+ * A bounded viewport width prevents the tray covering the whole small window. */
+.keyboard-betting { display: flex; gap: 7px; }
+.keyboard-betting>button { min-width: 112px; height: 40px; border-radius: 3px; font-size: 12px; }
+.betting-tray { position: absolute; left: 50%; bottom: calc(100% + 10px); transform: translateX(-50%); width: min(340px, calc(100vw - 32px)); padding: 14px; background: #191c19f5; border: 1px solid #b9a07866; border-radius: 7px; box-shadow: 0 10px 35px #0008; }
+.wager-heading { display: flex; align-items: center; justify-content: space-between; }
+.wager-heading>span { font-size: 10px; letter-spacing: 2px; color: #bbae91; }
+.wager-heading button { border: 0; background: none; color: #c1b49c; font-size: 11px; padding: 5px; }
+.wager-stepper { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-top: 8px; }
+.wager-stepper output { font: 32px/1.2 Georgia, serif; color: #f0dfbb; font-variant-numeric: tabular-nums; }
+.wager-stepper button { width: 38px; height: 36px; background: #302f26; border: 1px solid #99805a66; color: #dfcfad; font-size: 21px; }
+.wager-details, .wager-hint { text-align: center; color: #afa38b; font-size: 10px; margin: 8px 0; }
+.wager-presets { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 12px; }
+.wager-presets button { padding: 8px 4px; background: #292c25; border: 1px solid #97835955; color: #c8b99a; border-radius: 3px; font-size: 11px; }
+.wager-presets button[aria-pressed="true"] { background: #524a36; border-color: #c1a579; color: #f1e5ca; }
+.betting-tray .confirm-raise { margin-top: 12px; min-height: 38px; }
 .bankroll-tag { position: absolute; left: 26px; bottom: 23px; color: #d3c3a6; text-shadow: 0 2px 8px #000; pointer-events: none; }
 .bankroll-tag>span { display: block; font-size: 8px; letter-spacing: 1.5px; color: #a79b83; }
 .bankroll-tag strong { display: block; font: 24px/1.25 Georgia, serif; margin: 4px 0; }

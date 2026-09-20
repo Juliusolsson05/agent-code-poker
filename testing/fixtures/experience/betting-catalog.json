@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "source": "poker-evidence-2026-09-20T05-52-49-020Z.json.gz",
+  "rawSha256": "632b8b84142f1ac52791c5af76ffd5fb53bac66a94a515f35e5a034b340f5d42",
+  "recorded": "Public-game result at wallMs22510.89999999851: seat0 Raise500, stack1500, bet500; seats3/4/5 previously Call20. Subsequent public events contain three folds and two calls. No raw keyboard/focus events exist in this baseline.",
+  "derived": "Replaying those public preflop calls through PokerGame yields player legal min40/max2000/call20, pot90. Hidden cards are not reconstructed. Half-pot target75, pot target130 and a synthetic coarse-key path to500 are contract tests, not browser recordings.",
+  "baselineUI": "App has F/C shortcuts, pointer-opened numeric/range raise sizing, four presets and pointer confirm. User reports slider/typing frustration.",
+  "newRecorder": "Opt-in betting-input: normalized command key or editing category, target category, repeat/shift/modifier flags, public revision/legal amounts/draft state. No text values, names, hole cards, deck or storage.",
+  "missingEvidence": ["baseline raw key/focus trace", "candidate actual keyboard-only wager", "focused native-button Enter and held-key behavior", "pause/menu/reload focus restore", "responsive tray screenshot", "production browser regression"],
+  "continuation16Browser": "CUA created isolated qa=keyboard-16 tab; DOM commands timed out and screenshot reported browser unavailable. Native accessibility showed user browsing an unrelated page; no user-tab interaction attempted. No new successful recording or screenshot retained.",
+  "releaseGate": "Candidate only at source /dev/?qa=keyboard&betkeys&record&stats; ordinary source and production retain established controls. Do not promote until actual CUA evidence fills missing focus/input/layout checks. Synthetic tests are not a substitute."
+}
