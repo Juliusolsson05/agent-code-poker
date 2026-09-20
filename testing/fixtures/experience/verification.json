@@ -1,10 +1,10 @@
 {
-  "checkpoint": "C/D1 hero ownership and bounded connected reach; not finished-game acceptance",
+  "checkpoint": "D2 conforming animated surfaces and jaw-painted facial hair; not finished-game acceptance",
   "date": "2026-09-20",
   "automated": {
     "command": "npm run verify",
     "result": "passed",
-    "coverage": "34 tests including real-input ownership replay, actual production skeleton integration and forbidden-import boundary; TypeScript, production build, 2 SDK packaging checks and exact-byte production-preview HTTP integration",
+    "coverage": "37 tests including actual closed hand/sleeve topology, silhouette-preserving surface painting, real-input ownership replay, production skeleton integration and forbidden-import boundary; TypeScript, production build, 2 SDK packaging checks and exact-byte production-preview HTTP integration",
     "limitation": "Passing tests do not approve the recorded contact, anatomy, lighting or performance defects"
   },
   "sourceBrowser": {
@@ -31,5 +31,12 @@
     "limitation": "Different camera and interaction workload from baseline. Instrumented session with screenshots; not a controlled performance improvement or 60Hz claim. No GPU timing measured."
   },
   "host": "Electron installation not verified; host fullscreen explicitly deferred",
+  "surfaceCheckpoint": {
+    "trace": "poker-evidence-2026-09-20T03-53-42-707Z.json.gz",
+    "sourceBrowser": "Drink, paused lift, resume/inspection/safe return, cigar, call 55 and reload retaining turn/stack 1925/pot 326. No console warnings/errors observed.",
+    "productionBrowser": "Drink lift, inspection return, cigar retrieval, call 211, pause/resume and reload retaining river/stack 1703/pot 1249. No console warnings/errors observed.",
+    "visual": "Neutral four-view images preserve closed finger bends and removal of jaw slab. Seated source and production views inspected. Cigar pinch and glass wrap remain visibly awkward; no overall hand/anatomy signoff.",
+    "measurement": "728 instrumented frames: p50/p95 frame 28.6/31.9ms, CPU submission 5.2/7.8ms. Median 350 draws and 1233436 triangles including shadows. Not a controlled benchmark or GPU timing."
+  },
   "remaining": ["opponent interaction ownership/contact", "block-built drinks and ordering", "ashtray", "hand topology and visible grip contact", "anatomy and facial hair", "tree clearance", "cozy lighting", "controlled performance comparison", "reduced motion and visibility interruption checks", "fresh final source/production visual acceptance"]
 }

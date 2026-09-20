@@ -39,7 +39,7 @@ export class AnatomicalHand {
       return (x / width) ** 6 + ((z - cup) / depth) ** 4 <= 1 && y < .067 - Math.abs(x) * .14
     }, skin)
     palm.ellipsoid([-.023, .023, .005], [.014, .027, .011], skin)
-    const base = new THREE.Bone(); this.root.add(base); base.add(palm.mesh(material))
+    const base = new THREE.Bone(); this.root.add(base); base.add(palm.mesh(material, { deformable: true }))
     const lengths = [[.036, .024, .018], [.039, .027, .019], [.036, .025, .018], [.028, .019, .016]]
     const widths = [.0072, .0075, .0070, .0060]
     for (let digit = 0; digit < 4; digit++) {
@@ -52,7 +52,7 @@ export class AnatomicalHand {
         if (joint === 0) {
           // One uninterrupted finger envelope avoids the exposed caps and
           // mechanical knuckle gaps of three rigid little cylinders.
-          const surface = new VoxelSculpt(step).segment(lengths[digit].reduce((a, b) => a + b, 0), width, width * .83, skin, .66).mesh(material)
+          const surface = new VoxelSculpt(step).segment(lengths[digit].reduce((a, b) => a + b, 0), width, width * .83, skin, .66).mesh(material, { deformable: true })
           surface.userData.jointLengths = lengths[digit]; bone.add(surface)
         }
         parent.add(bone); parent = bone; joints.push(bone)
@@ -69,7 +69,7 @@ export class AnatomicalHand {
       const bone = new THREE.Bone(); const length = [.030, .025, .022][j]
       bone.position.set(j ? 0 : -.026, j ? [.030, .025][j - 1] : .025, j ? 0 : .003)
       if (j === 0) {
-        const surface = new VoxelSculpt(step).segment(.077, .0105, .009, skin, .68).mesh(material)
+        const surface = new VoxelSculpt(step).segment(.077, .0105, .009, skin, .68).mesh(material, { deformable: true })
         surface.userData.jointLengths = [.030, .025, .022]; bone.add(surface)
       }
       parent.add(bone); parent = bone; this.thumb.push(bone)

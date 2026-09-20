@@ -35,6 +35,25 @@
   ],
   "candidateSessions": [
     {
+      "file": "poker-evidence-2026-09-20T03-53-42-707Z.json.gz",
+      "rawSha256": "a21f89a9ba3838ce1bd2b910a576082c9431b88cbb772582eb870646e4de1d27",
+      "provenance": "Actual Chrome source QA after conforming hand/sleeve topology and jaw-painted facial hair; drink, pause/resume, inspection, cigar pickup and legal call",
+      "frameCount": 728,
+      "poseCount": 240,
+      "frameMsP50": 28.6,
+      "frameMsP95": 31.9,
+      "cpuSubmissionMsP50": 5.2,
+      "cpuSubmissionMsP95": 7.8,
+      "drawsP50": 350,
+      "trianglesIncludingShadowsP50": 1233436,
+      "limitations": "Instrumented real interaction capture, not a controlled benchmark or 60Hz acceptance. No GPU timing. Closed topology is verified separately from still-imperfect finger/prop contact and anatomy.",
+      "images": [
+        "poker-evidence-2026-09-20T03-53-42-707Z-9.680.png",
+        "poker-evidence-2026-09-20T03-53-42-707Z-12.231.png",
+        "poker-evidence-2026-09-20T03-53-42-707Z-15.650.png"
+      ]
+    },
+    {
       "file": "poker-evidence-2026-09-20T03-39-26-621Z.json.gz",
       "rawSha256": "9e1a90589613c06a949361372fce1745afd68e678107f72c59904bd2406898e4",
       "provenance": "Actual Chrome source QA after world-space hero director integration: three drinks, pause/resume mid-lift, interrupted glass return, inspection and cigar retrieval from tray",
@@ -54,6 +73,9 @@
     }
   ],
   "rigImages": [
+    { "file": "topology-player-cards.png", "url": "/dev/?studio&seat=1", "subject": "Player cards", "action": "idle", "seconds": 0, "candidate": "Conforming topology after 245afad; sleeves hidden explicitly for hand close-up; not approved grip anatomy" },
+    { "file": "topology-player-cigar.png", "url": "/dev/?studio&seat=1", "subject": "Player cigar", "action": "idle", "seconds": 0, "candidate": "Conforming topology; fingers still do not convincingly pinch the cigar" },
+    { "file": "surface-beard-seat1.png", "url": "/dev/?studio&seat=1", "subject": "Opponent face", "action": "idle", "seconds": 0, "candidate": "Short facial hair painted on occupied jaw; floating U-shaped plate removed" },
     { "file": "poker-rig-player-cards-idle-0.png", "url": "/dev/?studio", "subject": "Player cards", "action": "idle", "seconds": 0 },
     { "file": "poker-rig-player-cigar-idle-0.png", "url": "/dev/?studio", "subject": "Player cigar", "action": "idle", "seconds": 0 },
     { "file": "poker-rig-opponent-face-seat1-idle-0.png", "url": "/dev/?studio&seat=1", "subject": "Opponent face", "action": "idle", "seconds": 0 }

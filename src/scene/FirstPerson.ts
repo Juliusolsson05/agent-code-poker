@@ -87,8 +87,12 @@ export class FirstPerson {
   /** The dev inspector hides unrelated surfaces, but uses these exact meshes.
    * This is display isolation only; it never substitutes a prettier test hand. */
   showInspectionSubject(name: string): void {
-    this.leftRig.mesh.visible = name === 'Player cards'
-    this.rightRig.mesh.visible = name === 'Player cigar'
+    // These are hand close-ups. The shoulder-based sleeve now extends well
+    // beyond the hand's framing box and can occlude the fingers from behind.
+    // Inspect full arm attachment in the seated view/integration replay; hiding
+    // it here is explicit view isolation, not replacement geometry.
+    this.leftRig.mesh.visible = false
+    this.rightRig.mesh.visible = false
     this.left.root.visible = name === 'Player cards'; this.right.root.visible = name === 'Player cigar'
     this.cigar.visible = name === 'Player cigar'; this.drink.root.visible = name === 'Old Fashioned'
   }

@@ -258,3 +258,33 @@ pot 595. Fresh tab reports no console warnings/errors. The new camera makes
 the finger ribbons and slab beards particularly apparent; D2 remains necessary.
 Candidate frame p50/p95 27.4/31.8ms is NOT a performance comparison because the
 camera/workload differs from baseline. Electron-host verification remains open.
+
+### D2 first slice: deforming surface topology
+
+The recorded card-grip side view shows thin open finger ribbons. A new audit of
+the actual production hand at 2.5mm resolution fails with 1,492 unpaired triangle
+edges in bind geometry. Greedy rectangle T-junctions do not remain coincident
+under nonlinear bone blending; the earlier 20mm patch cap did not fix this.
+Use a conforming voxel-face lattice for animated hands/sleeves only, preserving
+rigid-object greedy meshing. Verify closed edges in actual posed production
+geometry, keep a construction budget, then inspect fresh neutral and seated
+views. This fixes surface continuity, not yet anatomical proportions or grips.
+Do not claim a frame-rate improvement: the correctness fix increases vertices
+and must be included in the later controlled performance comparison.
+
+The topology regression now passes for all five actual production hand poses,
+as do actual bent sleeves across color seams. The existing no-paper-penetration
+test remains green. Production hand cost is 24,872 vertices/12,436 triangles;
+sleeve cost 32,600/16,300, still one draw each. Separately, short beards now paint
+occupied face cells instead of adding geometry; neutral four-view evidence
+`surface-beard-seat1.png` confirms removal of the floating U-shaped plate.
+Three fresh inspector images and source session `2026-09-20T03-53-42-707Z`
+(728 frames, 240 poses) preserve the result. This session reports frame p50/p95
+28.6/31.9ms, CPU submission 5.2/7.8ms; not a controlled benchmark. Full verify
+passes 37 tests plus build/packaging/preview gates. Finger silhouettes, convincing
+cigar pinch/glass wrap, and face realism remain open despite closed surfaces.
+
+Next D2 work must make block prop dimensions/contact anchors the source of truth
+for grip calibration, rather than tweaking fingers around the old cylinder
+meshes. Build a recessed ashtray/cigar rest and block glass/liquid/garnish assets,
+then fit/verify grips against actual surfaces and expose safe free ordering.

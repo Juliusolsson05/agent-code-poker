@@ -30,7 +30,7 @@ export class SeatedArm {
     }
     sculpt.volume([-.056, -.040, -.050], [.056, .551, .050], shape, jacket)
     sculpt.volume([-.030, .551, -.028], [.030, .575, .028], shape, shirt)
-    const source = sculpt.mesh(anatomyMaterial(.93)), geometry = source.geometry
+    const source = sculpt.mesh(anatomyMaterial(.93), { deformable: true }), geometry = source.geometry
     const positions = geometry.getAttribute('position'), weights: number[] = [], indices: number[] = []
     for (let i = 0; i < positions.count; i++) {
       const y = positions.getY(i)

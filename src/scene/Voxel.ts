@@ -24,6 +24,14 @@ export class VoxelSculpt {
     return this.volume(center.map((v, i) => v - radii[i]) as Point, center.map((v, i) => v + radii[i]) as Point,
       (x, y, z) => ((x - center[0]) / radii[0]) ** 2 + ((y - center[1]) / radii[1]) ** 2 + ((z - center[2]) / radii[2]) ** 2 <= 1, color)
   }
+  /** Short hair/stubble changes an existing skin surface, not its silhouette.
+   * volume() here would add floating blocks outside the jaw (the old beard
+   * made a rectangular U-shaped plate). Painting cannot invent occupied cells. */
+  paint(inside: (x: number, y: number, z: number) => boolean, color: string): this {
+    const tint = new THREE.Color(color), s = this.step
+    for (const cell of this.cells.values()) if (inside(cell.x * s, cell.y * s, cell.z * s)) cell.color = tint
+    return this
+  }
   /** Cross sections taper along a bone rather than piling spheres at joints.
    * Slightly rounded end caps cover the bend without growing a knuckle ball. */
   segment(length: number, width: number, depth: number, color: string, taper = .76): this {
@@ -33,7 +41,7 @@ export class VoxelSculpt {
       return (x / (width * r)) ** 2 + (z / (depth * r)) ** 2 + cap * cap <= 1
     }, color)
   }
-  mesh(material: THREE.MeshStandardMaterial): THREE.Mesh {
+  mesh(material: THREE.MeshStandardMaterial, options: { deformable?: boolean } = {}): THREE.Mesh {
     const positions: number[] = [], normals: number[] = [], colors: number[] = [], indices: number[] = []
     const faces = [
       { n: [1, 0, 0], u: [0, 1, 0], v: [0, 0, 1] }, { n: [-1, 0, 0], u: [0, 0, 1], v: [0, 1, 0] },
@@ -65,10 +73,14 @@ export class VoxelSculpt {
       }
       const n = new THREE.Vector3(nx, ny, nz).normalize(); normalCache.set(key, n); return n
     }
-    // Greedy coplanar patches preserve the exact voxel silhouette while removing
-    // internal grid edges. Limit patch size to 20mm: an arbitrarily long merged
-    // quad would have no vertices near a finger/elbow joint and could not bend.
-    const span = Math.max(1, Math.floor(.020 / this.step))
+    // Greedy faces are suitable only for rigid objects. Even limiting them to
+    // 20mm left 1,492 unpaired edges in the recorded hand: a vertex midway down
+    // a neighbouring long edge receives a different blended bone transform,
+    // opening a crack after bending. Deforming surfaces retain the voxel lattice
+    // so both sides of every edge have identical endpoints/weights. This costs
+    // triangles, not draw calls. Never trade this invariant for a smooth bind-
+    // pose screenshot; any future simplifier must preserve conforming topology.
+    const span = options.deformable ? 1 : Math.max(1, Math.floor(.020 / this.step))
     for (const { face: f, cells } of planes.values()) {
       const original = new Map(cells)
       for (const [key, c] of cells) {

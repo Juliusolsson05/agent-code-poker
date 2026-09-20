@@ -45,7 +45,8 @@
       "frequency": { "closeupSubjects": 1 },
       "evidence": "Front/side/top views show a dark U-shaped slab separated from the rounded jaw. The current beard volume adds a rectangular shell rather than coloring/sculpting the actual facial surface.",
       "expected": "Restrained facial hair follows the jaw/upper-lip surface, without floating edges or squared-off cheek growth.",
-      "status": "open"
+      "status": "slab-removed; overall-face-art-open",
+      "candidate": "surface-beard-seat1.png shows short facial hair following the existing jaw from four angles. Surface painting preserves occupied volume and tested area/bounds; production seated capture also shows seats 1 and 4 without the U-shaped plate. Eye/face realism remains unaccepted."
     },
     {
       "id": "finger-surface-and-grip",
@@ -53,7 +54,8 @@
       "frequency": { "fourViewPoses": 2 },
       "evidence": "Finger envelopes look like thin angular ribbons at bends; cigar is balanced across fingers instead of convincingly pinched. Existing no-paper-intersection test is not anatomy/contact signoff. Inspect greedy mesh T-junctions under skinning before adding more volume.",
       "expected": "Closed, connected, naturally proportioned finger surfaces through bending; stable visible support/pinch without paper/cigar penetration.",
-      "status": "open"
+      "status": "closed-surface-verified; grip-shape-open",
+      "candidate": "Actual hand topology regression failed at 1,492 unpaired edges before the fix; conforming voxel faces now have zero unpaired edges through cards/cigar/glass/rest/push poses. Sleeve bends and color seams also pass. topology-player-cards.png and topology-player-cigar.png retain remaining awkward poses/pinch. Each 2.5mm hand has 24,872 vertices/12,436 triangles; each sleeve 32,600/16,300. Performance gate remains open."
     },
     {
       "id": "frame-budget",

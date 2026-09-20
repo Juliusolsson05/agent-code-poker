@@ -64,6 +64,10 @@ export function mountStudio(container: HTMLElement): void {
     joints.visible = markers.checked
     ;[human.leftRig, human.rightRig].forEach((arm, i) => { dots[i * 3].position.copy(arm.shoulder); dots[i * 3 + 1].position.copy(arm.elbow); dots[i * 3 + 2].position.copy(arm.wrist) })
     scene.updateMatrixWorld(true)
+    // SkinnedMesh bounds are cached, but a scrubbed grip is not the bind pose.
+    // Refit after the actual bone update or a previous action's bounds can crop
+    // the very fingertips we are trying to inspect. This cost is studio-only.
+    targets[selection].traverse(o => { if (o instanceof THREE.SkinnedMesh) o.computeBoundingBox() })
     let bounds = new THREE.Box3().setFromObject(targets[selection])
     if (selection === 'Player cigar') bounds.union(new THREE.Box3().setFromObject(hero.tableProps.getObjectByName('player-cigar')!))
     if (selection === 'Opponent left arm' || selection === 'Opponent right arm') {

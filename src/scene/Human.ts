@@ -90,8 +90,18 @@ export function buildHuman(seat: number, _geometry: THREE.BoxGeometry, material:
   face.ellipsoid([0, -.052, .066], [.022, .0035, .006], '#a57965')
   face.volume([-.021, -.049, .069], [.021, -.047, .074], () => true, '#60483d')
   if (seat === 1 || seat === 4) {
-    face.volume([-.061, -.098, .038], [.061, -.031, .069], (x, y, z) =>
-      (Math.abs(x) > .043 || y < -.065) && z < .067 && z > .055, p.hair)
+    // Close-cropped facial hair follows the occupied jaw, including its sides.
+    // The previous rectangular volume floated in front of the chin and looked
+    // like a U-shaped strap. Keep the lips/nose bare and soften the color with
+    // skin: millimetre-scale stubble is not an opaque helmet on a small face.
+    const stubble = new THREE.Color(p.hair).lerp(new THREE.Color(p.skin), seat === 1 ? .34 : .22)
+    face.paint((x, y, z) => {
+      const cheekLine = -.029 - Math.max(0, .060 - Math.abs(x)) * .55
+      const jaw = y < cheekLine && y > -.103 && z > -.028
+      const lips = Math.abs(x) < .026 && y > -.059
+      const moustache = Math.abs(x) > .004 && Math.abs(x) < .023 && y > -.043 && y < -.034 && z > .054
+      return jaw && !lips || moustache
+    }, '#' + stubble.getHexString())
   }
   head.add(face.mesh(skin))
   const hair = new VoxelSculpt(.004)
