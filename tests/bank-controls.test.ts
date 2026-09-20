@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { BankControls } from '../server/client/BankControls'
+import { BankControls } from '../src/components/BankControls'
 
 // Static markup only: actual CUA confirmation/focus remains a release gate.
 test('bank controls disclose fictional debt and use host eligibility, never a numeric input',()=>{
@@ -15,4 +15,7 @@ test('bank controls disclose fictional debt and use host eligibility, never a nu
   assert.equal(html.includes('<input'),false)
   const blocked=renderToStaticMarkup(createElement(BankControls,{offer,revision:10,blocked:true,onConfirm:()=>true}))
   assert.equal((blocked.match(/disabled=""/g)??[]).length,3)
+  const solo=renderToStaticMarkup(createElement(BankControls,{offer,revision:10,blocked:false,onConfirm:()=>true,scope:'solo'}))
+  assert.match(solo,/Debt is saved with this table/)
+  assert.equal(solo.includes('reconnect'),false)
 })

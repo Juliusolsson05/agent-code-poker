@@ -4,6 +4,17 @@
 
 ### Next staged slice: solo practice bank
 
+Checkpoint: solo bank implemented with shared private accounting and one v2
+table/bank/preferences save. Legacy migration, revision-bound staged transfers,
+repayment and conservation tests pass. Full verify158 tests plus both builds,
+SDK contracts and exact-byte preview pass. Real CUA source hand1 bust → cancel →
+borrow2000 → repay500 → reload restores stack/debt1500; shipped restores that
+save, repays500, deals hand2 and reloads stack/debt1000 with transfers disabled
+mid-hand. Net remains the historical -2000. Captured warnings/errors empty;
+session30 manual notes distinguish screenshots inspected in transcript from
+unrecorded raw traces and synthetic storage faults. Next: drink ownership and
+actual-sip-only intoxication. Bank is not proof of other release gates.
+
 Observed App completion path offers only New table to a busted player; the
 existing deterministic bank-bust fixture records a legal completed hand but is
 scripted, not browser evidence. Reuse the tested finite-reserve ledger outside

@@ -4,6 +4,18 @@
 
 ### B18–E18 solo bank/rebuy integration
 
+D18/E18 checkpoint: neutral ledger shared by exactly HostTable and solo/table;
+public BankControls shared without membership/debt-ledger imports. Version2 solo
+save contains table+bank+preferences at the old key, strictly validates debt and
+migrates old saves unchanged. Transfers stage on a restored engine, install as a
+pair and use the existing saving/error freeze. Historical net comes from history.
+Full verify158 tests/builds/SDK/preview pass. CUA actual source bust/cancel/borrow/
+repay/reload restores stack/debt1500; shipped continues that isolated save,
+repays to1000, deals hand2 and reloads stack/debt1000 with live transfers disabled.
+Captured warn/errors empty. Session30 manually catalogs actual observations and
+transcript screenshots; no raw trace or browser failure injection was captured.
+Storage failure is a synthetic contract, not Electron/storage UI acceptance.
+
 | Stage | Produces | Verified by | Why separate | Reality check |
 |---|---|---|---|---|
 | B18 | Completion/save-path catalog | App offers New table at stack0; existing scripted bank-bust hand | LAN bank does not provide solo rebuys | Source inspection, not browser bust evidence |
@@ -204,14 +216,15 @@ reason, never reset the bank. These are implementation defaults, not real loans.
 | D14 | Host identity/sequence/checkpoint integration | Real HTTP duplicate/stale/reconnect/crash tests; old checkpoint migration | Chips/debt/receipt must commit together before ACK | Existing actual socket/recovery fixtures plus new recorded bank exchanges |
 | E14 | Compact bank controls and full room integration | CUA bust/borrow/repay/reload across clients; solo integration separately accounted | Pure arithmetic cannot prove actionable UI or recovery UX | Actual browser evidence required; current LAN navigation gate remains open |
 
-PracticeBank lives in src/session/bank, consumed only by HostTable once D14 is
-connected. It returns a validated next-ledger proposal plus signed table delta;
+At the D14 checkpoint PracticeBank lived in src/session/bank for HostTable.
+B18–D18 now moves it to src/bank for the host and solo authority adapters only.
+It returns a validated next-ledger proposal plus signed table delta;
 the engine owns applying a boundary-only transfer. Engine/scene/audio/client
 must never import private bank internals. Host validates all before mutating,
 then commits engine, bank and accepted command in the same private checkpoint.
 No debt identities on wire; own debt/limits and public table amounts suffice.
-Solo bank integration must share accounting, not copy the ledger into UI;
-its storage migration remains an explicit later integration requirement.
+Solo integration shares this accounting rather than copying it into UI;
+its joint save migration and browser acceptance are tracked in B18–E18 above.
 
 Unknowns: multi-client stale confirmation UX, solo persistence migration,
 abandoned-debt display and actual bank-chip

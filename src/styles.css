@@ -267,3 +267,4 @@ h2 { font-family: Georgia, serif; font-size: 33px; font-weight: 400; letter-spac
  * space. Keep the board on the right but lift it above the decision row. */
 @media (max-width: 1000px) { .community-board { bottom: 125px; } .drink-menu { max-height: calc(100% - 350px); } }
 .website-multiplayer { display: none; }
+.practice-bank{border-block:1px solid #a58d6055;margin:18px 0;padding:14px 0}.practice-bank h3{font:20px Georgia,serif;margin:0}.practice-bank p{font-size:12px}.practice-bank button{font:inherit;font-size:12px;padding:9px;background:#24271f;color:#ead8b2;border:1px solid #b9a07866;border-radius:4px}.practice-bank .row{display:flex;flex-wrap:wrap;gap:8px}.practice-bank button:disabled{opacity:.45;cursor:not-allowed}

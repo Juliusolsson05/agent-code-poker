@@ -1,7 +1,7 @@
 import { chooseAction, observe, type Observation } from '../engine/bots'
 import { CHARACTERS, PokerGame, type Action } from '../engine/game'
 import { projectTable, type TableView } from './view'
-import { createPracticeBank, planBankTransfer, restorePracticeBank, REBUY_CHIPS, type BankState, type BankOperation } from './bank/PracticeBank'
+import { createPracticeBank, planBankTransfer, restorePracticeBank, REBUY_CHIPS, type BankState, type BankOperation } from '../bank/PracticeBank'
 
 type Identity = { id: string; name: string }
 type Member = Identity & {

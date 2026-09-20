@@ -12,9 +12,11 @@ import { DRINKS, type DrinkKind } from './scene/props/specs'
 import { DrinkMenu } from './components/DrinkMenu'
 import { PokerHeader, TableInfo, SeatContents, PotContents, TableReadout } from './components/PokerChrome'
 import { BettingControls, type BettingHandle } from './components/BettingControls'
+import { BankControls } from './components/BankControls'
+import { restoreSoloSave, soloCheckpoint, freshSoloBank, soloBankOffer, transferSoloBank, type BankState, type BankOperation, type Preferences } from './solo/table'
 
 const SAVE_KEY = 'poker.table.v1'
-type Save = { table: GameState | null; muted: boolean; speed: 'relaxed' | 'brisk' }
+type Save = Preferences
 const chips = (value: number) => value.toLocaleString('en-US')
 const isInput = (target: EventTarget | null) => target instanceof HTMLElement && !!target.closest('button, input, select, textarea, a, [contenteditable]')
 const isEditing = (target: EventTarget | null) => target instanceof HTMLElement && !!target.closest('input, select, textarea, [contenteditable]')
@@ -22,6 +24,7 @@ const isEditing = (target: EventTarget | null) => target instanceof HTMLElement 
 export function App({ api }: { api: PokerApi }) {
   const [gameState, setGameState] = useState<GameState | null>(null)
   const game = useRef<PokerGame | null>(null)
+  const bank = useRef<BankState | null>(null)
   const [loading, setLoading] = useState(true)
   const [lobby, setLobby] = useState(true)
   const [paused, setPaused] = useState(false)
@@ -31,7 +34,7 @@ export function App({ api }: { api: PokerApi }) {
   const [sceneFailed, setSceneFailed] = useState(false)
   const [muted, setMuted] = useState(false)
   const [speed, setSpeed] = useState<Save['speed']>('relaxed')
-  const [panel, setPanel] = useState<'history' | 'settings' | 'rules' | null>(null)
+  const [panel, setPanel] = useState<'history' | 'settings' | 'rules' | 'bank' | null>(null)
   const [confirmNew, setConfirmNew] = useState(false)
   const [raiseOpen, setRaiseOpen] = useState(false)
   // Normal and LAN play share one disposable sizing owner. Keeping the old
@@ -58,14 +61,14 @@ export function App({ api }: { api: PokerApi }) {
     audio.current = new PokerAudio(TAVERN_FEATURES.fireplace ? fireplaceRecording : undefined,
       [FIREPLACE_LAYOUT.position[0], .4, FIREPLACE_LAYOUT.position[2] + .05])
     let current = true
-    void api.storage.get<Save>(SAVE_KEY).then(saved => {
+    void api.storage.get(SAVE_KEY).then(saved => {
       if (!current) return
       if (saved !== undefined) {
-        if (!saved || typeof saved !== 'object' || typeof saved.muted !== 'boolean' || !['relaxed', 'brisk'].includes(saved.speed))
-          throw new Error('The saved table format is invalid. Your saved data has been preserved.')
-        if (saved.table !== null) { game.current = PokerGame.restore(saved.table); setGameState(game.current.snapshot()) }
-        preferences.current = { muted: saved.muted, speed: saved.speed }
-        setMuted(saved.muted); setSpeed(saved.speed); audio.current?.setMuted(saved.muted)
+        const restored=restoreSoloSave(saved)
+        game.current=restored.game;bank.current=restored.bank
+        if(game.current)setGameState(game.current.snapshot())
+        preferences.current = { muted: restored.muted, speed: restored.speed }
+        setMuted(restored.muted); setSpeed(restored.speed); audio.current?.setMuted(restored.muted)
       }
       setLoading(false)
     }).catch(reason => {
@@ -141,7 +144,7 @@ export function App({ api }: { api: PokerApi }) {
   const persist = async (state: GameState | null): Promise<void> => {
     locked.current = true; setSaving(true)
     try {
-      await api.storage.set(SAVE_KEY, { table: state, ...preferences.current } as never)
+      await api.storage.set(SAVE_KEY, soloCheckpoint(state,bank.current,preferences.current) as never)
       if (alive.current) { setError(''); setLoadFailed(false) }
     } catch {
       if (alive.current) { setError('Your last action is still on this table, but could not be saved. Retry saving to continue.'); setPaused(true) }
@@ -206,12 +209,12 @@ export function App({ api }: { api: PokerApi }) {
   const enter = () => {
     if (loading || locked.current || sceneFailed || loadFailed) return
     audio.current?.unlock()
-    if (!game.current) { game.current = new PokerGame(); game.current.startHand(); publish(); audio.current?.play('card') }
+    if (!game.current) { game.current = new PokerGame(); bank.current=freshSoloBank(game.current); game.current.startHand(); publish(); audio.current?.play('card') }
     setLobby(false); setPaused(false); root.current?.focus({ preventScroll: true })
   }
   const newTable = () => {
     if (locked.current || loading || sceneFailed) return
-    game.current = new PokerGame(); game.current.startHand()
+    game.current = new PokerGame(); bank.current=freshSoloBank(game.current); game.current.startHand()
     setConfirmNew(false); setPanel(null); setError(''); setLoadFailed(false); setPaused(false); setLobby(false)
     audio.current?.unlock(); audio.current?.play('card'); root.current?.focus({ preventScroll: true }); publish()
   }
@@ -220,6 +223,18 @@ export function App({ api }: { api: PokerApi }) {
     game.current.startHand(); audio.current?.play('card'); root.current?.focus({ preventScroll: true }); publish()
   }
   const openPanel = (next: typeof panel) => { setPaused(true); setPanel(next) }
+  const bankTransfer = (action:BankOperation,revision:number) => {
+    // Opening a panel intentionally pauses the table. Permit only this panel's
+    // explicit confirmation; ordinary betting remains blocked. Install both
+    // owners before publish locks storage. Failed writes keep this exact pair
+    // in memory for Retry, never issue another loan. No win sound for a loan.
+    if(locked.current || !game.current || !bank.current || panel!=='bank' || error || loadFailed || sceneFailed || confirmNew)return false
+    try {
+      const next=transferSoloBank(game.current,bank.current,action,revision)
+      game.current=next.game;bank.current=next.bank;publish()
+      return true
+    } catch(reason) {setError(reason instanceof Error?reason.message:'Bank transfer unavailable.');return false}
+  }
   const toggleMute = () => {
     if (locked.current || loading || loadFailed) return
     const next = !muted; setMuted(next); preferences.current.muted = next
@@ -234,8 +249,12 @@ export function App({ api }: { api: PokerApi }) {
   const blocked = !turn || paused || !!panel || saving || !!error || sceneFailed || drinkMenu || confirmNew || lobby
   const live = s?.players.filter(p => p.stack > 0).length ?? 6
   const finished = s?.phase === 'complete'
-  const champion = finished && live === 1
+  const champion = finished && live === 1 && (ours?.stack??0)>0
   const busted = finished && ours?.stack === 0
+  const bankOffer=game.current && bank.current?soloBankOffer(game.current,bank.current):null
+  // Completed history is immutable. A rebuy changes the stack but is not a
+  // poker win; stack-minus-startStack would falsely count borrowed chips.
+  const handNet=s?.history.find(h=>h.number===s.handNumber)?.net??0
   const pot = s?.players.reduce((n, p) => n + p.committed, 0) ?? 0
   const awarded = s?.awards.reduce((n, a) => n + a.amount, 0) ?? 0
   const bestHand = ours?.hole.length === 2 && (s?.board.length ?? 0) >= 3 ? evaluate([...ours.hole, ...s!.board]) : null
@@ -312,6 +331,7 @@ export function App({ api }: { api: PokerApi }) {
           <button onClick={() => scene.current?.smokeCigar()} disabled={paused || !!panel || !!error || sceneFailed || inspecting || !leisure.available} title="Smoke cigar (S)">Cigar <kbd>S</kbd></button>
           <button onClick={() => { scene.current?.sipDrink(); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed || inspecting || !leisure.available} title="Sip current drink (D)">{DRINKS[leisure.kind].label} <kbd>D</kbd></button>
           <button onClick={() => setDrinkMenu(value => !value)} disabled={paused || !!panel || !!error || sceneFailed || inspecting} aria-expanded={drinkMenu}>Drinks ▾</button>
+          <button onClick={() => openPanel('bank')} disabled={saving || !!error || sceneFailed}>Bank{bankOffer?.debt ? ` · ${chips(bankOffer.debt)} owed` : ''}</button>
           <button onClick={() => openPanel('history')}>Hand history ↗</button>
         </div>
         {drinkMenu && <DrinkMenu kind={leisure.kind} available={leisure.available} onClose={() => { setDrinkMenu(false); root.current?.focus({ preventScroll: true }) }} onOrder={kind => {
@@ -349,18 +369,18 @@ export function App({ api }: { api: PokerApi }) {
       <TableReadout board={s.board} street={STREETS[s.street]} winningCards={winningCards} ownCards={ours?.hole??[]} stack={ours?.stack??0}
         position={`${s.dealer===0?' · DEALER':''}${s.smallBlindSeat===0?' · SB':''}${s.bigBlindSeat===0?' · BB':''}`}
         handLabel={ours?.folded?'Folded':bestHand?.name??'Practice chips'} status={status} withActions={turn||finished}
-        detail={saving?'Saving…':paused?'Paused':finished?`Net ${ours!.stack-ours!.startStack>=0?'+':''}${chips(ours!.stack-ours!.startStack)}`:s.log.at(-1)} />
+        detail={saving?'Saving…':paused?'Paused':finished?`Net ${handNet>=0?'+':''}${chips(handNet)}`:s.log.at(-1)} />
       {(turn || finished) && !paused && !panel && !error && <section className="quick-actions" aria-label="Poker actions">
-        {finished ? <button className="primary" disabled={saving || sceneFailed} onClick={champion || busted ? () => setConfirmNew(true) : nextHand}>{champion || busted ? 'New table' : 'Deal next hand'} <span>→</span></button> : <BettingControls ref={betting} revision={s.revision} blocked={blocked} legal={legal}
+        {finished ? <button className="primary" disabled={saving || sceneFailed} onClick={busted ? () => openPanel('bank') : champion ? () => setConfirmNew(true) : nextHand}>{busted ? 'Rebuy · practice bank' : champion ? 'New table' : 'Deal next hand'} <span>→</span></button> : <BettingControls ref={betting} revision={s.revision} blocked={blocked} legal={legal}
           pot={pot} currentBet={s.currentBet} ownBet={ours?.bet ?? 0} bigBlind={s.bigBlind} onAction={perform}
           onOpenChange={setRaiseOpen} focusTable={() => root.current?.focus({ preventScroll: true })} />}
       </section>}
     </> : <footer className="lobby-footer"><span className="lobby-footer-mark">♣ ♦ ♥ ♠</span><span>A poker room for the moments between.</span><button onClick={() => openPanel('rules')}>New to the table? Learn the rules ↗</button></footer>}
 
-    {panel && <div className="panel-scrim" onClick={() => setPanel(null)}><aside className="side-panel" role="dialog" aria-modal="true" aria-label={panel === 'history' ? 'Hand history' : panel === 'rules' ? 'How to play' : 'Settings'} onClick={event => event.stopPropagation()}>
+    {panel && <div className="panel-scrim" onClick={() => setPanel(null)}><aside className="side-panel" role="dialog" aria-modal="true" aria-label={panel === 'bank' ? 'Practice bank' : panel === 'history' ? 'Hand history' : panel === 'rules' ? 'How to play' : 'Settings'} onClick={event => event.stopPropagation()}>
       <header><span className="eyebrow">THE RIVER CLUB</span><button aria-label="Close panel" onClick={() => setPanel(null)}>×</button></header>
-      <h2>{panel === 'history' ? 'The hands we played.' : panel === 'rules' ? 'Find your seat.' : 'Make it yours.'}</h2>
-      {panel === 'history' ? <div className="history-list">
+      <h2>{panel === 'bank' ? 'Stay at the table.' : panel === 'history' ? 'The hands we played.' : panel === 'rules' ? 'Find your seat.' : 'Make it yours.'}</h2>
+      {panel === 'bank' && bankOffer && s ? <BankControls scope="solo" offer={bankOffer} revision={s.revision} blocked={saving || !!error || sceneFailed || confirmNew} onConfirm={bankTransfer} /> : panel === 'history' ? <div className="history-list">
         {s && <details open><summary>Hand {s.handNumber} · {finished ? 'Complete' : STREETS[s.street]}</summary>{s.log.map((line, i) => <p key={i}>{line}</p>)}{s.awards.map((a, i) => <p key={`pot${i}`} className="pot-history">{a.label}: {chips(a.amount)} → {a.winners.map((seat, n) => `${CHARACTERS[seat].name} ${chips(a.shares[n])}`).join(', ')}</p>)}</details>}
         {s?.history.filter(h => h.number !== s.handNumber).map(h => <details key={h.number}><summary>Hand {h.number} <b>{h.net >= 0 ? '+' : ''}{chips(h.net)}</b></summary><strong>{h.summary}</strong>{h.log.map((line, i) => <p key={i}>{line}</p>)}</details>)}
         {!s && <p>Your first story starts at the table.</p>}
@@ -374,6 +394,6 @@ export function App({ api }: { api: PokerApi }) {
       </div> : <div className="rules-content"><p>Build the best five-card hand using your two cards and the five shared cards. You can use both, one, or neither of your cards.</p><h3>A hand in four acts</h3><p><b>Pre-flop:</b> two private cards. <b>Flop:</b> three shared cards. <b>Turn:</b> one more. <b>River:</b> the last card. Betting follows each street.</p><h3>Your move</h3><p><b>Check</b> when nothing is owed. <b>Call</b> to match. <b>Raise</b> to increase the total bet for this street. <b>Fold</b> to leave the hand. “Raise to” includes chips you already put in this street.</p><h3>All-in means all-in</h3><p>You can only win the chips you match. Additional bets form side pots. A short all-in may require a call without reopening a raise. Ties split each pot; odd chips go clockwise from the dealer.</p><h3>From strongest to weakest</h3><ol>{['Straight flush', 'Four of a kind', 'Full house', 'Flush', 'Straight', 'Three of a kind', 'Two pair', 'One pair', 'High card'].map(name => <li key={name}>{name}</li>)}</ol><p>Blinds stay at 10/20. Eliminated seats sit out; a moving button rotates through funded seats. Beat the table, or start fresh any time. Bots use their own cards and public information.</p><h3>Keyboard</h3><p><kbd>F</kbd> fold · <kbd>C</kbd> check/call · <kbd>B</kbd> open wager. Arrows adjust by one chip; Shift + arrows adjust by one big blind. Keys 1–4 choose minimum, half-pot, pot or all-in. <kbd>Enter</kbd> confirms only a visible wager with table focus. <kbd>Esc</kbd> cancels sizing before it pauses. Buttons and text fields keep their normal Enter/Space behavior.</p><p><kbd>M</kbd> sound · <kbd>Space</kbd> inspect cards · <kbd>S</kbd> cigar · <kbd>D</kbd> sip. Sizing does not move chips until you confirm.</p><p>Everything is local. All chips are free practice currency.</p></div>}
     </aside></div>}
     {error && <div className="save-alert" role="alert"><strong>{loadFailed ? 'Saved table needs attention' : 'Table paused'}</strong><p>{error}</p>{!loadFailed && <button className="primary" disabled={saving} onClick={() => void persist(game.current?.snapshot() ?? null)}>Retry save</button>}<button className="text-button" disabled={saving} onClick={() => setConfirmNew(true)}>Start a new table instead</button></div>}
-    {confirmNew && <div className="panel-scrim"><div className="confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="fresh-title"><span className="eyebrow">FRESH FELT</span><h2 id="fresh-title">Start a new table?</h2><p>Your current hand, chip stacks, and history will be replaced. Everyone starts with 2,000 practice chips.</p><div><button className="secondary" onClick={() => setConfirmNew(false)}>Keep this table</button><button className="primary" disabled={saving || sceneFailed} onClick={newTable}>Start fresh</button></div></div></div>}
+    {confirmNew && <div className="panel-scrim"><div className="confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="fresh-title"><span className="eyebrow">FRESH FELT</span><h2 id="fresh-title">Start a new table?</h2><p>Your current hand, chip stacks, history and fictional bank debt will be replaced. Everyone starts with 2,000 practice chips and no debt.</p><div><button className="secondary" onClick={() => setConfirmNew(false)}>Keep this table</button><button className="primary" disabled={saving || sceneFailed} onClick={newTable}>Start fresh</button></div></div></div>}
   </main>
 }

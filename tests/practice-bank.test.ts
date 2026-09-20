@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { PokerGame, type Action } from '../src/engine/game'
-import { createPracticeBank, planBankTransfer, restorePracticeBank, BANK_CAPACITY, REBUY_CHIPS } from '../src/session/bank/PracticeBank'
+import { createPracticeBank, planBankTransfer, restorePracticeBank, BANK_CAPACITY, REBUY_CHIPS } from '../src/bank/PracticeBank'
 import recorded from '../testing/fixtures/experience/bank-bust-scripted.json'
 
 function settled() {

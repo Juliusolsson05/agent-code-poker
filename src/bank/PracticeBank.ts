@@ -1,8 +1,9 @@
 /** Fictional chips only. The ceiling matches the engine's existing numeric
  * bound, rather than weakening restore/conservation checks for new issuance.
  * This is a finite outside reserve, not a second mutable player-stack ledger.
- * HostTable is the intended sole runtime consumer; no renderer, client, audio
- * or engine code may import this private identity/debt representation. */
+ * Only table authorities (HostTable and the solo checkpoint adapter) consume
+ * this ledger. It lives outside session/ so offline play does not import LAN
+ * membership/transport authority. Renderers/audio receive no private ledger. */
 export const BANK_CAPACITY = 1_000_000
 export const REBUY_CHIPS = 2000
 const MAX_ACCOUNTS = 256

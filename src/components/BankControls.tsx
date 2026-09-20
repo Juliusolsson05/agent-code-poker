@@ -6,11 +6,20 @@ type Offer = {debt:number;borrowAmount:number;canBorrow:boolean;repayMax:number;
  * computes credit eligibility. A confirmation binds the observed revision;
  * polling, pause or a pending request cancels it instead of silently rebasing
  * a financial-looking choice. These remain fictional practice chips. */
-export function BankControls({offer,revision,blocked,onConfirm}:{
-  offer:Offer;revision:number;blocked:boolean;onConfirm:(action:Operation,revision:number)=>boolean
+export function BankControls({offer,revision,blocked,onConfirm,scope='lan'}:{
+  offer:Offer;revision:number;blocked:boolean;onConfirm:(action:Operation,revision:number)=>boolean;scope?:'solo'|'lan'
 }) {
   const [draft,setDraft]=useState<{action:Operation;revision:number}|null>(null)
   useEffect(()=>setDraft(null),[revision,blocked])
+  useEffect(()=>{
+    // A bank panel already pauses solo play, so another blur does not change
+    // its blocked prop. Explicitly abandon confirmation on focus loss; never
+    // leave an old repayment armed when returning from another app.
+    const cancel=()=>setDraft(null)
+    const hidden=()=>{if(document.hidden)cancel()}
+    window.addEventListener('blur',cancel);document.addEventListener('visibilitychange',hidden)
+    return ()=>{window.removeEventListener('blur',cancel);document.removeEventListener('visibilitychange',hidden)}
+  },[])
   const live=draft?.revision===revision && !blocked ? draft : null
   function confirm() {
     if(!live)return
@@ -29,6 +38,8 @@ export function BankControls({offer,revision,blocked,onConfirm}:{
       {offer.repayMax>500 && <button disabled={blocked} onClick={()=>setDraft({action:{type:'repay',amount:500},revision})}>Repay 500 chips</button>}
       <button disabled={blocked || offer.repayMax===0} onClick={()=>setDraft({action:{type:'repay',amount:offer.repayMax},revision})}>Repay up to {offer.repayMax.toLocaleString()} chips</button>
     </div>}
-    <p className="small">{offer.reason || 'Busted? Borrow between hands to rejoin the next deal.'} Debt follows your player for this room, including reconnects. Leaving does not transfer it to another player.</p>
+    <p className="small">{offer.reason || 'Busted? Borrow between hands to rejoin the next deal.'} {scope==='solo'
+      ? 'Debt is saved with this table. Starting a new table ends this practice room and its debt.'
+      : 'Debt follows your player for this room, including reconnects. Leaving does not transfer it to another player.'}</p>
   </section>
 }

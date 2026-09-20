@@ -21,6 +21,13 @@ gameplay shortcuts. Opponents keep card backs facing you until public showdown.
 The active hand saves after every decision. Losing focus pauses the table;
 returning does not silently resume betting.
 
+**Bank** keeps a busted solo player at the same table: borrow 2,000 fictional
+chips between hands, then explicitly confirm. Debt has no interest or real-money
+value and saves with the table. Repay 500 or up to your available debt/stack
+between hands. Canceling never moves chips; a failed save pauses play and Retry
+saves the same transfer. Old saves migrate without changing their chips. Starting
+a new table explicitly ends that practice room, its history and its debt.
+
 **Drinks ▾** opens a compact free menu: Old Fashioned, winter ale, red wine or water. **D** sips the current drink. Ordering is available only once your hand has finished its current action; it replaces the glass on your coaster and never spends chips. Drink selection is cosmetic and resets to Old Fashioned on reload, without changing the saved poker hand. Grips remain under visual refinement.
 
 Hold **Space** while the table is focused to lean over your cards and chips; release to look up. The **Cards & chips** button toggles the same view without holding a key. Buttons and inputs retain normal Space behavior. Inspection does not pause betting or reveal opponents' cards. The website fills the browser and offers a fullscreen button; Agent Code host fullscreen is deferred.
