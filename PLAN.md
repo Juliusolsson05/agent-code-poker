@@ -2,6 +2,20 @@
 
 ## Active direction — finish the non-LAN gameplay list
 
+### Active slice: normal seated mouse-look
+
+Actual opt-in CUA10-29-18 now records two accepted canvas drags, retained yaw,
+inspection, explicit recenter, a turned drink request starting only after center,
+and rejected canvas drag with the betting tray open. Source call48/pause leaves
+stack1952/pot126. Opponents remain card backs at observed limits; HUD stays fixed.
+The raw trace has one known look-leisure-start/frame timestamp inversion; retain
+it and move that event after frame diagnostics, as for sip receipts. Use these
+real deltas/poses in replay tests, then remove DEV-only gating. Preserve authored
+world-space hands and bounded view, no mandatory pointer lock. Expose R/recenter
+and existing Off control in normal source/shipped. Verify normal/source/shipped
+drag, UI blocking, inspection/contact, Off and pause/reload; retain exact raw
+evidence and disclose that newly visible shoulder caps still need final art.
+
 ### Next slice: completed-sip feedback, no anatomy edits
 
 Checkpoint: player owner emits one completed-sip receipt at existing sip-end,

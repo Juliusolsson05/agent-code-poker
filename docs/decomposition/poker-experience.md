@@ -2,6 +2,21 @@
 
 ## Latest user priority — gameplay after accepted LAN appearance
 
+### B20–E20 normal mouse-look integration
+
+Actual opt-in10-29-18 recording replaces the previously missing drag evidence.
+Two accepted drags, one rejected while sizing, retained yaw, both inspection
+commands, explicit recenter and queued sip start are recorded, with two canvas
+PNGs. A look-leisure-start emitted before its earlier frame timestamp exposes
+one diagnostic inversion; preserve it as a negative control, do not sort it.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B20 | Actual drag/contact/UI input and camera corpus | Raw download, hashes, screenshots | Old tiny parallax was not deliberate looking | CUA source opt-in now works |
+| C20 | Recorded drag replay and normal-path regression | Recorded pointer deltas reproduce bounded intent; contact waits for center; UI drag rejected | No camera ownership in hands/engine | Real events plus synthetic extreme/focus tests |
+| D20 | Shared product mouse-look profile and chronological diagnostics | Source/shipped same capability; R/Off discoverable | DEV gating previously hid required features from production | No private-card or geometry changes |
+| E20 | Normal source/shipped actual drag/inspection/pause/restore | Off/recenter, sip, fixed HUD and private backs | Synthetic controller math cannot approve comfort | CUA only; final shoulder anatomy and FPS remain separate |
+
 ### B19–E19 completed-sip feedback
 
 Implementation checkpoint: Leisure owns completion count, InteractionDirector
