@@ -4,15 +4,19 @@ import { PokerRoom } from '../../src/scene/Room'
 import { BettingControls } from '../../src/components/BettingControls'
 import { SeatRecovery } from './SeatRecovery'
 import { ResponseOrder, ObsoleteResponse } from './ResponseOrder'
+import { LeisureControls, leisureShortcut } from './LeisureControls'
 const el = id => document.getElementById(id)
 const recovery = new SeatRecovery(() => sessionStorage, () => localStorage)
 const responses = new ResponseOrder()
 const hex = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), v => v.toString(16).padStart(2, '0')).join('')
 let token = '', admissionNonce = hex(), state = null, pending = false, polling = false, ended = false
 let room = null, renderFailed = false, inspected = false, menuOpen = false, connectionLost = false, controlsRevision = 0, authorityRevision = -1
+let drinkMenuOpen = false, wagerOpen = false, leisure = { kind: 'old-fashioned', available: false }
 const labels = new Map(), bettingRef = createRef(), bettingRoot = createRoot(el('actions'))
+const leisureRoot = createRoot(el('leisure'))
 const focusTable = () => el('app').focus()
-const onWagerOpen = open => room?.setLookBlocked(open || menuOpen)
+const syncLookBlocked = () => room?.setLookBlocked(wagerOpen || menuOpen || drinkMenuOpen)
+const onWagerOpen = open => { wagerOpen=open;syncLookBlocked();renderLeisure() }
 const currentKey = recovery.current()
 let savedKeys = [], playerName = currentKey?.name || 'Guest'
 if (currentKey) { token = currentKey.token; admissionNonce = currentKey.nonce; el('name').value = playerName }
@@ -71,13 +75,41 @@ async function api(path, body) {
   return data
 }
 const card = value => `${({11:'J',12:'Q',13:'K',14:'A'})[value%13+2] || value%13+2}${['♣','♦','♥','♠'][Math.floor(value/13)]}`
+function leisureContext() {
+  return { available: leisure.available, menuOpen: drinkMenuOpen,
+    blocked: !state || !room || renderFailed || pending || connectionLost || ended ||
+      state.paused || state.view.phase==='ready' || state.view.self.waiting || inspected || menuOpen || wagerOpen }
+}
+function renderLeisure() {
+  if (!state) { leisureRoot.render(null);return }
+  leisureRoot.render(createElement(LeisureControls,{...leisureContext(),kind:leisure.kind,
+    onSmoke:()=>requestLeisure('smoke'),onSip:()=>requestLeisure('drink'),onMenuChange:drinkMenu,
+    onOrder:kind=>{
+      // Recheck current context on dispatch, not the last React frame. Polls
+      // may pause/disconnect the table between rendering and a queued click.
+      const context=leisureContext()
+      if(!context.blocked && context.available && room?.orderDrink(kind)) drinkMenu(false)
+    }}))
+}
+function requestLeisure(kind) {
+  const context=leisureContext()
+  if(context.blocked || context.menuOpen || !context.available)return
+  if(kind==='smoke')room?.smokeCigar();else room?.sipDrink()
+  focusTable()
+}
+function drinkMenu(open) {
+  if(open && leisureContext().blocked)return
+  drinkMenuOpen=open;controlsRevision++;syncLookBlocked();render()
+  if(!open)focusTable()
+}
 function render() {
   el('entry').hidden = !!state; el('table').hidden = !state
   el('inspect').hidden = el('details').hidden = !state
   el('create').disabled = pending || !!token; el('join').disabled = pending || !!token
   if (!state) {
     room?.dispose(); room=null; labels.clear(); el('labels').replaceChildren(); bettingRoot.render(null)
-    inspected=false;menuOpen=false;connectionLost=false;authorityRevision=-1;el('menu').hidden=true;showSaved(); return
+    inspected=false;menuOpen=false;drinkMenuOpen=false;wagerOpen=false;leisure={kind:'old-fashioned',available:false}
+    connectionLost=false;authorityRevision=-1;el('menu').hidden=true;leisureRoot.render(null);showSaved(); return
   }
   const v = state.view, own = v.players[v.self.seat]
   if(v.revision !== authorityRevision) { authorityRevision=v.revision; controlsRevision++ }
@@ -86,7 +118,7 @@ function render() {
     // A GPU failure is not a lost admission response. Preserve the credential
     // and do not repeatedly allocate another renderer on every heartbeat.
     try {
-      room = new PokerRoom(el('scene'), failed, undefined, undefined, v.self.seat)
+      room = new PokerRoom(el('scene'), failed, undefined, value=>{leisure=value;renderLeisure()}, v.self.seat)
       for(let seat=1;seat<6;seat++) {
         const label=document.createElement('div');label.className='seat-label';el('labels').append(label)
         labels.set(seat,label);room.bindWorldLabel(seat,label)
@@ -95,6 +127,10 @@ function render() {
   }
   room?.updateRemote(v,v.self.seat);room?.setPlaying(v.phase!=='ready' && !v.self.waiting)
   room?.setPaused(state.paused || connectionLost || ended)
+  // Closing a menu must not resume a queued leisure request after an authority
+  // interruption. The existing Room clock/owner handles held prop continuity.
+  if(state.paused || connectionLost || ended || menuOpen || v.self.waiting) drinkMenuOpen=false
+  syncLookBlocked();renderLeisure()
   for(const p of v.players) if(p.displaySeat!==0) {
     const label=labels.get(p.displaySeat)
     if(!label)continue
@@ -122,11 +158,11 @@ function render() {
   el('pause').disabled = pending; el('pause').textContent = state.paused ? 'Resume table' : 'Pause table'
   el('leave').disabled = pending
   el('leave').textContent = state.isHost ? 'End session for everyone' : 'Leave table'
-  const canAct = !pending && !state.paused && !connectionLost && !ended && !menuOpen && !v.self.waiting && v.actor === v.self.seat && v.phase === 'betting'
+  const canAct = !pending && !state.paused && !connectionLost && !ended && !menuOpen && !drinkMenuOpen && !v.self.waiting && v.actor === v.self.seat && v.phase === 'betting'
   bettingRoot.render(createElement(BettingControls,{ref:bettingRef, revision:controlsRevision, blocked:!canAct,
     legal:v.legal,pot:v.pot,currentBet:v.currentBet,ownBet:own.bet,bigBlind:v.bigBlind,onAction:wager,
     onOpenChange:onWagerOpen,focusTable}))
-  el('inspect').disabled=state.paused || v.self.waiting || ended
+  el('inspect').disabled=state.paused || v.self.waiting || connectionLost || ended || menuOpen
 }
 async function run(work) {
   if (pending) return
@@ -172,22 +208,25 @@ function wager(action) {
   // Capture one intent before awaiting. Never silently update its revision or
   // resubmit a different wager after a failed request; refresh and let the human
   // decide. Host idempotency is a second barrier, not permission to auto-bet.
-  if(pending || ended || connectionLost || !state || state.paused || state.view.actor!==state.view.self.seat) return false
+  if(pending || ended || connectionLost || menuOpen || drinkMenuOpen || !state || state.paused || state.view.actor!==state.view.self.seat) return false
   const v = state.view
   void run(() => api('/api/action', { sequence: v.self.nextSequence, revision: v.revision, action }))
   return true
 }
-function menu(open) {menuOpen=open;el('menu').hidden=!open;room?.setLookBlocked(open);render();if(!open)focusTable()}
+function menu(open) {menuOpen=open;el('menu').hidden=!open;syncLookBlocked();render();if(!open)focusTable()}
 el('details').onclick=()=>menu(!menuOpen);el('close-menu').onclick=()=>menu(false)
-function inspect(active) {inspected=active;room?.setInspection(active);el('labels').hidden=active}
+function inspect(active) {if(active)drinkMenuOpen=false;inspected=active;room?.setInspection(active);el('labels').hidden=active;syncLookBlocked();render()}
 el('inspect').onclick=()=>{inspect(!inspected);focusTable()}
 el('app').addEventListener('keydown',event=>{
   const target=event.target.closest('input,select,textarea,[contenteditable=true]')?'editing':event.target.closest('button,a')?'control':'table'
   if(!state || target==='editing' || event.altKey || event.ctrlKey || event.metaKey || event.isComposing)return
+  if(event.key==='Escape' && drinkMenuOpen){event.preventDefault();event.stopPropagation();drinkMenu(false);return}
   if(event.key==='Escape' && menuOpen){event.preventDefault();menu(false);return}
+  const leisureAction=leisureShortcut(event,target,leisureContext())
+  if(leisureAction){event.preventDefault();requestLeisure(leisureAction);return}
   if(bettingRef.current?.handleKey({key:event.key,repeat:event.repeat,shiftKey:event.shiftKey,altKey:event.altKey,ctrlKey:event.ctrlKey,metaKey:event.metaKey,nativeEvent:event,
     preventDefault:()=>event.preventDefault(),stopPropagation:()=>event.stopPropagation()},target))return
-  if(event.key===' ' && target==='table' && !menuOpen && !state.paused && !state.view.self.waiting){event.preventDefault();inspect(true)}
+  if(event.key===' ' && target==='table' && !menuOpen && !drinkMenuOpen && !connectionLost && !ended && !state.paused && !state.view.self.waiting){event.preventDefault();inspect(true)}
 })
 el('app').addEventListener('keyup',event=>{if(event.key===' '){inspect(false)}})
 window.addEventListener('blur',()=>inspect(false))

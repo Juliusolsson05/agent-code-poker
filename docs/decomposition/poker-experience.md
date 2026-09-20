@@ -28,6 +28,28 @@ Investigation correction: an initial concern that host-loss left controls live
 was disproved by actual scripted HTTP lease expiry. The server already emits
 paused=true when hostConnected=false. No host-loss fix is claimed or needed.
 
+Implementation checkpoint: server/client/LeisureControls reuses DrinkMenu/specs;
+client delegates requests to Room and listens to availability transitions.
+Keyboard handling ignores editing/native controls/repeat/modifiers. Dispatch
+rechecks live gating, not stale React props. No new geometry, animation clock,
+network command or intoxication. Existing source/shipped extension bytes are
+unchanged; LAN compiled assets include the component. TS checks include server
+TSX. Three new static markup/synthetic key contracts pass (initial missing-file
+red was scaffolding, not a real browser fault), along with full verify136 tests,
+both builds, SDK and preview-byte checks. PR currently has no hosted CI checks.
+
+Actual CUA source: water order/sip disables leisure, returns available with
+stack2000 unchanged, then call20/inspection/pause/reload restores stack1980/pot180.
+Old Fashioned returns on reload as documented; warn/error capture empty. Shipped:
+ale order/sip/busy gate observed, but subsequent call timed out and both owned
+QA tabs were absent from refreshed browser inventory. Final shipped action/
+inspection/reload and console checks remain incomplete for this pass. No
+replacement tabs opened to fight that external closure. Session24 manual notes
+are not raw recordings/image goldens. Empty5193 was verified410 and exact PID
+before graceful replacement with current candidate, preserving its checkpoint
+directory; new PID79314. Chrome navigation still ERR_BLOCKED_BY_CLIENT. Active
+5192 was untouched. No LAN, Wi-Fi, listening, FPS or Electron acceptance claim.
+
 ## Durable multiplayer recovery — B12–E12
 
 ### E12 response-ownership substage

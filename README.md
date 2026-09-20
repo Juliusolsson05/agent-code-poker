@@ -67,6 +67,13 @@ the code/roster and host pause/end controls. The host deals the next hand.
 Betting uses the shared keyboard tray (F/C/B, arrows, presets1–4, Enter/Esc),
 and Space inspects only your allowed cards. Each viewer occupies the near seat;
 opponent models follow stable authority identities, not their display slot.
+The LAN room also exposes **S** for cigar, **D** for the current drink and a
+compact **Drinks** menu with the same free block-built choices as solo play.
+These use the existing local contact owner, not networking or poker actions.
+Typing, menus, inspection, waiting admission and paused/disconnected tables
+block new leisure requests. Orders do not count as sips or cause intoxication.
+Remote human drink/gesture synchronization is not implemented yet; opponent
+ambient gestures are still presentation-only, not evidence of a remote action.
 Actual recovery/two-browser3D acceptance, bank debt and separate-device
 LAN acceptance remain open. The installed extension has no
 network-hosting API and does not load this standalone server.
