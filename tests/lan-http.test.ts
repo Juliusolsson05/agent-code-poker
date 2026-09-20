@@ -3,6 +3,8 @@ import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
 import { request } from 'node:http'
 import { startLanHost } from '../server/http'
+import { RoomProjection } from '../src/presentation/RoomProjection'
+import { ChipLedger } from '../src/scene/ChipLedger'
 
 const nonce = () => randomBytes(32).toString('hex')
 async function call(origin: string, path: string, body?: unknown, token?: string, headers: Record<string, string> = {}) {
@@ -12,6 +14,37 @@ async function call(origin: string, path: string, body?: unknown, token?: string
   }, body: body === undefined ? undefined : JSON.stringify(body) })
   return { status: response.status, body: await response.json(), headers: response.headers }
 }
+
+test('six actual HTTP clients complete a hand with viewer-relative chip accounts and private cards', async t => {
+  let clock=1000
+  const host=await startLanHost({port:0,automaticTicks:false,now:()=>clock});t.after(()=>host.close())
+  const a=(await call(host.origin,'/api/create',{name:'Host',nonce:nonce()})).body
+  const tokens=[a.token], projections=Array.from({length:6},()=>new RoomProjection()), ledgers=Array.from({length:6},()=>new ChipLedger())
+  for(let i=1;i<6;i++)tokens.push((await call(host.origin,'/api/join',{name:`Player ${i}`,nonce:nonce(),code:a.code})).body.token)
+  const initial=(await call(host.origin,'/api/state',undefined,a.token)).body.view
+  await call(host.origin,'/api/start',{revision:initial.revision},a.token)
+  for(let step=0;step<40;step++) {
+    const views=await Promise.all(tokens.map(async token=>(await call(host.origin,'/api/state',undefined,token)).body.view))
+    for(let seat=0;seat<6;seat++) {
+      const v=views[seat], scene=projections[seat].remote(v,seat), chips=ledgers[seat].sync(scene)
+      assert.equal(scene.players[0].sourceSeat,seat)
+      assert.equal(chips.reduce((n,c)=>n+c.value,0),12000)
+      for(const p of scene.players) assert.equal(chips.filter(c=>c.account===`bank:${p.seat}`).reduce((n,c)=>n+c.value,0),p.stack)
+      if(v.phase==='betting')assert.deepEqual(v.players.filter((p:any)=>p.cards.kind==='visible').map((p:any)=>p.seat),[seat])
+    }
+    const v=views[0]
+    if(v.phase==='complete'){assert.ok(v.results.length>0);return}
+    if(v.phase==='betting') {
+      const actor=v.actor, own=views[actor]
+      assert.equal((await call(host.origin,'/api/action',{sequence:own.self.nextSequence,revision:own.revision,action:{type:own.legal.check?'check':'call'}},tokens[actor])).status,200)
+    } else {
+      // Actual HTTP packets with an explicitly injected scheduler clock, not
+      // a browser recording, real latency measurement or a Wi-Fi claim.
+      clock+=1050;host.pulse()
+    }
+  }
+  assert.fail('A check/call hand did not settle within its bounded action count')
+})
 
 // These are actual HTTP sockets with scripted clients, not browser/Wi-Fi/user
 // recordings. Existing D9 tests separately replay the retained public game.
@@ -67,7 +100,11 @@ test('real HTTP rejects foreign origins, forged host, oversized and malformed bo
   const page = await fetch(host.origin)
   assert.match(page.headers.get('content-security-policy')!, /script-src 'self'/)
   assert.equal(page.headers.get('access-control-allow-origin'), null)
-  assert.match(await page.text(), /Connection test/)
+  assert.match(await page.text(), /Multiplayer poker room/)
+  const bundle = await fetch(host.origin + '/client.js')
+  assert.equal(bundle.status,200)
+  assert.match(bundle.headers.get('content-type')!, /javascript/)
+  assert.doesNotMatch(await bundle.text(), /from ['"](?:react|three|\.\.\/)/, 'LAN serves a compiled bundle, not source imports')
 })
 
 test('real client packets bind actions to tokens and pause/lease/reconnect do not create another seat', async t => {

@@ -4,6 +4,8 @@ import * as THREE from 'three'
 import { CardField } from '../src/scene/Cards'
 import { PokerGame } from '../src/engine/game'
 import { ChipLedger } from '../src/scene/ChipLedger'
+import { RoomProjection } from '../src/presentation/RoomProjection'
+const projection = new RoomProjection()
 import { createTableSurface, tableCardPosition, dealerPosition, TABLE } from '../src/scene/Table'
 
 test('dealer button sits on felt and is not buried in the rail at any seat', () => {
@@ -59,7 +61,7 @@ test('restoring a public showdown shows table-card faces instead of replaying hi
     if (!textures.has(card)) textures.set(card, new THREE.Texture() as THREE.CanvasTexture)
     return textures.get(card)!
   })
-  field.update(state); field.frame(performance.now() / 1000 + 4, true)
+  field.update(projection.solo(state)); field.frame(performance.now() / 1000 + 4, true)
   assert.equal(field.root.children.filter(c => c.visible).length, 17)
   assert.equal(textures.has(null), false, 'only public faces belong in the restored showdown')
   for (const child of field.root.children as THREE.Mesh[]) { child.geometry.dispose(); (child.material as THREE.Material).dispose() }
@@ -72,7 +74,7 @@ test('inspection exposes only our live cards, leaves rules untouched, and clears
   const field = new CardField([[0, 1.7], [-1.9, -.4], [-1.1, -1.1], [0, -1.4], [1.1, -1.1], [1.9, -.4]], card => {
     seen.push(card); const texture = new THREE.Texture(); textures.push(texture); return texture as THREE.CanvasTexture
   })
-  field.update(game.snapshot()); seen.length = 0
+  field.update(projection.solo(game.snapshot())); seen.length = 0
   const before = game.snapshot()
   field.setInspection(true)
   assert.deepEqual(seen, before.players[0].hole, 'a new viewpoint must not request any opponent face')
@@ -82,7 +84,7 @@ test('inspection exposes only our live cards, leaves rules untouched, and clears
   field.setInspection(false); assert.ok(papers.every(p => !p.visible))
   field.setInspection(true)
   while (game.snapshot().actor !== 0) game.act(game.snapshot().actor!, { type: 'call' })
-  game.act(0, { type: 'fold' }); field.update(game.snapshot())
+  game.act(0, { type: 'fold' }); field.update(projection.solo(game.snapshot()))
   assert.ok(papers.every(p => !p.visible), 'folded cards cannot persist in the inspection view')
   field.root.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); (o.material as THREE.Material).dispose() } })
   textures.forEach(t => t.dispose())
@@ -95,7 +97,7 @@ test('visible chip denominations exactly represent every possible 12,000-chip ta
   for (let amount = 0; amount <= 12000; amount++) {
     const state = new PokerGame().snapshot()
     state.players.forEach((p, seat) => { p.stack = seat === 0 ? amount : seat === 1 ? 12000 - amount : 0 })
-    const inventory = new ChipLedger().sync(state)
+    const inventory = new ChipLedger().sync(projection.solo(state))
     assert.equal(inventory.filter(c => c.account === 'bank:0').reduce((sum, c) => sum + c.value, 0), amount)
     assert.equal(inventory.reduce((sum, c) => sum + c.value, 0), 12000)
     for (const value of [500, 100, 25, 5, 1]) assert.ok(inventory.filter(c => c.value === value).length < 512)
@@ -104,11 +106,11 @@ test('visible chip denominations exactly represent every possible 12,000-chip ta
 
 test('restoring a saved hand after the initial ready scene rebuilds stacks without spending an empty pot', () => {
   const game = new PokerGame(() => .43), ledger = new ChipLedger()
-  ledger.sync(game.snapshot()); game.startHand()
+  ledger.sync(projection.solo(game.snapshot())); game.startHand()
   game.act(game.snapshot().actor!, { type: 'raise', to: 100 })
   while (game.snapshot().phase === 'betting') game.act(game.snapshot().actor!, { type: game.legal().check ? 'check' : 'call' })
   game.advance()
-  const restored = ledger.sync(PokerGame.restore(game.snapshot()).snapshot())
+  const restored = ledger.sync(projection.solo(PokerGame.restore(game.snapshot()).snapshot()))
   assert.equal(restored.filter(c => c.account === 'pot').reduce((n, c) => n + c.value, 0), 600)
   assert.equal(restored.reduce((n, c) => n + c.value, 0), 12000)
 })
@@ -117,10 +119,10 @@ test('physical chips retain identity through calls and match every account acros
   let seed = 125; const random = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296 }
   for (let run = 0; run < 100; run++) {
     const game = new PokerGame(random), ledger = new ChipLedger()
-    ledger.sync(game.snapshot()); game.startHand()
-    let chips = ledger.sync(game.snapshot())
+    ledger.sync(projection.solo(game.snapshot())); game.startHand()
+    let chips = ledger.sync(projection.solo(game.snapshot()))
     const untouched = chips.filter(c => c.account === 'bank:0').map(c => c.id)
-    game.act(3, { type: 'call' }); chips = ledger.sync(game.snapshot())
+    game.act(3, { type: 'call' }); chips = ledger.sync(projection.solo(game.snapshot()))
     assert.deepEqual(chips.filter(c => c.account === 'bank:0').map(c => c.id), untouched)
     for (let step = 0; game.snapshot().phase !== 'complete'; step++) {
       assert.ok(step < 250)
@@ -129,7 +131,7 @@ test('physical chips retain identity through calls and match every account acros
       else if (random() < .15) game.act(s.actor!, { type: 'fold' })
       else if (l.raise && random() < .3) game.act(s.actor!, { type: 'raise', to: l.min + Math.floor(random() * (l.max - l.min + 1)) })
       else game.act(s.actor!, { type: l.check ? 'check' : 'call' })
-      chips = ledger.sync(game.snapshot())
+      chips = ledger.sync(projection.solo(game.snapshot()))
       const next = game.snapshot()
       for (const p of next.players) {
         assert.equal(chips.filter(c => c.account === `bank:${p.seat}`).reduce((n, c) => n + c.value, 0), p.stack)
@@ -143,11 +145,11 @@ test('physical chips retain identity through calls and match every account acros
 test('reprojecting an unchanged hand preserves chip identity instead of simulating a restore', () => {
   const game = new PokerGame(() => .43), ledger = new ChipLedger()
   game.startHand()
-  const first = ledger.sync(game.snapshot())
-  assert.deepEqual(ledger.sync(game.snapshot()), first, 'a resize must not respawn the bankroll')
+  const first = ledger.sync(projection.solo(game.snapshot()))
+  assert.deepEqual(ledger.sync(projection.solo(game.snapshot())), first, 'a resize must not respawn the bankroll')
   game.act(game.snapshot().actor!, { type: 'call' })
-  const moved = ledger.sync(game.snapshot())
-  assert.deepEqual(ledger.sync(game.snapshot()), moved, 'duplicate projection must not cancel an in-flight bet')
+  const moved = ledger.sync(projection.solo(game.snapshot()))
+  assert.deepEqual(ledger.sync(projection.solo(game.snapshot())), moved, 'duplicate projection must not cancel an in-flight bet')
 })
 
 // Chair clearance now lives in anatomy.test.ts and samples actual deformed
@@ -163,17 +165,17 @@ test('dealing persists across decisions, private cards never use face textures, 
     if (!textures.has(card)) textures.set(card, new THREE.Texture() as THREE.CanvasTexture)
     return textures.get(card)!
   })
-  const game = new PokerGame(() => .43); game.startHand(); field.update(game.snapshot())
+  const game = new PokerGame(() => .43); game.startHand(); field.update(projection.solo(game.snapshot()))
   assert.equal(seen.length, 12); assert.ok(seen.every(c => c === null))
   const now = performance.now() / 1000; field.frame(now + .25, false)
   const card = field.root.children[0] as THREE.Mesh
   assert.ok(card.position.y > .803, 'dealing card should be in flight')
-  game.act(game.snapshot().actor!, { type: 'call' }); field.update(game.snapshot())
+  game.act(game.snapshot().actor!, { type: 'call' }); field.update(projection.solo(game.snapshot()))
   assert.equal(field.root.children.length, 12, 'an action must not respawn cards')
   field.frame(now + 3, false)
   assert.ok(field.root.children.every(c => !c.visible), 'cards are picked up, not duplicated on the felt')
   while (game.snapshot().phase === 'betting') game.act(game.snapshot().actor!, { type: game.legal().check ? 'check' : 'call' })
-  game.advance(); field.update(game.snapshot()); field.frame(performance.now() / 1000 + 3, false)
+  game.advance(); field.update(projection.solo(game.snapshot())); field.frame(performance.now() / 1000 + 3, false)
   assert.equal(field.root.children.filter(c => c.visible).length, 3)
   assert.deepEqual(seen.filter(c => c !== null), game.snapshot().board)
   for (const child of field.root.children as THREE.Mesh[]) {

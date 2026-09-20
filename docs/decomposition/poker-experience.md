@@ -29,6 +29,39 @@ versus connectivity, persistence and ended-session recovery. Existing renderer
 geometry and hand art are not redesigned by this stage. This is the user's
 requested boundary change, not permission to weaken recorded fold/chip tests.
 
+D11 implemented: opaque deal generation, explicit card visibility and one
+relative-seat projection feed the same Cards/ChipLedger/Room used by solo play.
+Four contracts replay recorded public wagers/folds across all6 views and label
+new queued/showdown/reset tests synthetic. Existing card/chip assertions were
+preserved, with inputs migrated through the real adapter. No fabricated deck or
+hole values enter the remote renderer. The initial missing-module failure is
+scaffolding, not a reproduced real-world networking bug.
+
+E11 integration candidate: compiled `lan-dist/` is served by an exact flat asset
+allowlist. The website creates the actual PokerRoom with viewer-relative actor,
+button, chips, cards and identity-stable authored bodies (including seat0).
+Shared BettingControls supply legal sizing/keys/confirmation, not a second
+client ledger. Network loss disables wagering; hidden tabs retain heartbeat
+while rendering sleeps. An injected-clock actual HTTP test completes a hand
+through6 distinct clients and checks private card kinds and every visual chip
+account. This does not prove browser rendering, latency or Wi-Fi behavior.
+
+Browser acceptance remains open: the isolated new5193 QA tab was blocked by
+Chrome (ERR_BLOCKED_BY_CLIENT). The old5192 host has an active session and was
+not restarted; user was asked asynchronously whether that disposable session
+may be ended. No protection was disabled or alternate automation substituted.
+Durable host/client recovery, actual multi-client3D observations and any
+remaining interaction/visibility failures must be addressed before moving on
+from full multiplayer. A compiled candidate is not production acceptance.
+
+Verification checkpoint: full `npm run verify` passes112 tests, TypeScript,
+extension and LAN builds,2 SDK contracts and exact-byte preview. The LAN bundle
+is about1.03MB uncompressed/322KB gzip; Vite reports its normal large-chunk warning.
+This size is not a frame-rate measurement. CUA source and shipped regressions
+both call48, inspect, pause, reload and restore hand1/stack1952/pot126. Held
+cards/cigar and settled folded backs visible; captured warn/errors empty.
+`session-20-observations.json` retains manual notes, not raw traces/goldens.
+
 ## Release scope and priority — continuation17
 
 The user confirms the whole agreed list is the remaining production scope and

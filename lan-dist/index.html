@@ -1,5 +1,7 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent Code Poker · LAN</title><link rel="stylesheet" href="/style.css"><script src="/client.js" type="module"></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent Code Poker · LAN</title>  <script type="module" crossorigin src="/client.js"></script>
+  <link rel="stylesheet" crossorigin href="/index.css">
+</head>
 <body><main id="app" tabindex="-1">
 <header><span>♠ AGENT CODE <b>POKER</b></span><span id="connection" role="status">THE RIVER CLUB · LAN</span><button id="inspect" hidden>Cards & chips · Space</button><button id="details" hidden>Table menu</button></header>
 <section id="entry"><p class="eyebrow">A PRIVATE TABLE. A LONG NIGHT.</p><h1>The River Club.</h1><p>Six seats. Friends and familiar faces. Practice chips only.</p><label>Your name <input id="name" maxlength="24" autocomplete="off" value="Guest"></label><label>Lobby code <input id="code" maxlength="24" autocomplete="off" spellcheck="false"></label><div class="row"><button id="create">Create table on this computer</button><button id="join">Join table</button></div><p class="small">Open the host’s printed URL, then enter its code. Trusted LAN only: HTTP is unencrypted. Sessions are currently memory-only; stopping the host ends the table. Rejoin by reloading this tab.</p></section>

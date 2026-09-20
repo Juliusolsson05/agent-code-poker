@@ -28,7 +28,7 @@ hand clears them. The human-dealer experiment was rejected because its seating
 layout did not work well and has been removed. The poker button and dealing
 rules remain unchanged; the engine still owns every chip balance.
 
-This is an evolving visual/gameplay implementation, not a finished realism benchmark. WebGL2 is required. The camera is desktop seated perspective, not headset/WebXR support. There is no multiplayer, real money, remote service or downloaded runtime asset. Blinds stay at 10/20 with a moving button. Bots sample equity and have different risk profiles; they are not a solver or a claim of professional-level play.
+This is an evolving visual/gameplay implementation, not a finished realism benchmark. WebGL2 is required. The camera is desktop seated perspective, not headset/WebXR support. The extension remains solo; the standalone LAN website is an integration candidate, not a verified multiplayer release. There is no real money or public remote service. Blinds stay at 10/20 with a moving button. Bots sample equity and have different risk profiles; they are not a solver or a claim of professional-level play.
 
 `src/engine/` owns the ledger and legal decisions; `src/scene/` projects state into cards, chips, voxel humans and first-person hands; `src/App.tsx` owns controls, pacing and storage. Rendering never changes chip balances. Keep WHY comments beside these invariants. Full Electron-host verification is separate from the browser preview.
 
@@ -39,11 +39,12 @@ the next deal. Principal-bound actions reject stale/duplicate wagers; disconnect
 permits host bot control without transferring the seat. Never send the solo
 app's full `GameState` or cast a redacted view back into one.
 
-### Experimental LAN connection test
+### Experimental 3D LAN website
 
-`npm run lan` starts a separate, memory-only HTTP test lobby at
-`http://127.0.0.1:5192/`. This is **not the 3D multiplayer game** and does not
-modify solo saves. Create a table on the host computer, then share its lobby
+`npm run build` compiles both the extension and `lan-dist/`. `npm run lan`
+starts the separate, memory-only3D multiplayer candidate at
+`http://127.0.0.1:5192/`. It does not modify solo saves.
+Create a table on the host computer, then share its lobby
 code. `npm run lan -- --lan` explicitly enables private-LAN connections and
 prints the host IP URLs; guests must first open one of those URLs, then enter
 the code and a name. Address-free discovery is not implemented. HTTP is not
@@ -55,9 +56,21 @@ Tab-scoped credentials resume the same seat after reload; a new tab is a new
 player. Guest absence permits bot fallback after 15 seconds; host absence
 suspends the table. Leaving as host or stopping the process ends this disposable
 session. Clear an ended connection explicitly; network errors never create a
-replacement table. Durable sessions, final 3D integration, bank debt and
-separate-device LAN acceptance remain open. The installed extension has no
+replacement table. Closing a tab currently loses its tab-scoped credential;
+durable seat recovery is still required before release. **Table menu** shows
+the code/roster and host pause/end controls. The host deals the next hand.
+Betting uses the shared keyboard tray (F/C/B, arrows, presets1–4, Enter/Esc),
+and Space inspects only your allowed cards. Each viewer occupies the near seat;
+opponent models follow stable authority identities, not their display slot.
+Durable sessions, actual two-browser3D acceptance, bank debt and separate-device
+LAN acceptance remain open. The installed extension has no
 network-hosting API and does not load this standalone server.
+
+`src/presentation/RoomProjection.ts` is the room's only reconciliation layer.
+Local/remote inputs become explicit visible/hidden/absent card views and rotated
+display accounts; Cards/Chips never receive the private engine deck. All wagers
+still use authenticated authority, never a rotated seat number. Both compiled
+artifact directories are committed; no source/Vite routes are served over LAN.
 
 ## Visual evidence workflow
 

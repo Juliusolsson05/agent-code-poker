@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
-import { readFile } from 'node:fs/promises'
+import { readFile, readdir } from 'node:fs/promises'
 import { networkInterfaces } from 'node:os'
 import { HostTable } from '../src/session/HostTable'
 
@@ -54,9 +54,12 @@ export async function startLanHost(options: Options = {}) {
   const now = options.now ?? Date.now
   const addresses = ['127.0.0.1', ...(options.lan ? Object.values(networkInterfaces()).flatMap(list =>
     (list ?? []).filter(i => i.family === 'IPv4' && !i.internal && privateV4(i.address)).map(i => i.address)) : [])]
-  const assets = new Map(await Promise.all([
-    ['/', 'index.html', 'text/html'], ['/client.js', 'client.js', 'text/javascript'], ['/style.css', 'style.css', 'text/css'],
-  ].map(async ([route, file, type]) => [route, { bytes: await readFile(new URL(`./client/${file}`, import.meta.url)), type }] as const)))
+  const built = new URL('../lan-dist/', import.meta.url)
+  const files = (await readdir(built)).filter(file => /^(?:index\.html|[a-zA-Z0-9_-]+\.(?:js|css))$/.test(file))
+  if (!files.includes('index.html') || !files.includes('client.js')) throw new Error('Run npm run build:lan before hosting.')
+  const assets = new Map(await Promise.all(files.map(async file => [file === 'index.html' ? '/' : `/${file}`, {
+    bytes: await readFile(new URL(file, built)), type: file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html',
+  }] as const)))
   let room: Room | null = null, port = 0, closed = false
   // Global buckets have constant memory and also bound attacks spread over many
   // claimed IPs. Admission is slower than ordinary six-client500ms polling.

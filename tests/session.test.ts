@@ -210,7 +210,13 @@ test('session internals stay outside engine, renderer, audio and the shipped sol
   const files = readdirSync(root, { recursive: true }).filter(f => /\.(ts|tsx)$/.test(String(f))).map(String)
   const projectionUsers = files.filter(f => /from ['"].*\/view['"]/.test(readFileSync(new URL(f, root), 'utf8')) && f.startsWith('session/'))
   assert.deepEqual(projectionUsers, ['session/HostTable.ts'])
-  for (const file of files.filter(f => !f.startsWith('session/'))) {
+  // B11 introduces exactly one public-DTO adapter, never a renderer import of
+  // HostTable/engine authority. This replaces the temporary all-import ban as
+  // the user-requested real client integration begins; privacy remains tested.
+  const adapter = readFileSync(new URL('presentation/RoomProjection.ts', root), 'utf8')
+  assert.match(adapter, /import type .* from '..\/session\/view'/)
+  assert.doesNotMatch(adapter, /session\/HostTable/)
+  for (const file of files.filter(f => !f.startsWith('session/') && f !== 'presentation/RoomProjection.ts')) {
     assert.doesNotMatch(readFileSync(new URL(file, root), 'utf8'), /(?:from\s*|import\s*\()['"][^'"]*session\//, `${file} must not reach into host authority`)
   }
 })

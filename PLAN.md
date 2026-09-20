@@ -10,6 +10,19 @@ standalone website to the real room and controls. Dealer canceled, hand art
 paused. Follow with durable reconnect/session lifecycle and real two-client
 acceptance; do not mark LAN complete from loopback HTTP tests.
 
+Checkpoint: private RoomProjection now feeds the actual renderer, Cards and
+ChipLedger without a deck. All6 relative views replay the retained public wager/
+fold sequence. Compiled3D LAN UI uses that room, stable body identities and the
+shared keyboard betting tray. Six actual HTTP clients complete a full hand with
+private views and conserved presentation accounts. Full verify passes112 tests,
+both builds,2 SDK contracts and exact-byte preview. Dist and lan-dist rebuilt;
+no dependencies changed. CUA source AND shipped call48/inspection/pause/reload
+restore hand1/stack1952/pot126 with empty captured warning/error logs.
+Actual multiplayer browser gate remains open (new5193 port blocked by Chrome).
+Do not terminate the active old5192 test session without the requested answer.
+Next: multi-client browser acceptance, durable host/seat recovery and remaining
+LAN lifecycle gaps before moving to bank. See session20 manual evidence notes.
+
 **Scope correction — dealer removed (September 20):** the user rejected the
 human-dealer experiment: it did not work well and made the seating awkward,
 with clustered center figures and an isolated/clipped edge guest. Remove the

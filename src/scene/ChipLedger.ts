@@ -1,4 +1,4 @@
-import type { GameState } from '../engine/game'
+import type { SceneState } from '../presentation/RoomProjection'
 
 export const CHIP_VALUES = [500, 100, 25, 5, 1]
 export type PhysicalChip = { id: number; value: number; account: string; origin?: number }
@@ -11,7 +11,7 @@ export type PhysicalChip = { id: number; value: number; account: string; origin?
 export class ChipLedger {
   private inventory: PhysicalChip[] = []
   private nextId = 1
-  private previous: GameState | null = null
+  private previous: SceneState | null = null
   private amount(account: string): number { return this.inventory.filter(c => c.account === account).reduce((n, c) => n + c.value, 0) }
   private transfer(from: string, to: string, amount: number): void {
     if (amount > this.amount(from)) throw new Error(`Visual chip transfer exceeds ${from}.`)
@@ -26,14 +26,14 @@ export class ChipLedger {
       for (let i = 0; i < chip.value / smaller; i++) this.inventory.push({ id: this.nextId++, value: smaller, account: from, origin: chip.origin ?? chip.id })
     }
   }
-  sync(state: GameState): PhysicalChip[] {
+  sync(state: SceneState): PhysicalChip[] {
     const targets = state.players.flatMap(p => [{ account: `bank:${p.seat}`, amount: p.stack }, { account: `bet:${p.seat}`, amount: p.bet }])
     targets.push({ account: 'pot', amount: state.players.reduce((n, p) => n + p.committed - p.bet, 0) })
     const old = this.previous
     // React may reproject the same decision after layout/fullscreen changes.
     // That is neither a new transaction nor a restore: preserve the physical
     // identities and any in-flight slides instead of rebuilding every stack.
-    if (old && state.revision === old.revision && state.handNumber === old.handNumber && state.deck.join() === old.deck.join() &&
+    if (old && state.revision === old.revision && state.dealId === old.dealId &&
       targets.every(({ account, amount }) => this.amount(account) === amount)) {
       this.previous = state
       return this.inventory.map(c => ({ ...c }))
@@ -44,7 +44,7 @@ export class ChipLedger {
     // their entire visual inventory instead of spending a nonexistent old pot.
     const reset = !old || state.revision !== old.revision + 1 || state.initialTotal !== old.initialTotal ||
       state.handNumber < old.handNumber || state.handNumber > old.handNumber + 1 ||
-      state.handNumber === 1 && state.revision === 1 && old.phase !== 'ready' && state.deck.join() !== old.deck.join()
+      state.handNumber === old.handNumber && state.dealId !== old.dealId
     if (reset) {
       this.inventory = []
       for (const { account, amount } of targets) {

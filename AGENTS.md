@@ -10,7 +10,11 @@ The user subsequently authorized website-first LAN multiplayer. Networking is
 confined to the explicitly launched standalone `server/` process; the shipped
 extension still has no network API. Do not expose Vite/repository files, bypass
 the SDK sandbox, add a public relay, or send full GameState to clients. The
-connection-test lobby is disposable and separate from solo saves, not the final
-3D multiplayer interface. Human dealer is canceled; hand-animation art is paused.
+LAN website now projects the actual3D room, but remains memory-only and separate
+from solo saves until durable hosting and browser acceptance pass. Commit its
+compiled `lan-dist/` as well as the SDK `dist/`. Human dealer is canceled;
+hand-animation art is paused. RoomProjection is the single local/remote view
+boundary: renderers cannot consume deck/private engine state or invent hidden
+card values. Display-seat rotation never changes authenticated wager ownership.
 
 Run `npm run verify` for substantive gameplay changes. Inspect both `/dev/` and `/dev/?production` in a real browser: enter a hand, use legal actions, check held cards/cigar, pause, reload and restore. Inspect motion as well as still images. Browser checks complement actual Electron installation. Do not claim host verification from a standalone preview.

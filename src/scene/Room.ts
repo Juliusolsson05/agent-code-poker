@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { rankLabel, suit, SUITS, type Card } from '../engine/cards'
 import { type GameState } from '../engine/game'
+import { RoomProjection, cardCount, type SceneState } from '../presentation/RoomProjection'
 import { buildHuman, humanMaterial, poseHuman, type Human } from './Human'
 import { FirstPerson } from './FirstPerson'
 import { ChipField } from './Chips'
@@ -59,7 +60,8 @@ export class PokerRoom {
   private dealer: THREE.Mesh
   private gestures = new Map<number, { kind: string; time: number }>()
   private handTime = 0
-  private state: GameState | null = null
+  private state: SceneState | null = null
+  private projection = new RoomProjection()
   private signature = ''
   private raf = 0
   private visualTime = 0
@@ -88,7 +90,7 @@ export class PokerRoom {
 
   private leisureKey = ''
   constructor(private container: HTMLElement, private onFailure: () => void, private onLayout: () => void = () => {},
-    private onLeisure: (value: { kind: import('./props/specs').DrinkKind; available: boolean }) => void = () => {}) {
+    private onLeisure: (value: { kind: import('./props/specs').DrinkKind; available: boolean }) => void = () => {}, viewerSeat = 0) {
     // The first pixel comparison inherited NPC sip history and was invalid.
     // Keep the established canvas setting in shipped/live play until a fresh
     // canonical pair passes; allocation reasoning alone is not visual signoff.
@@ -133,7 +135,10 @@ export class PokerRoom {
     }
     const skinMaterial = humanMaterial(); this.materials.set('humans', skinMaterial)
     for (let seat = 1; seat < 6; seat++) {
-      const human = buildHuman(seat, this.geometry, skinMaterial); const [x, z] = SEATS[seat]
+      // Identity follows the authority seat, geometry follows the viewer slot.
+      // Source seat0 has an authored model: guests must see the host too.
+      const human = buildHuman((seat + viewerSeat) % 6, this.geometry, skinMaterial); human.seat = seat
+      const [x, z] = SEATS[seat]
       human.root.position.set(x, 0, z); human.root.rotation.y = seatYaw(x, z)
       this.people.push(human); this.scene.add(human.root)
       const chair = new THREE.Group(); chair.position.copy(human.root.position); chair.rotation.copy(human.root.rotation)
@@ -360,13 +365,19 @@ export class PokerRoom {
     this.capture?.event('betting-input', data)
   }
   update(state: GameState): void {
+    this.present(this.projection.solo(state))
+  }
+  updateRemote(view: Parameters<RoomProjection['remote']>[0], viewer: number): void {
+    this.present(this.projection.remote(view, viewer))
+  }
+  private present(state: SceneState): void {
     this.capture?.event('public-game', { hand: state.handNumber, phase: state.phase, actor: state.actor,
       players: state.players.map(p => ({ seat: p.seat, stack: p.stack, bet: p.bet, folded: p.folded, action: p.action })) })
     const old = this.state, now = this.visualTime
-    if (old?.handNumber !== state.handNumber) { this.handTime = now; this.gestures.clear() }
+    if (old?.dealId !== state.dealId) { this.handTime = now; this.gestures.clear() }
     for (const p of state.players) {
       const before = old?.players[p.seat]
-      if (!before || old?.handNumber !== state.handNumber) continue
+      if (!before || old?.dealId !== state.dealId) continue
       if (p.folded && !before.folded) this.gestures.set(p.seat, { kind: 'fold', time: now })
       else if (p.committed > before.committed) this.gestures.set(p.seat, { kind: 'bet', time: now })
       else if (p.action === 'Check' && before.action !== 'Check') this.gestures.set(p.seat, { kind: 'check', time: now })
@@ -379,11 +390,11 @@ export class PokerRoom {
     // look like a restore and replaced the entire inventory instead of sliding
     // the existing chips. Only static card projection is signature-deduplicated.
     this.chips.update(state, now)
-    const signature = JSON.stringify([state.handNumber, state.board, state.phase, state.players.map(p => [p.hole, p.folded, p.stack, p.bet]), state.dealer])
+    const signature = JSON.stringify([state.dealId, state.board, state.phase, state.players.map(p => [p.cards, p.folded, p.stack, p.bet]), state.dealer])
     if (signature === this.signature) return
     this.signature = signature
-    const publicShowdown = state.phase === 'showdown' || state.phase === 'complete' && state.results.some(r => r.hand)
-    this.hero.update(state.players[0].hole, state.players[0].folded || publicShowdown, state.handNumber, now)
+    const hero = state.players[0], heroCards = hero.cards.kind === 'visible' ? hero.cards.values : []
+    this.hero.update(heroCards, hero.folded || state.publicShowdown, state.dealId, now)
     this.cardField.update(state, now)
     this.dealer.visible = state.dealer >= 0
     if (state.dealer >= 0) this.dealer.position.copy(dealerPosition(state.dealer, SEATS))
@@ -453,14 +464,14 @@ export class PokerRoom {
     this.cardField.setInspection(peek > .45)
     this.people.forEach(human => {
       const seat = human.seat, player = this.state?.players[seat], gesture = this.gestures.get(seat)
-      const showing = this.state?.phase === 'showdown' || this.state?.phase === 'complete' && this.state.results.some(r => r.hand)
+      const showing = this.state?.publicShowdown
       const targetSeat = this.state?.actor ?? 0
       poseHuman(human, t, {
         // Fixed time alone still inherits the opponent's earlier sip schedule.
         // Use the real resting/reduced-motion branch for reproducible pipeline
         // comparisons, not fake image tolerances that hide different arm poses.
         reduced: this.reduced.matches || !!this.probeMode, active: this.state?.actor === seat, folded: !!player?.folded,
-        showing: !!showing, hasCards: !!player?.hole.length,
+        showing: !!showing, hasCards: !!player && cardCount(player.cards) > 0,
         dealt: THREE.MathUtils.smoothstep(t - this.handTime, 1 + seat * .08, 1.7 + seat * .08),
         action: gesture?.kind, actionAge: t - (gesture?.time ?? -100),
         gaze: (SEATS[targetSeat][0] - SEATS[seat][0]) * .075,

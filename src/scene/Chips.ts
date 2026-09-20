@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import type { GameState } from '../engine/game'
+import type { SceneState } from '../presentation/RoomProjection'
 import { ChipLedger } from './ChipLedger'
 import { TABLE } from './Table'
 
@@ -59,7 +59,7 @@ export class ChipField {
     if (kind === 'bet') return new THREE.Vector3(x * .46, y, z * .28)
     return seat === 0 ? new THREE.Vector3(.52, y, .70) : new THREE.Vector3(x * .72 + .10, y, z * .61)
   }
-  update(state: GameState, now = performance.now() / 1000): void {
+  update(state: SceneState, now = performance.now() / 1000): void {
     const next = new Map<string, Token>(), indices = new Map<string, number>()
     const inventory = this.ledger.sync(state).sort((a, b) => a.id - b.id)
     for (const chip of inventory) {

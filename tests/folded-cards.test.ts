@@ -7,6 +7,8 @@ import { CardField } from '../src/scene/Cards'
 import { PokerGame, type GameState } from '../src/engine/game'
 import { SEATS } from '../src/scene/environment/layout'
 import { TABLE } from '../src/scene/Table'
+import { RoomProjection } from '../src/presentation/RoomProjection'
+const projection = new RoomProjection()
 
 const trace = JSON.parse(gunzipSync(readFileSync(new URL('../testing/fixtures/experience/poker-evidence-2026-09-20T04-02-22-844Z.json.gz', import.meta.url))).toString())
 const events = trace.entries.filter((entry: any) => entry.kind === 'public-game')
@@ -59,7 +61,7 @@ test('recorded opponent folds settle face-down and survive later decisions', () 
   const { cards, requested } = field()
   for (const entry of events) {
     cards.frame(entry.visualSeconds, false)
-    cards.update(stateOf(entry), entry.visualSeconds)
+    cards.update(projection.solo(stateOf(entry)), entry.visualSeconds)
     cards.frame(entry.visualSeconds + 1, false)
     for (const player of entry.data.players.filter((p: any) => p.folded)) {
       for (let i = 0; i < 2; i++) assertFelt(cards.root.children[player.seat * 2 + i])
@@ -74,34 +76,34 @@ test('recorded opponent folds settle face-down and survive later decisions', () 
 
 test('restoring the recorded folded state settles immediately without a phantom hand flight', () => {
   const { cards, requested } = field(), state = stateOf(events.at(-1))
-  cards.update(state, 100)
+  cards.update(projection.solo(state), 100)
   const papers = cards.root.children.filter(mesh => mesh.name.startsWith('seat:4:') || mesh.name.startsWith('seat:5:'))
   assert.equal(papers.length, 4)
   for (const paper of papers) { assertFelt(paper); assert.ok(paper.position.y < TABLE.cardY + .01) }
   const before = papers.map(mesh => mesh.position.toArray())
-  cards.update(state, 100); cards.frame(100, false)
+  cards.update(projection.solo(state), 100); cards.frame(100, false)
   assert.deepEqual(papers.map(mesh => mesh.position.toArray()), before, 'pause/duplicate projection cannot restart folds')
   assert.ok(requested.every(card => card === null))
 })
 
 test('synthetic fast-fold boundary supersedes pending deal ownership and clears on next hand', () => {
   const { cards } = field(), state = stateOf(events[0])
-  cards.update(state, 0)
-  const folded = structuredClone(state); folded.players[5].folded = true; cards.update(folded, .01)
+  cards.update(projection.solo(state), 0)
+  const folded = structuredClone(state); folded.players[5].folded = true; cards.update(projection.solo(folded), .01)
   for (const time of [.2, .5, .9, 1.5, 3]) {
     cards.frame(time, false)
     const papers = cards.root.children.slice(10, 12)
     if (time >= .9) papers.forEach(assertFelt)
   }
   const next = stateOf(events[0]); next.handNumber++
-  cards.update(next, 4); cards.frame(10, true)
+  cards.update(projection.solo(next), 4); cards.frame(10, true)
   assert.equal(cards.root.children.length, 12, 'new hand must replace rather than accumulate paper')
   assert.ok(cards.root.children.every(mesh => !mesh.visible), 'new cards are held, not stale discards')
 })
 
 test('synthetic reduced-motion fold settles both backs despite the normal stagger delay', () => {
   const { cards } = field()
-  cards.update(stateOf(events[1]), 0); cards.frame(2, true)
-  cards.update(stateOf(events[2]), 3); cards.frame(3, true)
+  cards.update(projection.solo(stateOf(events[1])), 0); cards.frame(2, true)
+  cards.update(projection.solo(stateOf(events[2])), 3); cards.frame(3, true)
   cards.root.children.slice(8, 10).forEach(assertFelt)
 })
