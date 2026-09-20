@@ -1,7 +1,7 @@
 {
   "kind": "retained actual camera/image baseline plus synthetic projection and lifecycle checks",
   "date": "2026-09-20",
-  "candidate": "visible bounded window snow after plan e2abdff",
+  "checkpoint": "visible bounded window snow after plan e2abdff",
   "actualBaseline": "10-29-18 raw metadata contains1994x1253buffer and seated camera matrix; retained51.215PNG was inspected and shows tiny sparse window dots. No new candidate screenshot was captured.",
   "calculation": "Pinned Three r169 points shader and WebGLMaterials scale size by bufferHeight/2/viewDepth. At the recorded seated camera and window center, old.010size projects to.9948996buffer pixels; candidate.044 to4.3775584. This calculation is not a rendered-pixel measurement.",
   "candidate": "Original84seeds, aperture, depth, drift, texture and24Hz clock retained; size.044, opacity.65. One Points draw with no shadows, reusable position buffer and reduced-motion freeze. Isolated WindowSnow removes/disposes its resources before Room shared sweep; repeat disposal does nothing.",
