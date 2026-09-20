@@ -2,6 +2,24 @@
 
 ## Live visibility correction
 
+### User rejects first fireplace art: authored composition, not clipped shelves
+
+The actual live screenshot shows straight candle-like flame columns and shelf
+ends sliced at the hearth bay. Replace the clipping implementation with an
+explicit shorter left-bar design (complete cabinet, counter end, uprights,
+bottles and stools); no shelf geometry should ever be generated behind the
+hearth. Preserve the original room plan as the recorded baseline, not the
+candidate's sliced furniture as a golden. Keep the user's enlarged offset bay.
+
+Re-author hearth materials/details: darker varied masonry and timber mantel,
+block evergreen, stockings and steady small festive lights; avoid the bright
+flat chimney slab. Replace six rigid flame columns with connected tapered
+block tongues, independently rising/leaning cores, ember bed and a few bounded
+embers in a single instanced batch. Fixed capacity, no alpha particles or new
+shadow passes, pause/reduced-motion stability. Test allocations/clearance and
+inspect actual frames before claiming better art. CC0 recording is already
+downloaded locally; actual audible playback/loop/mix remains an honest open gate.
+
 The user reports no fireplace on ordinary `/dev/`. Code confirms the reason:
 both hearth and audio required `&fireplace`. Expose this candidate throughout
 source development, without touching saves; production stays gated. Older
