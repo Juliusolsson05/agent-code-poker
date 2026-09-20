@@ -1,8 +1,4 @@
 import * as THREE from 'three'
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
-import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { rankLabel, suit, SUITS, type Card } from '../engine/cards'
 import { type GameState } from '../engine/game'
 import { buildHuman, humanMaterial, poseHuman, type Human } from './Human'
@@ -18,7 +14,9 @@ import { CHAIR_BLOCKS, PLAYER_LAYOUT, SEATS, seatYaw } from './environment/layou
 
 import { createRoomPlan, type RoomBlock } from './environment/RoomPlan'
 import { createTavernLighting, TAVERN_EXPOSURE } from './environment/Lighting'
-import { renderPixelRatio, type RenderMode } from './rendering/RenderQuality'
+import { renderPixelRatio } from './rendering/RenderQuality'
+import type { ProbeMode } from './diagnostics/RenderProbe'
+import { PostProcessing, RENDERER_OPTIONS } from './rendering/PostProcessing'
 
 /** Everything is authored in metres, from a seated human's eye line. The first
  * room was orthographic with toy proportions: that erased physical presence.
@@ -29,9 +27,7 @@ export class PokerRoom {
   private camera = new THREE.PerspectiveCamera(70, 1.4, .035, 35)
   private labelCamera = new THREE.PerspectiveCamera(70, 1.4, .035, 35)
   private renderer: THREE.WebGLRenderer
-  private composer: EffectComposer
-  private bloom: UnrealBloomPass
-  private output: OutputPass
+  private post: PostProcessing
   private geometry = new THREE.BoxGeometry(1, 1, 1)
   private materials = new Map<string, THREE.MeshStandardMaterial>()
   private textures = new Map<string, THREE.CanvasTexture>()
@@ -66,12 +62,16 @@ export class PokerRoom {
   private capture: SceneCapture | null = null
   private roomBlocks: RoomBlock[] = []
   private diagnosticWide = false
-  private probeMode: RenderMode | null = null
+  private probeMode: ProbeMode | null = null
 
   private leisureKey = ''
   constructor(private container: HTMLElement, private onFailure: () => void, private onLayout: () => void = () => {},
     private onLeisure: (value: { kind: import('./props/specs').DrinkKind; available: boolean }) => void = () => {}) {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
+    // The first pixel comparison inherited NPC sip history and was invalid.
+    // Keep the established canvas setting in shipped/live play until a fresh
+    // canonical pair passes; allocation reasoning alone is not visual signoff.
+    const resolvedCanvas = import.meta.env.DEV && new URLSearchParams(location.search).has('resolved-canvas-aa')
+    this.renderer = new THREE.WebGLRenderer(resolvedCanvas ? RENDERER_OPTIONS : { ...RENDERER_OPTIONS, antialias: true })
     if (import.meta.env.DEV && new URLSearchParams(location.search).has('stats')) {
       this.stats = document.createElement('output'); this.stats.setAttribute('aria-label', 'Rendering performance')
       this.stats.style.cssText = 'position:absolute;left:16px;top:94px;z-index:20;padding:8px;background:#0a1010dc;color:#cee3c2;font:12px monospace;pointer-events:none'
@@ -112,15 +112,7 @@ export class PokerRoom {
     for (let i = 0; i < 150; i++) { positions[i * 3] = Math.sin(i * 78.23) * 3.4; positions[i * 3 + 1] = .85 + (Math.sin(i * 12.87) + 1) * 1.2; positions[i * 3 + 2] = Math.cos(i * 61.23) * 2.7 - 1.5 }
     dustGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     this.dust = new THREE.Points(dustGeometry, new THREE.PointsMaterial({ color: '#b69a70', size: .005, transparent: true, opacity: .26, depthWrite: false })); this.scene.add(this.dust)
-    // Renderer antialias:true only affects its default framebuffer. Once bloom
-    // renders offscreen it provides no MSAA. Multisample the actual composer
-    // target to stop fine voxel silhouettes/shadow edges sparkling in motion.
-    const target = new THREE.WebGLRenderTarget(1100, 800, { type: THREE.HalfFloatType, samples: 4 })
-    this.composer = new EffectComposer(this.renderer, target); this.composer.addPass(new RenderPass(this.scene, this.camera))
-    // Threshold above skin/felt luminance restricts bloom to practical fixtures.
-    // The room must stay dark rather than washing everything in a hazy filter.
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(1100, 800), .18, .45, 4.0); this.output = new OutputPass()
-    this.composer.addPass(this.bloom); this.composer.addPass(this.output)
+    this.post = new PostProcessing(this.renderer, this.scene, this.camera)
     if (import.meta.env.DEV && new URLSearchParams(location.search).has('record')) {
       this.renderer.info.autoReset = false
       this.capture = new SceneCapture(this.renderer, () => this.visualTime, () => ({
@@ -129,12 +121,23 @@ export class PokerRoom {
         treeBounds: this.christmas.treeBounds.min.toArray().concat(this.christmas.treeBounds.max.toArray()),
         decorBounds: [...this.christmas.decorBounds].map(([name, bounds]) => ({ name, bounds: bounds.min.toArray().concat(bounds.max.toArray()) })),
         roomBlocks: this.roomBlocks,
-        table: { feltY: TABLE.feltY }, exposure: this.renderer.toneMappingExposure,
+        table: { feltY: TABLE.feltY }, exposure: this.renderer.toneMappingExposure, pipeline: this.post.diagnostics(),
       }), wide => { this.diagnosticWide = wide; this.pausedRendered = false }, mode => {
         // Timed comparison is deliberately lobby-only: freezing a live poker
         // clock would let betting timers race the visual ownership director.
         if (mode && this.state && this.state.handNumber > 0) return false
-        this.probeMode = mode; this.resize(); return true
+        this.probeMode = mode; this.post.setBloomEnabled(mode !== 'no-bloom')
+        const shadows = mode !== 'no-shadows'
+        if (this.renderer.shadowMap.enabled !== shadows) {
+          this.renderer.shadowMap.enabled = shadows
+          // Three caches a material program across frames. Merely skipping the
+          // depth pass can leave the previous shadow-sampling shader active;
+          // that would measure frozen shadows, not the named no-shadow ablation.
+          this.scene.traverse(object => {
+            if (object instanceof THREE.Mesh) for (const material of Array.isArray(object.material) ? object.material : [object.material]) material.needsUpdate = true
+          })
+        }
+        this.resize(); return true
       })
     }
     document.addEventListener('visibilitychange', this.visibility)
@@ -150,7 +153,7 @@ export class PokerRoom {
     // A hidden retina fullscreen composer otherwise keeps hundreds of MB of
     // multisampled half-float attachments alive. Keep CPU scene state, but shrink
     // the offscreen buffers until this particular tab is actually visible again.
-    if (document.hidden) { this.renderer.setSize(1, 1, false); this.composer.setSize(1, 1) }
+    if (document.hidden) { this.renderer.setPixelRatio(1); this.renderer.setSize(1, 1, false); this.post.setSize(1, 1, 1) }
     else this.resize()
   }
   private material(color: string): THREE.MeshStandardMaterial {
@@ -208,10 +211,10 @@ export class PokerRoom {
   private resize(): void {
     this.pausedRendered = false
     const width = this.container.clientWidth, height = Math.max(1, this.container.clientHeight)
-    const ratio = renderPixelRatio(width, height, window.devicePixelRatio, this.probeMode ?? undefined)
-    this.renderer.setPixelRatio(ratio); this.composer.setPixelRatio(ratio)
+    const ratio = renderPixelRatio(width, height, window.devicePixelRatio, this.probeMode === 'legacy' ? 'legacy' : 'balanced')
+    this.renderer.setPixelRatio(ratio); this.post.setSize(width, height, ratio)
     this.camera.aspect = width / height; this.camera.position.set(this.orbit * .12, PLAYER_LAYOUT.eye[1], PLAYER_LAYOUT.eye[2]); this.camera.lookAt(this.orbit * .3, PLAYER_LAYOUT.look[1], PLAYER_LAYOUT.look[2])
-    this.camera.updateProjectionMatrix(); this.camera.updateMatrixWorld(); this.renderer.setSize(width, height); this.composer.setSize(width, height)
+    this.camera.updateProjectionMatrix(); this.camera.updateMatrixWorld(); this.renderer.setSize(width, height)
     this.labelCamera.aspect = this.camera.aspect; this.labelCamera.position.copy(this.camera.position)
     this.labelCamera.lookAt(this.orbit * .3, 1.03, -.60); this.labelCamera.updateProjectionMatrix(); this.labelCamera.updateMatrixWorld()
     this.onLayout()
@@ -316,7 +319,10 @@ export class PokerRoom {
       const showing = this.state?.phase === 'showdown' || this.state?.phase === 'complete' && this.state.results.some(r => r.hand)
       const targetSeat = this.state?.actor ?? 0
       poseHuman(human, t, {
-        reduced: this.reduced.matches, active: this.state?.actor === seat, folded: !!player?.folded,
+        // Fixed time alone still inherits the opponent's earlier sip schedule.
+        // Use the real resting/reduced-motion branch for reproducible pipeline
+        // comparisons, not fake image tolerances that hide different arm poses.
+        reduced: this.reduced.matches || !!this.probeMode, active: this.state?.actor === seat, folded: !!player?.folded,
         showing: !!showing, hasCards: !!player?.hole.length,
         dealt: THREE.MathUtils.smoothstep(t - this.handTime, 1 + seat * .08, 1.7 + seat * .08),
         action: gesture?.kind, actionAge: t - (gesture?.time ?? -100),
@@ -327,7 +333,10 @@ export class PokerRoom {
     this.christmas.frame(t, this.reduced.matches)
     this.chips.frame(now / 1000, this.reduced.matches); this.cardField.frame(now / 1000, this.reduced.matches)
     if (this.stats || this.capture) this.renderer.info.reset()
-    this.capture?.beforeRender(); this.composer.render(); this.capture?.afterRender()
+    this.capture?.beforeRender()
+    if (this.probeMode === 'direct') this.renderer.render(this.scene, this.camera)
+    else this.post.render()
+    this.capture?.afterRender()
     this.capture?.frame(wallTime, frameMs, performance.now() - wallTime, () => ({
       camera: transform(this.camera), hero: this.hero.diagnosticPose(), paused: this.paused, inspectionBlend: this.inspectionBlend,
       people: this.people.map(h => ({ seat: h.seat, root: transform(h.root), drink: transform(h.drink.root),
@@ -355,6 +364,6 @@ export class PokerRoom {
         if (object instanceof THREE.SkinnedMesh) object.skeleton.dispose()
       }
     }); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); this.materials.forEach(m => m.dispose()); this.textures.forEach(t => t.dispose())
-    this.capture?.dispose(); this.hero.dispose(); this.chips.dispose(); this.christmas.dispose(); this.bloom.dispose(); this.output.dispose(); this.composer.dispose(); this.renderer.dispose(); this.renderer.domElement.remove(); this.stats?.remove()
+    this.capture?.dispose(); this.hero.dispose(); this.chips.dispose(); this.christmas.dispose(); this.post.dispose(); this.renderer.dispose(); this.renderer.domElement.remove(); this.stats?.remove()
   }
 }

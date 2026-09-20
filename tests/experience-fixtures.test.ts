@@ -39,9 +39,9 @@ test('recorded experience corpus remains verbatim, finite and free of private en
     assert.equal(createHash('sha256').update(bytes).digest('hex'), profile.rawSha256)
     const raw = JSON.parse(bytes.toString())
     assert.equal(raw.source, 'actual-browser-fixed-lobby'); assert.equal(raw.reason, profile.expectedReason ?? 'complete')
-    assert.equal(raw.windows.length, 4)
+    assert.equal(raw.windows.length, profile.expectedWindows ?? 4)
     if (raw.reason === 'complete') {
-      assert.equal(raw.environments.length, 4)
+      assert.equal(raw.environments.length, profile.expectedWindows ?? 4)
       assert.ok(raw.windows.every((w: { samples: unknown[] }) => w.samples.length > 0))
     } else {
       assert.equal(raw.environments.length, 1)

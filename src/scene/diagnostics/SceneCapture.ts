@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { ExperienceRecorder, type TraceValue } from './Recorder'
-import { RenderProbe, type ProbeMode } from './RenderProbe'
+import { RenderProbe, assessProbe, type ProbeMode } from './RenderProbe'
 import { GpuTimer } from './GpuTimer'
 
 export function transform(object: THREE.Object3D): TraceValue {
@@ -25,13 +25,15 @@ export class SceneCapture {
   private probeEnvironments: TraceValue[] = []
   private gpuTimer: GpuTimer | null
   private probeFrames = 0
+  private fixedImage = false
+  private profileResult = ''
   constructor(private renderer: THREE.WebGLRenderer, private getTime: () => number, private metadata: () => TraceValue,
     setView?: (wide: boolean) => void, private setProbeMode?: (mode: ProbeMode | null) => boolean) {
     // Three r169 requires WebGL2; its older type declaration retains a union.
     this.gpuTimer = new URLSearchParams(location.search).has('gpu')
       ? new GpuTimer(renderer.getContext() as WebGL2RenderingContext, (tag, ms) => { this.probe?.windows[tag]?.gpuMs.push(ms) }) : null
     this.panel.setAttribute('aria-label', 'Experience recording')
-    this.panel.style.cssText = 'position:absolute;left:12px;bottom:104px;z-index:60;background:#111c22ee;border:1px solid #68766c;padding:8px;display:flex;gap:8px;align-items:center;font:12px monospace;color:#e5e6dc'
+    this.panel.style.cssText = 'position:absolute;left:12px;top:112px;max-width:min(560px,calc(100% - 24px));z-index:60;background:#111c22ee;border:1px solid #68766c;padding:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font:12px monospace;color:#e5e6dc'
     const button = (label: string, run: () => void) => {
       const b = document.createElement('button'); b.textContent = label; b.type = 'button'
       b.style.cssText = 'background:#263b36;color:#fff;border:1px solid #6f877a;padding:6px;cursor:pointer'
@@ -55,8 +57,20 @@ export class SceneCapture {
     if (setProbeMode) button('Profile render cost', () => {
       if (this.probe || this.recorder.active || !setProbeMode('legacy')) return
       this.gpuTimer?.dispose(); this.probeFrames = 0
+      this.profileResult = ''
       this.probe = new RenderProbe(performance.now()); this.probeMetadata = this.metadata()
       this.probeEnvironments = [this.environment()]; this.updateStatus()
+    })
+    if (setProbeMode) button('Isolate render passes', () => {
+      if (this.probe || this.recorder.active || !setProbeMode('balanced')) return
+      this.gpuTimer?.dispose(); this.probeFrames = 0
+      this.profileResult = ''
+      this.probe = new RenderProbe(performance.now(), 4000, 6000, ['balanced', 'no-bloom', 'no-shadows', 'direct', 'balanced'])
+      this.probeMetadata = this.metadata(); this.probeEnvironments = [this.environment()]; this.updateStatus()
+    })
+    if (setProbeMode) button('Capture fixed view', () => {
+      if (this.probe || this.recorder.active || !setProbeMode('balanced')) return
+      this.fixedImage = true
     })
     this.panel.append(this.status); renderer.domElement.parentElement!.append(this.panel); this.updateStatus()
     window.addEventListener('error', this.error)
@@ -65,7 +79,10 @@ export class SceneCapture {
   }
   private environment(): Record<string, TraceValue> {
     const size = this.renderer.getDrawingBufferSize(new THREE.Vector2())
-    return { viewport: [innerWidth, innerHeight], buffer: size.toArray(), dpr: devicePixelRatio, pixelRatio: this.renderer.getPixelRatio(), userAgent: navigator.userAgent, reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches }
+    const gl = this.renderer.getContext()
+    return { viewport: [innerWidth, innerHeight], buffer: size.toArray(), dpr: devicePixelRatio, pixelRatio: this.renderer.getPixelRatio(),
+      canvasAntialias: gl.getContextAttributes()?.antialias ?? false, defaultSamples: gl.getParameter(gl.SAMPLES),
+      userAgent: navigator.userAgent, reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches }
   }
   private error = (event: ErrorEvent) => this.event('error', { message: event.message, line: event.lineno })
   private visibility = () => { this.event('visibility', { hidden: document.hidden }); if (document.hidden) this.finishProbe('hidden') }
@@ -73,11 +90,13 @@ export class SceneCapture {
   private finishProbe(reason: string): void {
     if (!this.probe) return
     const probe = this.probe; this.probe = null; this.setProbeMode?.(null)
+    const assessment = assessProbe(probe.windows)
+    this.profileResult = reason === 'complete' && assessment.comparable ? 'Drift check passed; inspect raw results' : `Comparison rejected: ${reason === 'complete' ? assessment.reasons.join(', ') : reason}`
     this.download(new Blob([JSON.stringify({ version: 1, source: 'actual-browser-fixed-lobby', reason,
       capturedAt: new Date().toISOString(), warmMs: probe.warmMs, sampleMs: probe.sampleMs,
-      protocol: 'Lobby, visual time 12, centered seated camera, unchanged geometry/lights/4x MSAA; no inputs during timed windows',
+      protocol: 'Lobby, visual time 12, canonical reduced-motion opponent pose, centered seated camera. Resolution comparison or named pass ablations; no inputs during windows.',
       gpuTimerSupported: this.gpuTimer?.supported ?? null,
-      scene: this.probeMetadata, environments: this.probeEnvironments, windows: probe.windows }, null, 2)],
+      assessment, scene: this.probeMetadata, environments: this.probeEnvironments, windows: probe.windows }, null, 2)],
     { type: 'application/json' }), `poker-profile-${new Date().toISOString().replace(/[:.]/g, '-')}.json`)
     this.updateStatus()
   }
@@ -86,6 +105,15 @@ export class SceneCapture {
   beforeRender(): void { this.gpuTimer?.begin(this.probe?.sampling(performance.now()) && this.probeFrames++ % 30 === 0 ? this.probe.index : null) }
   afterRender(): void { this.gpuTimer?.end() }
   frame(wallMs: number, frameMs: number, cpuMs: number, pose: () => TraceValue): void {
+    if (this.fixedImage) {
+      this.fixedImage = false
+      // toBlob snapshots this already-rendered frame before restoring live
+      // time. Identical pose/camera/buffer images can test pipeline equivalence
+      // without inferring image quality from a geometry budget or FPS counter.
+      const name = `poker-fixed-${new Date().toISOString().replace(/[:.]/g, '-')}.png`
+      this.renderer.domElement.toBlob(blob => { if (blob) this.download(blob, name) })
+      this.setProbeMode?.(null)
+    }
     if (this.probe) {
       const info = this.renderer.info.render
       if (this.probe.frame(wallMs, { frameMs, cpuMs, draws: info.calls, triangles: info.triangles })) {
@@ -112,7 +140,7 @@ export class SceneCapture {
     }
     if (wallMs - this.lastStatus > 1000) { this.lastStatus = wallMs; this.updateStatus() }
   }
-  private updateStatus(): void { this.status.textContent = this.probe ? `Profile ${this.probe.index + 1}/4 · ${this.probe.mode} · keep this lobby visible` : `${this.recorder.active ? 'Recording' : this.recorder.truncated ? 'Limit reached' : 'Stopped'} · ${this.recorder.length} records` }
+  private updateStatus(): void { this.status.textContent = this.probe ? `Profile ${this.probe.index + 1}/${this.probe.windows.length} · ${this.probe.mode} · keep this lobby visible` : `${this.recorder.active ? 'Recording' : this.recorder.truncated ? 'Limit reached' : 'Stopped'} · ${this.recorder.length} records${this.profileResult ? ' · ' + this.profileResult : ''}` }
   private download(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = filename; a.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)

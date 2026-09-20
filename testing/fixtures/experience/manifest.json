@@ -6,6 +6,14 @@
   "privacy": "Public action labels and scene transforms only. No deck, hole-card identities, save objects or unrelated browser content in traces.",
   "renderProfiles": [
     {
+      "file": "poker-profile-2026-09-20T05-03-34-188Z.json.gz",
+      "rawSha256": "4d5a9ae8197bcda53993cb54ddd2cee0a8f7c22ceafee193f69e3de593df6d6f",
+      "expectedWindows": 5,
+      "provenance": "Actual Chrome five-window render-pass ablation, 4s warmup/6s measurements each, identical 2137x1169 buffer; unmodified download compressed losslessly.",
+      "frameP50P95Ms": [[16.7,18.7],[16.7,18.6],[16.7,35.2],[24.3,67.7],[82.6,127.7]],
+      "limitations": "Baseline drift16.7 to82.6ms rejects comparative conclusions. No bloom/shadow removal adopted. Not a performance acceptance."
+    },
+    {
       "file": "poker-profile-2026-09-20T04-58-59-194Z.json.gz",
       "rawSha256": "efe86ce3b50d4d0255391cf7197fc40e18deb5b956bda4b69446273fb0053f7f",
       "expectedReason": "camera-changed",
@@ -57,6 +65,14 @@
     }
   ],
   "candidateSessions": [
+    {
+      "file": "poker-evidence-2026-09-20T05-06-37-467Z.json.gz",
+      "rawSha256": "bf64c69d528a681acc3dc36a84c246f2ea834ba55b4365efadce73a62b40b95b",
+      "provenance": "Actual short Chrome context-allocation baseline: canvasAntialias true, defaultSamples4. Not an interaction or timing acceptance.",
+      "frameCount": 30,
+      "poseCount": 12,
+      "images": []
+    },
     {
       "file": "poker-evidence-2026-09-20T04-43-40-879Z.json.gz",
       "rawSha256": "3f9d520171ff5b03f3a21618001db4a2d0ab384b81d204baeb81e75ffa50255b",
@@ -162,6 +178,8 @@
     }
   ],
   "rigImages": [
+    { "file": "poker-fixed-2026-09-20T05-06-31-602Z.png", "subject": "Legacy canvas AA fixed-time lobby", "candidate": "Rejected pixel comparison baseline: old sampler still inherited NPC sip history. Preserve as diagnostic negative control, not visual golden." },
+    { "file": "poker-fixed-2026-09-20T05-09-06-358Z.png", "subject": "No canvas AA fixed-time lobby", "candidate": "Rejected comparison candidate: differences around two NPC arms/glasses reflect stateful scheduling. Canonical rest-pose pair still required; no equivalence or speed claim." },
     { "file": "christmas-before-lighting.png", "url": "/dev/?qa=christmas-clearance&stats&record", "subject": "Seated room before lighting pass", "candidate": "Actual browser canvas export 2026-09-20T04-32-10-582Z at 9.961s, after tree placement but before illumination/decor mounting corrections. Raw trace not retained. Different animated frame; not a pixel-aligned golden pair." },
     { "file": "contact-player-glass.png", "url": "/dev/?studio&seat=1", "subject": "Player drink grip", "action": "drink", "seconds": 2.6, "candidate": "Actual production hand and glass together; opposing thumb and outside finger wrap. Isolated sleeve; geometry clearance independently tested. Not overall anatomy approval." },
     { "file": "contact-player-cigar.png", "url": "/dev/?studio&seat=1", "subject": "Player cigar", "action": "idle", "seconds": 0, "candidate": "Surface-fitted index/middle pinch and less curled ring/little fingers. Finger silhouette remains angular." },
