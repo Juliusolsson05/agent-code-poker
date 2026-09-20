@@ -2,6 +2,27 @@
 
 ## Latest user priority — gameplay after accepted LAN appearance
 
+### B21–E21 exterior NPC acquisition and release
+
+A: raw10-29-18 actual wrist/vessel matrices, legacy Human rest-reset then blended
+glass pose, and existing full-wrap skin calibration. D: skin remains outside
+the vessel throughout pickup/release, with coaster ownership before acquisition
+and after return. User explicitly requested exterior grip; hand art is paused.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B21 | audit-npc-grip diagnostic and raw-matrix catalog | Quaternion reconstruction agrees within1e-5 rad;201 violating transition samples, max14.868mm | An anchor match hides skin penetration | Recorded10-29-18 transforms; skin reconstructed from unchanged production pose, not captured vertices |
+| C21 | Finite-vessel transition surface regression | Fails old approach at recorded intermediate grip fractions; preserves all existing endpoint/mouth tests | Fix the path, not another hand shape | Recorded pose fractions plus labeled synthetic dense sweep |
+| D21 | interaction/npc clearance-route sampler | Human is sole consumer; fixed held interval and existing poses, bounded reach | No competing prop or camera owner | Existing coaster, rim, shoulder and grip frames |
+| E21 | Source/shipped pickup/lift/sip/return views and diagnostics | Exterior-only contact, continuous ownership and pause/reduced checks | Math cannot approve motion appearance | CUA unavailable currently; fresh visual gate remains open |
+
+Candidate corridor: raise rest hand clear of the rim before wrist rotation and
+wrap; then descend parallel to the vessel axis in the existing clearance-tested
+wrap. Release reverses this route only after the glass is back on the coaster.
+Unknown: comfortable timing and exterior skin throughout all intermediate poses;
+reject/revise corridor if triangle or reach checks fail, without weakening tests.
+Do not change bones, finger poses, arm lengths, glass dimensions or sip duration.
+
 ### B20–E20 normal mouse-look integration
 
 Checkpoint: B20/C20 retained raw evidence plus exact-delta replay pass; D20

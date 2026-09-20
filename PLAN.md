@@ -2,6 +2,23 @@
 
 ## Active direction — finish the non-LAN gameplay list
 
+### Active slice: exterior NPC glass acquisition/release
+
+The10-29-18 raw wrist/glass matrices admit a source-assisted reconstruction of
+the legacy rest→glass blend.201 transition samples penetrate the vessel; worst
+14.868mm at seat1/time13.1773. This is reconstructed skin, not captured vertices.
+End-pose grip tests miss that transition. Preserve raw evidence and diagnostic
+script; write a failing full-path actual-skin test before implementation. Keep
+existing hand shapes, held interval.8–4.8s and mouth trajectory unchanged.
+Resolve acquisition/release through an above-rim clearance corridor: lift a
+resting hand, form the existing wrap above the vessel, then lower along its axis;
+reverse for release. Isolate phase/coordinate resolution under interaction/npc
+with Human as sole consumer, never engine/App/hero. Every interval must clear
+the finite glass envelope, stay in reach and keep the vessel on its coaster
+until full contact. Add explicit NPC pose/grip diagnostic fields for future
+actual close-ups. Browser is unavailable this turn; visual/contact acceptance
+stays open until source/shipped motion is captured. No anatomy/art changes.
+
 ### Active slice: normal seated mouse-look
 
 Implementation checkpoint: shared mouse-look profile now builds for source,
