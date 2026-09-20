@@ -162,7 +162,7 @@ The user additionally requests table cards always visible in the right corner.
 Current `App.tsx` hides its five-card board behind `boardOpen` and the “Inspect
 community cards” button; selecting Drinks closes it. This observable UI contract
 is the baseline, not an engine defect. Replace that toggle with a persistent,
-compact top-right public board during every active/saved hand, including pause
+compact bottom-right public board during every active/saved hand, including pause
 and inspection. Keep undealt placeholders, street labels and accessible card
 names. The component accepts only the public board, never player/deck objects.
 Render-state tests cover preflop/flop/turn/river/reset without inventing cards;

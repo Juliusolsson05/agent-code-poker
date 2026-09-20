@@ -16,6 +16,10 @@ Use the on-screen actions and raise sizing controls. **F** folds, **C** checks/c
 
 Hold **Space** while the table is focused to lean over your cards and chips; release to look up. The **Cards & chips** button toggles the same view without holding a key. Buttons and inputs retain normal Space behavior. Inspection does not pause betting or reveal opponents' cards. The website fills the browser and offers a fullscreen button; Agent Code host fullscreen is deferred.
 
+The public community cards stay in a compact **bottom-right** readout throughout
+the hand, with empty slots for undealt streets. It does not expose private cards
+or need an inspection toggle. Narrow layouts lift it above the betting row.
+
 ## Boundaries
 
 This is an evolving visual/gameplay implementation, not a finished realism benchmark. WebGL2 is required. The camera is desktop seated perspective, not headset/WebXR support. There is no multiplayer, real money, remote service or downloaded runtime asset. Blinds stay at 10/20 with a moving button. Bots sample equity and have different risk profiles; they are not a solver or a claim of professional-level play.
@@ -44,6 +48,14 @@ optional sparse asynchronous GPU queries; these are separate from CPU submission
 and can perturb timing. Ordinary play caps the 3D buffer at 2.5M pixels while
 retaining 4x MSAA; HTML controls stay at native browser resolution. This limits
 fullscreen render cost but does not guarantee 60 FPS.
+
+**Isolate render passes** records five 10-second windows (baseline, no bloom,
+no shadows, direct render, baseline). These are diagnostic omissions, not quality
+presets. Repeated-baseline drift above 25% rejects comparison; passing that guard
+alone is not a performance guarantee. **Capture fixed view** samples the real
+rig's resting pose at time12. `&resolved-canvas-aa` opts into removing redundant
+canvas MSAA for a paired image experiment; normal/shipped play retains it until
+that comparison is valid. The scene target always retains4xMSAA.
 
 The current failing baseline and provenance live in `testing/fixtures/experience/`;
 these are not approved visual goldens. The staged plan is

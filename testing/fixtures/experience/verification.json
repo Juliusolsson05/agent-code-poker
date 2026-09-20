@@ -1,10 +1,11 @@
 {
-  "checkpoint": "E1 measured bounded render resolution; smooth-performance and finished-game acceptance remain open",
+  "checkpoint": "E2 rejected drifting ablation; isolated unchanged post chain and added persistent public board. New contact/ambience/audio gates remain open.",
+  "latestBrowserLimitations": "E2 baseline allocation and ablation recorded; first fixed image pair rejected because NPC pose inherited sip history. Canonical recapture and fresh source/shipped interaction checks were interrupted by browser connection failures. Canvas AA removal is DEV-only. Bottom-right board has render-contract tests, not fresh layout acceptance. Prior source/production evidence below is historical, not verification of this latest checkpoint.",
   "date": "2026-09-20",
   "automated": {
     "command": "npm run verify",
     "result": "passed",
-    "coverage": "Full verify passed 55 tests: recorded viewport sizing, real fixed-profile workload identity, probe window replay and labeled GPU-driver lifecycle checks added to rules/grips/props/environment coverage. TypeScript/build, 2 SDK packaging checks and exact-byte HTTP preview integration also pass.",
+    "coverage": "Full verify passed 61 tests including actual ablation drift rejection, post-processing allocation/resize and synthetic public-board render contracts. TypeScript/build, 2 SDK packaging checks and exact-byte HTTP preview integration also pass. Browser layout/contact/audio acceptance remains separate.",
     "limitation": "Passing tests do not approve the recorded contact, anatomy, lighting or performance defects"
   },
   "sourceBrowser": {

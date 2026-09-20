@@ -1,25 +1,20 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { PokerApi } from './api'
 import { PokerAudio } from './audio'
-import { cardLabel, evaluate, rankLabel, SUITS, suit, type Card } from './engine/cards'
+import { evaluate } from './engine/cards'
 import { chooseAction, observe } from './engine/bots'
 import { CHARACTERS, PokerGame, STREETS, type Action, type GameState, type Legal } from './engine/game'
 import { PokerRoom } from './scene/Room'
 import { DRINKS, type DrinkKind } from './scene/props/specs'
 import { DrinkMenu } from './components/DrinkMenu'
+import { PlayingCard } from './components/PlayingCard'
+import { CommunityBoard } from './components/CommunityBoard'
 
 const SAVE_KEY = 'poker.table.v1'
 type Save = { table: GameState | null; muted: boolean; speed: 'relaxed' | 'brisk' }
 const chips = (value: number) => value.toLocaleString('en-US')
 const isInput = (target: EventTarget | null) => target instanceof HTMLElement && !!target.closest('button, input, select, textarea, a, [contenteditable]')
 const isEditing = (target: EventTarget | null) => target instanceof HTMLElement && !!target.closest('input, select, textarea, [contenteditable]')
-
-function PlayingCard({ card, small = false, highlight = false }: { card: Card | null; small?: boolean; highlight?: boolean }) {
-  return <span className={`playing-card ${small ? 'small' : ''} ${card === null ? 'back' : ''} ${highlight ? 'winning' : ''} ${card !== null && [1, 2].includes(suit(card)) ? 'red' : ''}`}
-    aria-label={card === null ? 'Face-down card' : cardLabel(card)}>
-    {card !== null ? <><b>{rankLabel(card)}</b><span>{SUITS[suit(card)]}</span><i>{SUITS[suit(card)]}</i></> : <span>◆</span>}
-  </span>
-}
 
 export function App({ api }: { api: PokerApi }) {
   const [gameState, setGameState] = useState<GameState | null>(null)
@@ -37,7 +32,6 @@ export function App({ api }: { api: PokerApi }) {
   const [confirmNew, setConfirmNew] = useState(false)
   const [raiseTo, setRaiseTo] = useState(40)
   const [raiseOpen, setRaiseOpen] = useState(false)
-  const [boardOpen, setBoardOpen] = useState(false)
   const [inspecting, setInspecting] = useState(false)
   const [drinkMenu, setDrinkMenu] = useState(false)
   const [leisure, setLeisure] = useState<{ kind: DrinkKind; available: boolean }>({ kind: 'old-fashioned', available: false })
@@ -243,7 +237,6 @@ export function App({ api }: { api: PokerApi }) {
         else if (drinkMenu) { setDrinkMenu(false); root.current?.focus({ preventScroll: true }) }
         else if (panel) setPanel(null)
         else if (raiseOpen) setRaiseOpen(false)
-        else if (boardOpen) setBoardOpen(false)
         else if (inspecting) { inspectionHeld.current = false; setInspecting(false) }
         else if (!lobby) setPaused(value => !value)
         return
@@ -289,8 +282,8 @@ export function App({ api }: { api: PokerApi }) {
           <button onClick={() => { setDrinkMenu(false); setInspecting(value => !value); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed} aria-pressed={inspecting} title="Hold Space to inspect cards and chips">{inspecting ? 'Look up' : 'Cards & chips'} <kbd>Space</kbd></button>
           <button onClick={() => scene.current?.smokeCigar()} disabled={paused || !!panel || !!error || sceneFailed || inspecting || !leisure.available} title="Smoke cigar (S)">Cigar <kbd>S</kbd></button>
           <button onClick={() => { scene.current?.sipDrink(); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed || inspecting || !leisure.available} title="Sip current drink (D)">{DRINKS[leisure.kind].label} <kbd>D</kbd></button>
-          <button onClick={() => { setDrinkMenu(value => !value); setBoardOpen(false) }} disabled={paused || !!panel || !!error || sceneFailed || inspecting} aria-expanded={drinkMenu}>Drinks ▾</button>
-          <button onClick={() => { setDrinkMenu(false); setBoardOpen(value => !value) }} aria-expanded={boardOpen} aria-label="Inspect community cards">{STREETS[s.street]} ▾</button><button onClick={() => openPanel('history')}>Hand history ↗</button>
+          <button onClick={() => setDrinkMenu(value => !value)} disabled={paused || !!panel || !!error || sceneFailed || inspecting} aria-expanded={drinkMenu}>Drinks ▾</button>
+          <button onClick={() => openPanel('history')}>Hand history ↗</button>
         </div>
         {drinkMenu && <DrinkMenu kind={leisure.kind} available={leisure.available} onClose={() => { setDrinkMenu(false); root.current?.focus({ preventScroll: true }) }} onOrder={kind => {
           if (scene.current?.orderDrink(kind)) { setDrinkMenu(false); root.current?.focus({ preventScroll: true }) }
@@ -322,9 +315,7 @@ export function App({ api }: { api: PokerApi }) {
     </section>
 
     {!lobby && s ? <>
-      {boardOpen && <section className="board-inspector" aria-label="Community cards">
-        <div className="board-cards">{Array.from({ length: 5 }, (_, i) => s.board[i] !== undefined ? <PlayingCard key={i} card={s.board[i]} small highlight={winningCards.includes(s.board[i])} /> : <span className="empty-card" key={i}>{i < 3 ? 'F' : i === 3 ? 'T' : 'R'}</span>)}</div>
-      </section>}
+      <CommunityBoard board={s.board} street={STREETS[s.street]} winningCards={winningCards} />
       <div className="bankroll-tag"><span>YOUR STACK{s.dealer === 0 ? ' · DEALER' : ''}{s.smallBlindSeat === 0 ? ' · SB' : ''}{s.bigBlindSeat === 0 ? ' · BB' : ''}</span><strong>{chips(ours?.stack ?? 0)}</strong><small>{ours?.folded ? 'Folded' : bestHand?.name ?? 'Practice chips'}</small></div>
       <div className="sr-only" aria-label="Your hand">{ours?.hole.map(c => <PlayingCard card={c} key={c} />)}</div>
       <div className={`table-whisper ${turn || finished ? 'with-actions' : ''}`} role="status" aria-live="polite"><strong>{status}</strong><small>{saving ? 'Saving…' : paused ? 'Paused' : finished ? `Net ${ours!.stack - ours!.startStack >= 0 ? '+' : ''}${chips(ours!.stack - ours!.startStack)}` : s.log.at(-1)}</small></div>
