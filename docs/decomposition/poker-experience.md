@@ -9,6 +9,8 @@ character art, transition ownership and final quality/performance remain open.
 The September 20 scope addition below makes NPC/player drinking, cigar-to-lip
 contact, an optional intoxication filter, a fireplace and high-quality fire/chip
 audio explicit unfinished acceptance gates.
+Latest feedback also reopens overall hand naturalness and requests a dedicated
+center dealer, deliberate mouse-look and readable chip/table lettering (D5/D6).
 Scope: issue #1, `feat/voxel-poker`. Anatomy/Christmas art remains provisional,
 not an accepted visual baseline. No automatic merge.
 
@@ -777,3 +779,125 @@ the thenar mound, taper the thumb and add a small dorsal nail for anatomical
 readability. Verify existing glass/cigar triangle clearance, closed deformation
 and card nonpenetration unchanged. A thumb-tip side-of-palm test protects this
 specific pose error, but only actual images can approve the overall silhouette.
+
+### D5 — natural hands, a center dealer and seated mouse-look
+
+**A / evidence:** the user reports that the revised hand still looks unnatural.
+The thumb-side correction is a provisional contact fix, NOT anatomy approval.
+Preserve the original user screenshot and revised production-rig image.
+`Room.look` normalizes cursor position, then uses .11m/.055m look-target offsets
+with frame-dependent .045 lerp: parallax, not deliberate looking. `SEATS[3]`
+already occupies the opposite center at [0,-1.25]; a new dealer there would
+overlap an opponent. Room's existing `dealer` is a button, not a human.
+
+**D / destination:** a relaxed, proportional hand supports the cigar without a
+hooked central thumb, rigid extended fingers or wrist distortion. Other grips
+remain functional. A distinct fine-block human dealer sits opposite the player
+in the middle, with purposeful dealing/collecting gestures. Five opponents stay
+players; the dealer has no bankroll, hole cards or turn. Deliberate mouse-look
+lets the player explore the tavern and comfortably return to cards/controls.
+
+#### D5-B — capture the actual substrate
+
+- **Produces:** raw source input/camera traces and seated/four-view images under
+  `testing/fixtures/experience/`: cigar rest/puff/return, card/drink grips, center
+  seating, and cursor movement over scene versus controls. Extend the bounded
+  recorder with drag/focus/inspection events before replacing camera input.
+- **Verified by:** retained exports with times, viewport and provenance; inputs
+  correlate to visible poses and camera matrices. The latest verbal complaint
+  is user evidence, not a new screenshot or measured joint angle.
+- **Why separate:** another thumb offset cannot establish anatomy; moving seats
+  before capture erases the existing framing and collision baseline.
+- **Reality check:** user screenshot, revised production rig, actual center
+  opponent and real mouse/UI sessions. Mark missing observations unrecorded.
+
+#### D5-C — catalog and isolate the contracts
+
+- **Produces:** catalog cases for anatomical grip posture, dealer-station
+  clearance/public events and camera input arbitration. Evaluate finger cascade,
+  palm/knuckle proportions and side-emerging thumb with the whole wrist visible.
+  Extend shared room layout; redistribute opponent presentation positions while
+  preserving engine seat IDs and the rotating dealer button.
+- **Verified by:** recorded cases replay against contact/clearance contracts;
+  station envelopes fit table/chairs/people/furniture. Menu, pause and focus loss
+  outrank look input; inspection and mouth contact have explicit transitions.
+  Negative controls catch center overlap, duplicate cards and stuck dragging.
+- **Why separate:** rules own dealing, interactions own held props, camera owns
+  looking. Mixing them produces duplicate cards or arms chasing the camera.
+- **Reality check:** D5-B recordings and existing public hand traces. Unexercised
+  edge cases are labeled synthetic probes, not claimed recorded behavior.
+
+#### D5-D — implement behind explicit boundaries
+
+- **Produces:** revised production hand evaluated in existing inspection tooling;
+  `scene/dealer/` public-event pose sampler with one dealer-presenter consumer;
+  `scene/camera/` deterministic camera arbitration with Room as sole consumer.
+  Engine/bots/storage import neither subsystem; hands/props never read raw mouse
+  input. Room composes outputs rather than becoming a second gesture owner.
+- **Verified by:** tests written from the recorded failures before replacement;
+  retain closed skin topology, triangle contacts and bounded shoulder/wrist
+  reach. Dealer consumes sanitized public events and the existing card/chip
+  presentation timeline, never independently deals, awards chips or gates legal
+  actions. Pause, reload and skipped frames cannot repeat transfers.
+- **Why separate:** adding an ordinary drinking/card-holding NPC is not a dealer;
+  patching camera offsets into each prop and label breaks shared coordinates.
+- **Reality check:** implement one cataloged case at a time, then inspect actual
+  presenter output; mathematical endpoint tests do not approve hand naturalness.
+
+Mouse-look default proposal: hold left mouse and drag on unobstructed scene
+background, not controls or clickable props; retain bounded yaw/pitch on release
+and provide explicit recenter. No mandatory pointer lock or camera swing while
+choosing a bet. Tune limits/sensitivity in real full-screen and narrow trials;
+offer reduced-motion/off behavior and non-drag recenter. Cancel drag on pointer
+cancel, blur, pause and disposal. Use elapsed-time damping, not per-frame lerp.
+For initial contact safety, sip/puff smoothly recenter before mouth contact and
+suspend look until return. Do not pretend a body-fixed mouth follows a turned
+head. Inspection saves/restores look intent through the single camera owner.
+Head-following contacts would require separately verified neck/reach contracts.
+
+#### D5-E — verify integrated play and cost
+
+- **Produces:** actual source AND shipped QA traces/images/motion inspection of
+  grips, dealer actions, look extremes, menus, inspection, sip/puff, pause/focus
+  loss and reload. Matched frame/resource profiles bracket the added character.
+- **Verified by:** convincing full-hand silhouette and connected wrist without
+  prop penetration; a centered distinct dealer without furniture/seat overlap.
+  Look extremes cannot expose private card faces. World labels follow anchors
+  or hide offscreen; the bottom-right public board stays readable/fixed. Controls
+  do not steer the view; recenter/return does not jump. Run full verification.
+- **Why separate:** rig stills cannot establish camera comfort; a seventh human
+  can materially worsen the already-open active performance gate.
+- **Reality check:** recorded real play plus paired fixed-scene profiles, clearly
+  distinguished from studio stills and synthetic safety tests.
+
+**Unknowns:** final natural hand silhouette/proportions; center dealer/table bay
+and five-opponent spacing; comfortable sensitivity/limits; dealer timing during
+fast all-ins and restore; newly visible private-card sightlines; incremental
+geometry/shadow cost. Documentation does not solve these. D1–D4/E remain open.
+
+### D6 — readable chip and table lettering
+
+The user reports low-resolution lettering on table chips. First distinguish
+chip denomination textures, felt lettering and final render-buffer resolution;
+do not assume every blurred mark has the same source.
+
+- **Produces (record):** actual seated and inspection close-ups at known viewport,
+  DPR, buffer size and texture settings; retain full image plus labeled crops.
+  Audit the production chip/felt texture generation and filtering paths.
+- **Verified by:** correlate each reported mark to the real texture and projected
+  size. Record texture dimensions, filtering/mipmaps and grazing angle. Do not
+  mistake a crop enlargement for additional source detail.
+- **Why separate:** blindly increasing global DPR increases render cost without
+  recovering detail missing from a texture or fixing oblique minification.
+- **Reality check:** current production textures and actual QA captures; latest
+  complaint is recorded separately from any still-uncollected close-up.
+
+Then catalog each observed cause and isolate texture creation/quality policy in
+the existing chip/table material owners. Write regression checks for confirmed
+source-detail or sampler mistakes before changing them. Preserve shared/cached
+textures, correct denomination mapping, matte materials and engine-owned chips.
+Integrate candidate resolution/filter changes one at a time, compare matched
+source/shipped views and measure memory/draw/frame cost. Acceptance is readable
+denominations in normal inspection, stable edges at seated grazing angles and
+no shimmer/glow regression—not universally pixel-sharp distant tiny text. Final
+texture sizes/filter settings stay unknown until this evidence is collected.

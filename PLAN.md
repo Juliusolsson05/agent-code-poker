@@ -63,3 +63,12 @@ only a near-camera hand pose), proper rim-to-mouth drinking, and a gradual,
 optional cosmetic intoxication effect from completed alcoholic sips. D4 now
 specifies contact/orientation evidence, single sip-event ownership, bounded
 readable effects, reduced-motion/off controls and unchanged poker rules.
+
+Latest user feedback reopens whole-hand naturalness despite the provisional
+thumb correction. D5 stages a dedicated center dealer and intentional bounded
+mouse-look; D6 investigates blurry chip/table lettering. Keep five opponents
+and engine seat/button semantics; replan the occupied center presentation seat.
+Record current hands, seating, mouse/UI behavior and lettering, then catalog
+contracts before implementation. No camera-driven detached props or private
+card leaks. These additions are planned, not shipped; actual source/production
+visuals and measured resource cost remain required acceptance gates.
