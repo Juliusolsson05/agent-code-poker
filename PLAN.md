@@ -8,6 +8,19 @@ normal source/shipped mouse-look, visible desktop snow, audio controls and
 restore checks recovered in session35. Keep remaining narrow/reduced-motion,
 LAN/installed-host and final art gates explicit; do not restart a running host.
 
+### Canonical render-allocation check — staged before adoption
+
+E2's previously blocked canonical pair is now captured through real CUA:
+14-12-39 baseline and14-13-19 resolved-canvas candidate are byte-identical PNGs
+at1994x1253. Fresh fixed-lobby pass ablation14-12-29 passes repeated-baseline
+drift with16.7ms median/18.5–18.6ms p95 delivery; sparse GPU timings remain
+separate. Do not remove warm bloom/shadows from a timing result. B24–E24 retains
+both images and profiles, tests real context settings and unchanged4x scene
+target, then adopts the already-isolated canvas-antialias=false option after
+the canonical test. Compare actual active source/shipped play afterward; no
+claimed FPS improvement from allocation removal or unequal inter-run timings.
+No hand art, poker semantics, lighting changes, live-host restart or dependencies.
+
 ### Public-event audio and independent levels — staged before implementation
 
 Checkpoint: implemented shared public classifier, bounded cached chip impacts,

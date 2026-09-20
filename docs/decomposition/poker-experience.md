@@ -2,6 +2,29 @@
 
 ## Latest user priority — gameplay after accepted LAN appearance
 
+### B24–E24 canonical pipeline check and redundant canvas samples
+
+A: unchanged production PostProcessing resolves4x HDR scene coverage before
+OutputPass draws one fullscreen triangle. Room still overrides canvas AA true,
+because E2's old image pair inherited different NPC sip histories. D: one scene
+MSAA owner, no second canvas multisampling, same visible picture and controls.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B24 | Fresh canonical PNG pair and pass profiles | Actual CUA fixed-view export, original files/hashes and context/target metadata | Historical pair was invalid; average error hid changed poses | 14-12-39 and14-13-19 images are byte-identical1994x1253;14-12-29 baseline profile passes drift |
+| C24 | Recorded image/context regression | Identical PNG bytes; baseline canvas4 vs candidate0 while scene target4 and buffer agree; legacy drift negative control retained | Resource reasoning is not image evidence | Actual unchanged downloads, no synthesized golden |
+| D24 | Adopt existing RENDERER_OPTIONS for normal/source/shipped/LAN | No Room AA override; unchanged isolated post chain and disposal tests | Pipeline only owns buffers, never physics/private cards | Same existing opt-in candidate; no new rendering algorithm |
+| E24 | Active source/shipped action/inspect/drink/pause/restore | Fresh motion/screenshots plus actual frame distributions | A static pair does not approve motion or all hardware | CUA only; no live host restart or Electron inference |
+
+Keep4x scene target, HDR, warm bloom, shadows,2.5M pixel budget and all geometry.
+Sparse GPU query times are distinct from rAF delivery and CPU submission. Reject
+drifted profiles; never claim the old and new runs' timing difference is a canvas
+AA speedup without a matched repeated comparison. Unknowns: mobile/retina driver
+differences, narrow/reduced motion and active interaction frame tails. Retain
+these open. Existing E2 plan already authorized the diagnostic candidate; this
+slice is committed before changing its production gate. User waived approval
+pause, not the actual recording/test/integration progression.
+
 ### B23–E23 public-event audio and independent levels
 
 Checkpoint: shared classifier and capped/cached procedural impacts implemented;
