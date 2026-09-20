@@ -2,6 +2,14 @@
 
 ## Active direction — full multiplayer first (restarted goal loop)
 
+Recovery next (B12–E12): validate one private checkpoint containing engine,
+membership and accepted-command identity, then atomic storage, then host
+commit-before-ACK and explicit browser seat recovery. Keep active5192 untouched.
+Source/shipped reload checks are not server-restart evidence. Record isolated
+loopback restart baseline; retain actual public wager fixtures and label new
+fault injection synthetic. Do not turn on persistence until ownership and
+failure contracts pass. See the new staged decomposition section.
+
 The user explicitly asks to finish multiplayer in the actual3D game before
 moving to bank/keyboard/drinking/audio/snow. The test lobby is scaffolding, not
 the deliverable. Next B11–E11 isolate renderer input from private GameState,

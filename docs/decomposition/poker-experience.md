@@ -1,5 +1,36 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## Durable multiplayer recovery — B12–E12
+
+A: `HostTable` owns private state and last accepted command, but `server/http.ts`
+loses all of it on close. Client credentials live only in sessionStorage.
+D: restarting the explicit host preserves one authoritative six-seat ledger;
+returning clients reclaim their own seat and an acknowledged wager never repeats.
+This does not migrate or terminate the active memory-only5192 session.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B12 | Recovery catalog with restart observation and owner inventory | Scripted loopback restart before/after; retained public wagers | Browser reload success does not imply server recovery | Actual HTTP create/read/close/new host returns200 then410; session20 reload notes |
+| C12 | Host-only checkpoint contracts and isolated tests | Replay retained wager/fold recording, recover at each step, duplicate ACK and invalid snapshots | Engine, seat and idempotency state must be one transaction | Existing05-52 recording; new corruption/retry cases explicitly synthetic |
+| D12 | Versioned validated checkpoint and private atomic file store | Real temporary filesystem replacement/failure/permissions and ownership tests | Never let renderer or wire API consume a private save | C12 contracts; storage faults are deliberate injection, not observed crashes |
+| E12 | Host commit-before-ACK plus explicit client seat recovery | Actual HTTP restart/retry/end, then CUA two-client restart and privacy checks | Disk, response ordering and client lifecycle cannot arbitrate separately | New observed HTTP/browser evidence required; no Wi-Fi inference |
+
+Isolate disk mechanics in `server/persistence/`, consumed only by the host.
+Checkpoint methods on HostTable are explicitly private-storage APIs, never DTOs;
+Room/client/engine cannot import the store. Validation rejects corruption and
+preserves bytes, rather than silently replacing money or identities. Restore
+disconnects all members and the host resumes explicitly. End-session persists
+an empty tombstone; closing the process is not ending the table. Duplicate wager
+fingerprints survive recovery. No credentials/private checkpoints in fixtures,
+diagnostics, URLs, Git or public responses.
+
+Unknowns: process-crash lock cleanup versus concurrent writers, disk failure
+after replacement, old response arrival across server generations, browser
+storage denial and deliberate seat takeover across tabs. Resolve these before
+enabling durability in the normal CLI; do not advertise recovery from an
+isolated checkpoint test. All tests use temporary directories, never user saves.
+Hand art remains paused; dealer canceled. User waived the plan-approval stop.
+
 ## Full multiplayer integration — restarted loop, B11–E11
 
 A: `HostTable` and bounded HTTP transport return private-view DTOs, while Room,
