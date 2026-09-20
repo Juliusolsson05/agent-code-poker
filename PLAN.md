@@ -21,6 +21,14 @@ the canonical test. Compare actual active source/shipped play afterward; no
 claimed FPS improvement from allocation removal or unequal inter-run timings.
 No hand art, poker semantics, lighting changes, live-host restart or dependencies.
 
+Evidence recovery note: the second automatic profile and subsequent trace did
+not appear in Downloads. Do not claim their metadata/timing as retained. Add a
+DEV-only, explicit Render diagnostics readout to the existing recorder panel:
+context/buffer settings only, no engine state, no polling or automatic export.
+This lets actual settings be inspected without browser-internal pages or
+download permissions. Retain the missing-export limitation; adopt only after
+this visible readout and canonical evidence agree.
+
 ### Public-event audio and independent levels — staged before implementation
 
 Checkpoint: implemented shared public classifier, bounded cached chip impacts,

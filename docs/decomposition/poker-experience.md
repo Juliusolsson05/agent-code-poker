@@ -25,6 +25,14 @@ these open. Existing E2 plan already authorized the diagnostic candidate; this
 slice is committed before changing its production gate. User waived approval
 pause, not the actual recording/test/integration progression.
 
+Recording-path observation: second profile/trace downloads are missing despite
+the UI finishing. Browser-internal download inspection is unavailable; do not
+work around it. C24 adds an explicit DEV-only Render diagnostics text readout
+from the recorder's existing context metadata, refreshed only on button click.
+No engine/cards, automatic copying, hidden browser state or per-frame work.
+This independently verifies settings, not the absent profile or file delivery.
+Keep the missing export documented rather than claiming a second benchmark.
+
 ### B23–E23 public-event audio and independent levels
 
 Checkpoint: shared classifier and capped/cached procedural impacts implemented;
