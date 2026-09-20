@@ -16,6 +16,13 @@ and shipped snowy-window motion when CUA returns; no FPS claim from math tests.
 
 ### Active slice: exterior NPC glass acquisition/release
 
+Implementation checkpoint: finite-surface regression and existing anatomy/contact
+tests pass; full verify168 tests/builds/SDK/preview passes. The isolated route
+changes wrist acquisition/release only, not finger geometry, held motion or poker.
+NPC phase/grip/reach diagnostics are ready for the next real capture. Browser
+unavailable; visual/motion acceptance remains open and must not be inferred from
+the surface sweep. Continue visible snow while retaining this explicit gate.
+
 C21 failed already at time0: resting skin intersects tall ale by7.810mm. Revise
 the starting wrist3cm inward before designing the corridor; preserve this new
 negative control. Do not weaken the finite-glass test or change hand geometry.

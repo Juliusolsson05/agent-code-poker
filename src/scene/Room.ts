@@ -513,6 +513,7 @@ export class PokerRoom {
       tableCards: this.cardField.diagnosticPose(),
       look: this.experimentalLook ? this.seatedLook.diagnostic() : null,
       people: this.people.map(h => ({ seat: h.seat, root: transform(h.root), drink: transform(h.drink.root),
+        drinkContact: h.drinkContact ?? null,
         rightHand: transform(h.rightRig.hand.root), shoulder: h.rightRig.shoulder.toArray(), elbow: h.rightRig.elbow.toArray(), wrist: h.rightRig.wrist.toArray() })),
     }))
     // frame() retains frame-start wall time. Emitting a performance.now() event

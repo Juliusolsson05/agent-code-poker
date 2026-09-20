@@ -18,6 +18,15 @@ on narrow/retina views and actual GPU cost; keep these open, not synthetic claim
 
 ### B21–E21 exterior NPC acquisition and release
 
+Checkpoint: C21 failed first at rest(-7.810mm) and retained recorded transition
+negative control(<-14mm). Candidate moves rest wrist inward and uses the isolated
+above-rim route. Finite triangle-envelope sweep passes all five opponents across
+pickup/release, with no reach correction; existing held-contact/mouth/cuff tests
+remain unchanged and pass. Full verify168 tests/builds/SDK/preview passes. New
+pose diagnostics expose phase/grip/sipAge/reachError, never private card state.
+E21 remains OPEN: CUA reports browser unavailable, so no fresh close-up, motion,
+source/shipped restoration, reduced-motion device or perceptual approval.
+
 A: raw10-29-18 actual wrist/vessel matrices, legacy Human rest-reset then blended
 glass pose, and existing full-wrap skin calibration. D: skin remains outside
 the vessel throughout pickup/release, with coaster ownership before acquisition

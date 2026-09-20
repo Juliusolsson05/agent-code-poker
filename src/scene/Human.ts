@@ -3,6 +3,7 @@ import { anatomyMaterial, VoxelSculpt } from './Voxel'
 import { SeatedArm } from './Arm'
 import { coaster, TableDrink, type DrinkKind } from './Drinks'
 import { GLASS_HAND_CONTACT, GLASS_HAND_ROTATION } from './HandGrips'
+import { glassApproach, NPC_REST_ROTATION, NPC_REST_WRIST } from '../interaction/npc/GlassApproach'
 
 export const humanMaterial = () => anatomyMaterial(.91)
 const PEOPLE = [
@@ -18,6 +19,7 @@ export type Human = {
   leftRig: SeatedArm; rightRig: SeatedArm; cards: THREE.Group; eyes: THREE.Group; pupils: THREE.Group;
   drink: TableDrink; drinkHome: THREE.Vector3; seat: number;
   sipAt: number; nextSip: number;
+  drinkContact?: { phase: string; grip: number; sipAge: number; reachError: number };
 }
 
 /** A seated person is constructed from landmarks and tailored sections, not a
@@ -168,7 +170,8 @@ export function poseHuman(h: Human, time: number, options: { reduced: boolean; a
     h.sipAt = time; h.nextSip = time + 23 + seat * 3.3
   }
   const sipAge = time - h.sipAt, sipping = moving && sipAge >= 0 && sipAge < 6
-  let rightTarget = new THREE.Vector3(.20, .857, .385), rightRotation = new THREE.Euler(Math.PI / 2, 0, -.12)
+  let rightTarget = new THREE.Vector3(...NPC_REST_WRIST), rightRotation = new THREE.Euler(...NPC_REST_ROTATION)
+  h.drinkContact = { phase:'rest',grip:0,sipAge,reachError:0 }
   rightRig.hand.pose('rest')
   // The hero faces local -Z; an opponent faces local +Z. Rotate the complete
   // vessel/contact frame, not just the wrist, so its near rim and grip remain on
@@ -190,13 +193,18 @@ export function poseHuman(h: Human, time: number, options: { reduced: boolean; a
     const wristRotation = drink.root.quaternion.clone().multiply(new THREE.Quaternion(...GLASS_HAND_ROTATION))
     const contact = drink.grip.clone().applyQuaternion(drink.root.quaternion).add(drink.root.position)
     const wrist = contact.sub(new THREE.Vector3(...GLASS_HAND_CONTACT).applyQuaternion(wristRotation))
-    rightTarget.lerp(wrist, grip)
-    rightRotation.setFromQuaternion(new THREE.Quaternion().setFromEuler(rightRotation).slerp(wristRotation, grip))
-    rightRig.hand.pose('glass', grip)
+    // During the held interval the original full contact remains exact. Only
+    // the coaster-owned acquisition/release path changes; interpolating wrist
+    // and curl together used to pass fingers through the glass interior.
+    const approach = glassApproach(grip,wrist,wristRotation,drinkHome.y+drink.rim.y)
+    rightTarget.copy(approach.wrist);rightRotation.setFromQuaternion(approach.rotation)
+    rightRig.hand.pose('glass',approach.grip)
+    h.drinkContact = { phase:grip===1?'held':approach.phase,grip:approach.grip,sipAge,reachError:0 }
   } else if (moving && options.action === 'bet' && beat) {
     rightTarget.add(new THREE.Vector3(-beat * .035, beat * .025, beat * .11)); rightRig.hand.pose('push')
   } else if (moving && options.action === 'check' && options.actionAge < .7) {
     rightTarget.y += Math.abs(Math.sin(options.actionAge * Math.PI * 5)) * .013
   }
   rightRig.solve(rightTarget, rightRotation)
+  h.drinkContact.reachError=rightRig.wrist.distanceTo(rightTarget)
 }
