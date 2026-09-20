@@ -1,5 +1,32 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## D8 keyboard-first betting — continuation16
+
+**A:** `PokerGame.legal()/act()` own legal amounts and atomic wagers. Current
+`App.tsx` offers F/C, a pointer-opened raise popover, number input and range
+slider. Actual05-52-49 trace includes the public raise500 and following folds,
+but no raw key/focus events; do not label it a keyboard fixture.
+**D:** a compact fully keyboard-operable betting tray, with no required typing
+or slider. Choose B to open (R already recenters view); arrows adjust, Shift
+coarsens,1–4 choose min/half-pot/pot/all-in, Enter confirms, Esc cancels. Preserve
+native Enter/Space on focused buttons, text editing, pause and engine validation.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B8 | Opt-in betting input trace + current UI capture | Real CUA key sequence and public state before/after; raw export retained | Don't invent focus/keyboard causality from old action logs | User reports slider/typing pain; existing real public raise trace, fresh browser currently times out |
+| C8 | Catalog + isolated `src/interaction/betting/` intent/amount contract | Tests written against real recorded legal states/input where available; new boundaries explicitly synthetic | Draft amount must not mutate engine or reconcile legality in multiple UI places | B8 and actual public history; engine supplies bounds |
+| D8 | Keyboard controller consumed only by betting UI, then compact tray | Pure bounds/focus/repeat/cancel tests, rendered labels/pointer parity | App keeps execution/save authority; UI never becomes another ledger | C8, no made-up recorded keystrokes |
+| E8 | Source/shipped keyboard-only hand recording, restore check, UI screenshots | B/open, fine/coarse/presets/cancel/confirm, blocked turns, pause/menu, saved balances, no double bets | Mock key events aren't browser focus or visual acceptance | Actual CUA isolated saves; Electron separate |
+
+Forbid engine, bots, scene, audio and networking from importing draft/input
+internals. `BettingControls` is the sole runtime consumer; App supplies legal
+context and executes emitted intents through existing `perform`/persistence.
+Unknowns: native key repeat ordering, focused-button Enter, desktop/browser key
+differences, tiny layouts, short-all-in state, focus restoration when draft is
+closed by a new revision. Keep synthetic adversarial checks labeled, and don't
+ship unsafe focus semantics merely because the browser connection is absent.
+The user waived approval stops and requested autonomous implementation.
+
 ## Authoritative full-list goal
 
 Current implementation checkpoint:85 tests and full `npm run verify` pass after
