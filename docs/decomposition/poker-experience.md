@@ -22,6 +22,25 @@ browser-only ordering module. Unknowns remain browser lifecycle/native fetch
 cancellation timing and actual multi-tab recovery. Suppressed obsolete requests
 are not acknowledged wagers; UI must never invent a receipt or retry them.
 
+Checkpoint: ResponseOrder and client integration now exist. The public-only
+lan-response-order.json was captured from an isolated actual HTTP host; it
+demonstrates observations1/2/3 while poker revision remains0 across pause/resume.
+The first recording attempt omitted the required Origin and failed; it was not
+retained as successful behavior. Reordered delivery/restart/seat-reset cases are
+explicit injections. Four pre-implementation contracts pass; their initial
+missing-module failure was scaffolding, not a reproduced browser fault. Both
+fetch/JSON failures and HTTP rejection paths now discard obsolete completions
+without setting a newer connection lost. Definitive credential rejection seals
+in-flight work; no wager is retried. Single runtime consumer remains client.js.
+
+Full verify133 tests, TypeScript, both builds, SDK and exact-byte preview pass.
+CUA source and shipped call20/inspection/pause/reload/return restore stack1980,
+pots100/180. Cards/cigar/five opponents/folded backs/bottom-right board inspected;
+warning/error captures empty. Browser attachment timeouts recovered by selecting
+the existing owned tab. Session23 notes retain these limitations; screenshots
+viewed in tool output are not saved goldens. No LAN browser/recovery/Wi-Fi/FPS/
+listening/Electron acceptance. Active5192 remains untouched;5193 was empty410.
+
 Latest E12 implementation (supersedes the earlier CLI-gated checkpoint below):
 SeatRecovery provides opt-in browser keys, explicit resume/forget and independent
 per-seat entries. Denied storage does not throw away a live admission; retry

@@ -1,0 +1,8 @@
+{
+  "source": "scripted-actual-loopback-http-public-metadata",
+  "records": [
+    {"path":"/api/state","status":200,"generation":"da0355e4609eb603dfff7b1ea1c910c7","observation":1,"revision":0,"paused":false},
+    {"path":"/api/pause","status":200,"generation":"da0355e4609eb603dfff7b1ea1c910c7","observation":2,"revision":0,"paused":true},
+    {"path":"/api/pause","status":200,"generation":"da0355e4609eb603dfff7b1ea1c910c7","observation":3,"revision":0,"paused":false}
+  ]
+}

@@ -3,8 +3,10 @@ import { createRoot } from 'react-dom/client'
 import { PokerRoom } from '../../src/scene/Room'
 import { BettingControls } from '../../src/components/BettingControls'
 import { SeatRecovery } from './SeatRecovery'
+import { ResponseOrder, ObsoleteResponse } from './ResponseOrder'
 const el = id => document.getElementById(id)
 const recovery = new SeatRecovery(() => sessionStorage, () => localStorage)
+const responses = new ResponseOrder()
 const hex = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), v => v.toString(16).padStart(2, '0')).join('')
 let token = '', admissionNonce = hex(), state = null, pending = false, polling = false, ended = false
 let room = null, renderFailed = false, inspected = false, menuOpen = false, connectionLost = false, controlsRevision = 0, authorityRevision = -1
@@ -40,29 +42,31 @@ function record(path, status, data) {
       bet: p.bet, folded: p.folded, cards: p.cards.kind, connected: p.connected })) } : {}) })
 }
 async function api(path, body) {
-  const credentialAtStart = token
-  const generationAtStart = state?.generation
-  const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST', cache: 'no-store',
-    headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(5000) })
-  const data = await response.json()
-  // An old in-flight poll must not resurrect the table after explicit leave or
-  // local cleanup. Observation ordering only compares responses within a room.
-  if (token !== credentialAtStart) throw new Error('Previous connection response ignored.')
+  const request = responses.begin()
+  let response, data
+  try {
+    response = await fetch(path, { method: body === undefined ? 'GET' : 'POST', cache: 'no-store',
+      headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(5000) })
+    data = await response.json()
+  } catch (error) {
+    if (!responses.failureCurrent(request)) throw new ObsoleteResponse()
+    throw error
+  }
+  if (!responses.current(request)) throw new ObsoleteResponse()
   record(path, response.status, data)
   // A definitive credential/session rejection is different from a timeout.
   // Keep transient failures resumable; only offer explicit local cleanup after
   // the host has told this tab its connection can no longer be used.
-  if (token && [401,410].includes(response.status)) { ended = true; el('forget').hidden = false }
-  const newGeneration = state && data.generation !== state.generation
-  // A restarted server begins its observation counter again. Accept its first
-  // response only if no newer generation has already replaced the one this
-  // request began in; a delayed pre-restart poll cannot switch us back.
-  if (data.view && (!state || newGeneration && generationAtStart === state.generation ||
-    !newGeneration && data.observation > state.observation)) {
+  if (data.view) {
+    if (!responses.accept(request, data)) throw new ObsoleteResponse()
+    const newGeneration = state && data.generation !== state.generation
     if (newGeneration) { controlsRevision++; authorityRevision=-1; inspected=false;room?.setInspection(false) }
     state = data; connectionLost = false; render()
+  } else if (!response.ok && !responses.failureCurrent(request)) {
+    throw new ObsoleteResponse()
   }
+  if (token && [401,410].includes(response.status)) { ended = true; responses.reset(); el('forget').hidden = false }
   if (!response.ok) throw new Error(data.error || data.receipt?.code || 'Request rejected.')
   return data
 }
@@ -127,7 +131,9 @@ function render() {
 async function run(work) {
   if (pending) return
   pending = true; el('error').textContent = ''; render()
-  try { await work() } catch (error) { controlsRevision++; el('error').textContent = error.message }
+  try { await work() } catch (error) {
+    if (!(error instanceof ObsoleteResponse)) { controlsRevision++; el('error').textContent = error.message }
+  }
   finally { pending = false; render() }
 }
 async function enter(joining) {
@@ -136,21 +142,21 @@ async function enter(joining) {
   // become a second player when this tab reloads and retries with the same name.
   save()
   const result = await api(joining ? '/api/join' : '/api/create', { name: playerName, nonce: admissionNonce, ...(joining ? { code: el('code').value } : {}) })
-  token = result.token; save(el('remember').checked); await api('/api/state')
+  responses.reset(); token = result.token; save(el('remember').checked); await api('/api/state')
 }
 el('create').onclick = () => run(() => enter(false)); el('join').onclick = () => run(() => enter(true))
 el('start').onclick = () => run(() => api('/api/start', { revision: state.view.revision }))
 el('pause').onclick = () => run(() => api('/api/pause', { paused: !state.paused }))
-el('leave').onclick = () => run(async () => { await api('/api/leave', {}); forget(seatKey());token=''; state=null; admissionNonce=hex(); el('connection').textContent='Left table' })
+el('leave').onclick = () => run(async () => { await api('/api/leave', {}); responses.reset();forget(seatKey());token=''; state=null; admissionNonce=hex(); el('connection').textContent='Left table' })
 el('forget').onclick = () => {
-  forget(seatKey());token=''; state=null; ended=false; admissionNonce=hex()
+  responses.reset();forget(seatKey());token=''; state=null; ended=false; admissionNonce=hex()
   el('forget').hidden=true; el('error').textContent=''; el('connection').textContent='Not connected'; render()
 }
 el('resume-seat').onclick = () => {
   const selected = savedKeys[Number(el('saved-seats').value)]
   if (!selected) return
   void run(async () => {
-    token=selected.token;admissionNonce=selected.nonce;playerName=selected.name;ended=false;renderFailed=false
+    responses.reset();token=selected.token;admissionNonce=selected.nonce;playerName=selected.name;ended=false;renderFailed=false
     save(); await api('/api/state')
   })
 }
@@ -195,7 +201,9 @@ async function poll() {
   // expires the lease. Chrome can throttle background timers; no fake grace ACK.
   if (!token || ended || pending || polling) return
   polling = true
-  try { await api('/api/state') } catch (error) { connectionLost=true;el('error').textContent=error.message;render() }
+  try { await api('/api/state') } catch (error) {
+    if (!(error instanceof ObsoleteResponse)) { connectionLost=true;el('error').textContent=error.message;render() }
+  }
   finally { polling=false }
 }
 setInterval(poll,500); render(); void poll()

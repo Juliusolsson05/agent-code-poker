@@ -2,13 +2,16 @@
 
 ## Active direction — full multiplayer first (restarted goal loop)
 
-Next E12 slice: isolate client response ownership. The inline response check
-ignores an obsolete body but its rejected Promise still reaches poll's catch,
-which can mark a newer connection lost. Catalog actual HTTP envelope shapes,
-then test delayed delivery/credential replacement as explicitly synthetic
-faults. One ResponseOrder module will own epoch/generation/observation decisions;
-both successful replies and errors must obey it. Never retry a wager. Keep the
-active5192 host untouched and LAN browser acceptance open.
+E12 response ownership implemented: one browser-only ResponseOrder module
+arbitrates epochs/process generations/observations, including obsolete errors.
+Forget/resume seals old requests even when reusing a credential. Actual isolated
+HTTP pause/resume capture retains unchanged poker revision with increasing
+observations; delayed delivery/restarts are explicitly synthetic test inputs.
+Full verify133 tests/builds/SDK/preview pass. Source and shipped CUA call20,
+inspection, pause/reload/return pass; restored stack1980 with pots100/180,
+respectively. Captured warn/error logs empty. Session23 notes are manual, not
+image goldens or LAN evidence. Existing5192 untouched;5193 had no room (410).
+Real multi-client browser/recovery/Wi-Fi acceptance remains open. No wager retry.
 
 E12 implementation now adds opt-in saved-seat recovery, explicit resume/forget,
 storage-denial warnings, and pre-admission nonce persistence. The host's new
