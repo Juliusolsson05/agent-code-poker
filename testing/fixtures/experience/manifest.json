@@ -66,6 +66,15 @@
   ],
   "candidateSessions": [
     {
+      "file": "poker-evidence-2026-09-20T05-26-21-152Z.json.gz",
+      "rawSha256": "8bd0adabf1ce06979a9fc9a2f541017af12fc5c5e5c39546756528326ae1fabc",
+      "provenance": "Actual CUA source session on c1d885d, isolated qa=lip-contact-8. Entered hand, smoked cigar, sipped Old Fashioned; raw downloaded JSON compressed losslessly. Export succeeded despite subsequent browser command timeout.",
+      "frameCount": 667,
+      "poseCount": 465,
+      "limitations": "Player mouth-contact failing baseline: seven puff and eleven sip samples. Screenshot in CUA shows bottom-right board at wide viewport, not retained as layout golden. No fresh production verification or timing acceptance.",
+      "images": []
+    },
+    {
       "file": "poker-evidence-2026-09-20T05-06-37-467Z.json.gz",
       "rawSha256": "bf64c69d528a681acc3dc36a84c246f2ea834ba55b4365efadce73a62b40b95b",
       "provenance": "Actual short Chrome context-allocation baseline: canvasAntialias true, defaultSamples4. Not an interaction or timing acceptance.",

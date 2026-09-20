@@ -743,3 +743,24 @@ play retain the established canvas setting. The extracted post chain keeps HDR,
 bloom and scene4xMSAA. 59 tests/build/SDK/exact-byte preview passed before the
 subsequent persistent-board slice; run full verification again before commit.
 No new performance or visual-equivalence acceptance is claimed.
+
+### D4a — recorded player mouth-contact correction
+
+Real source recording `05-26-21-152Z` retains667frames/465poses, one complete
+smoke and one Old Fashioned sip. Seven puff samples show cigar axis
+[.95056,.01946,.30992]: the burning tip points sideways and BACK toward the
+eye, not outward over the table. Bite point is [.015,1.335,1.37]; eleven sip
+samples use [.005,1.335,1.365]. Attachment passes but these are two invented
+mouths roughly13cm forward of eyes[0,1.43,1.50]. This is the wrong calibration
+substrate, not a reason to add phase offsets to the hand renderer.
+
+Contract: define one body-local/world-rest lip landmark 95mm below and55mm
+forward of the seated eyes (an explicit authored anatomy choice, not a measured
+real person). Both props and exhalation consume it. Resolve cigar mouth-end at
+that landmark and its +X shaft outward toward negative worldZ; derive the hand
+from the existing surface-fitted grip. Glass rim uses the same landmark for
+each drink height. First write recorded replay tests for endpoint/direction and
+zero reach correction, preserving the old matrices as negative controls. Then
+integrate shared calibration without changing ownership clocks, arm lengths,
+card transforms or engine rules. Actual presenter and browser motion remain
+separate gates: a pure endpoint test cannot approve a silhouette or comfort.
