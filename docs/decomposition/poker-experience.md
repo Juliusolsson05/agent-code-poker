@@ -1071,3 +1071,25 @@ centered before calling the existing hero API; pause/menu/inspection cancel a
 pending request. Reduced motion applies direct input without easing. World
 labels project through the live camera and hide outside its frustum; fixed
 community cards/controls remain untouched. Do not add a persisted-save field.
+
+Camera implementation checkpoint: seven isolated tests pass (retained real
+baseline and inspection/pause inputs plus explicitly synthetic drag/contact
+boundaries). The pending-contact contract first failed because the API was
+absent; no claim that it reproduced a recorded camera-drag failure. Room consumes
+one controller, including one-shot centering requests; App exposes R/recenter,
+session off and menu blocking. No hand/arm/prop pose code changed. World-up yaw
+avoids unintended roll; label projection reuses a vector, without React frame
+updates. Normal/shipped camera remains unchanged behind DEV-only `&look`.
+
+CUA recovered briefly: actual source QA `look-13` entered a fresh hand8♦4♠ and
+displayed Recenter view. The subsequent real drag could not execute because the
+browser disconnected. No raw export or successful drag/comfort/production
+acceptance is claimed from that attempted recording. Continue this precise
+browser gate when connected; do not count it as a passing motion test.
+
+Full camera-candidate checkpoint: `npm run verify` passes78 tests, TypeScript,
+production build,2SDK checks and exact-byte HTTP preview. Actual source hand
+entry/control visibility is the only fresh browser observation; the browser
+inventory subsequently returned empty. Production browser verification remains
+open. No dependency or lockfile change. Do not enable this candidate by default
+until real drag/interruption/restore and camera-extreme privacy checks pass.

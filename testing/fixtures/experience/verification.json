@@ -1,5 +1,12 @@
 {
-  "checkpoint": "Continuation9: folded cards persist face-down, chip/felt printing sharpened; hands paused by user. Dealer/camera/ambience/audio/performance gates remain open.",
+  "checkpoint": "Current user scope narrowed explicitly. Folded backs/printing retained; DEV-only mouse-look controls/controller integrated, fresh drag acceptance pending; hand animation paused.",
+  "cameraCheckpoint": {
+    "mode": "Source-only &look candidate; ordinary source and shipped camera unchanged",
+    "automated": "Seven controller tests: measured retained camera baseline, real inspection/pause event order with explicitly synthetic turned intent, drag cancellation/bounds/damping, one-shot contact dispatch and import isolation. Not real pointer-drag verification.",
+    "source": "Actual CUA qa=look-13 entered fresh hand8d4s and showed Recenter view. Browser disconnected before drag executed; recording not exported. No successful drag, screenshot golden or comfort claim.",
+    "production": "Fresh browser check unavailable after connection loss. Exact-byte HTTP preview and packaging pass; these are not visual/browser verification.",
+    "remaining": "Record real drag/control/menu/inspection/contact/pause/restore inputs; inspect extremes/privacy/world-label behavior and off/reduced motion; verify source and shipped before enabling by default. No performance improvement claimed."
+  },
   "latestBrowserLimitations": "Source and shipped table actions, inspection, folds, held rest props and restoration checked through CUA. Source recovered via fresh isolated tab after reload detached debugger. No fresh console-log export, no controlled texture-cost benchmark or Electron test. Earlier contact/ablation evidence below is historical.",
   "tableCheckpoint": {
     "trace": "poker-evidence-2026-09-20T05-52-49-020Z.json.gz",
@@ -12,7 +19,7 @@
   "automated": {
     "command": "npm run verify",
     "result": "passed",
-    "coverage": "Full verify passes71 tests, TypeScript/build,2SDK packaging checks and exact-byte HTTP preview. Includes actual candidate folded-pose fixture, recorded fold replay, restore/fast-fold/reduced-motion boundaries and bounded print allocation tests. Contact/audio/performance acceptance remains separate.",
+    "coverage": "Full verify passes78 tests, TypeScript/build,2SDK packaging checks and exact-byte HTTP preview. Seven new camera-controller tests distinguish retained actual evidence from synthetic new-feature boundaries. Contact/audio/performance and fresh mouse-look browser acceptance remain separate.",
     "limitation": "Passing tests do not approve the recorded contact, anatomy, lighting or performance defects"
   },
   "sourceBrowser": {

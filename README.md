@@ -32,6 +32,13 @@ This is an evolving visual/gameplay implementation, not a finished realism bench
 
 ## Visual evidence workflow
 
+Mouse-look candidate: add `&look` to a source QA URL. Left-drag the scene,
+press **R** or the header's **Recenter view** button to face forward, and use
+Settings → Mouse-look to turn it off for this session. Inspection temporarily
+centers the view; drinks/cigar wait for centering. Menus and pause cancel a
+pending request. This is **development-only pending real drag/comfort checks**;
+ordinary source play and the shipped bundle retain the verified camera.
+
 `/dev/?qa=my-check&stats&record` isolates a QA save and enables a bounded local
 trace recorder. Record evidence, exercise the real controls, capture views, then
 save the trace. It records public actions, transforms and frame timings—not deck

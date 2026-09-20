@@ -12,6 +12,7 @@ import { createTableSurface, dealerPosition, TABLE } from './Table'
 import { SceneCapture, transform } from './diagnostics/SceneCapture'
 import { CHAIR_BLOCKS, PLAYER_LAYOUT, SEATS, seatYaw } from './environment/layout'
 import { createFeltPrint } from './TablePrint'
+import { SeatedLook } from './camera/SeatedLook'
 
 import { createRoomPlan, type RoomBlock } from './environment/RoomPlan'
 import { createTavernLighting, TAVERN_EXPOSURE } from './environment/Lighting'
@@ -24,6 +25,17 @@ import { PostProcessing, RENDERER_OPTIONS } from './rendering/PostProcessing'
  * Fine voxel anatomy and a perspective lens are the foundation here; glow
  * cannot compensate for the wrong scale or viewpoint. */
 export class PokerRoom {
+  // Fresh drag/comfort evidence is unavailable while CUA is disconnected.
+  // Keep this integration explicitly opt-in until real source/shipped checks
+  // pass; a synthetic controller test is not permission to change live play.
+  readonly experimentalLook = import.meta.env.DEV && new URLSearchParams(location.search).has('look')
+  private seatedLook = new SeatedLook()
+  private lookPlaying = false
+  private lookBlocked = false
+  private lookPointer: number | null = null
+  private worldLabels = new Map<number, HTMLElement>()
+  private labelPoint = new THREE.Vector3()
+  private worldUp = new THREE.Vector3(0, 1, 0)
   private scene = new THREE.Scene()
   private camera = new THREE.PerspectiveCamera(70, 1.4, .035, 35)
   private labelCamera = new THREE.PerspectiveCamera(70, 1.4, .035, 35)
@@ -87,6 +99,18 @@ export class PokerRoom {
     this.renderer.domElement.addEventListener('webglcontextlost', this.lost)
     container.parentElement?.addEventListener('pointermove', this.look)
     container.parentElement?.addEventListener('pointerleave', this.centerLook)
+    container.parentElement?.addEventListener('pointerdown', this.recordLookInput)
+    container.parentElement?.addEventListener('pointerup', this.recordLookInput)
+    if (this.experimentalLook) {
+      this.renderer.domElement.addEventListener('pointerdown', this.beginLook)
+      this.renderer.domElement.addEventListener('pointermove', this.moveLook)
+      this.renderer.domElement.addEventListener('pointerup', this.endLook)
+      this.renderer.domElement.addEventListener('pointercancel', this.cancelLook)
+      this.renderer.domElement.addEventListener('lostpointercapture', this.cancelLook)
+      window.addEventListener('blur', this.suspendLook)
+      this.renderer.domElement.style.touchAction = 'none'
+      this.renderer.domElement.style.cursor = 'grab'
+    }
     this.scene.fog = new THREE.FogExp2('#0a0b10', .048)
     RectAreaLightUniformsLib.init()
     this.scene.add(createTavernLighting())
@@ -149,16 +173,62 @@ export class PokerRoom {
     this.observer = new ResizeObserver(() => this.resize()); this.observer.observe(container); this.resize(); this.frame()
   }
   private lost = (event: Event) => { event.preventDefault(); this.onFailure() }
+  private recordLookInput = (event: PointerEvent) => {
+    this.capture?.event('look-input', { type: event.type, x: event.clientX, y: event.clientY, buttons: event.buttons,
+      scene: event.target === this.renderer.domElement })
+  }
   private look = (event: PointerEvent) => {
+    if (this.experimentalLook) return
     const bounds = this.container.getBoundingClientRect()
     this.pointer.set((event.clientX - bounds.left) / bounds.width - .5, (event.clientY - bounds.top) / bounds.height - .5)
   }
   private centerLook = () => this.pointer.set(0, 0)
+  private syncLook(): void {
+    this.seatedLook.setContext({ playing: this.lookPlaying, paused: this.paused, blocked: this.lookBlocked,
+      inspection: this.inspecting, busy: !this.hero.leisureAvailable, reduced: this.reduced.matches })
+  }
+  private beginLook = (event: PointerEvent) => {
+    this.syncLook()
+    const accepted = this.seatedLook.begin(event.pointerId, event.clientX, event.clientY,
+      event.target === this.renderer.domElement && event.button === 0 && event.pointerType === 'mouse' && event.isPrimary)
+    this.capture?.event('look-begin', { id: event.pointerId, x: event.clientX, y: event.clientY, accepted })
+    if (!accepted) return
+    event.preventDefault(); this.lookPointer = event.pointerId
+    this.renderer.domElement.setPointerCapture(event.pointerId)
+    this.renderer.domElement.style.cursor = 'grabbing'
+    this.container.closest<HTMLElement>('.poker')?.focus({ preventScroll: true })
+  }
+  private moveLook = (event: PointerEvent) => {
+    if (!this.seatedLook.dragging) return
+    this.seatedLook.move(event.pointerId, event.clientX, event.clientY, this.container.clientHeight, event.buttons)
+    this.capture?.event('look-move', { id: event.pointerId, x: event.clientX, y: event.clientY, height: this.container.clientHeight, buttons: event.buttons })
+  }
+  private endLook = (event: PointerEvent) => {
+    this.seatedLook.end(event.pointerId)
+    if (this.lookPointer === event.pointerId) this.cancelLook()
+  }
+  private cancelLook = () => {
+    this.seatedLook.cancel()
+    const id = this.lookPointer; this.lookPointer = null
+    if (id !== null && this.renderer.domElement.hasPointerCapture(id)) this.renderer.domElement.releasePointerCapture(id)
+    if (this.experimentalLook) this.renderer.domElement.style.cursor = 'grab'
+  }
+  private suspendLook = () => { this.cancelLook(); this.seatedLook.cancelContact() }
+  setLookEnabled(enabled: boolean): void { this.seatedLook.setContext({ enabled }); this.cancelLook(); this.capture?.event('look-enabled', { enabled }) }
+  setLookBlocked(blocked: boolean): void {
+    this.lookBlocked = blocked
+    if (blocked) this.suspendLook()
+    this.seatedLook.setContext({ blocked })
+  }
+  recenterLook(): void { this.cancelLook(); this.seatedLook.recenter(); this.capture?.event('look-recenter', null) }
+  bindWorldLabel(seat: number, element: HTMLElement | null): void {
+    if (element) this.worldLabels.set(seat, element); else this.worldLabels.delete(seat)
+  }
   private visibility = () => {
     // A hidden retina fullscreen composer otherwise keeps hundreds of MB of
     // multisampled half-float attachments alive. Keep CPU scene state, but shrink
     // the offscreen buffers until this particular tab is actually visible again.
-    if (document.hidden) { this.renderer.setPixelRatio(1); this.renderer.setSize(1, 1, false); this.post.setSize(1, 1, 1) }
+    if (document.hidden) { this.suspendLook(); this.renderer.setPixelRatio(1); this.renderer.setSize(1, 1, false); this.post.setSize(1, 1, 1) }
     else this.resize()
   }
   private material(color: string): THREE.MeshStandardMaterial {
@@ -200,7 +270,11 @@ export class PokerRoom {
     mesh.position.set(x, y, z); this.scene.add(mesh)
   }
   setOrbit(value: number): void { this.capture?.cancelProbe('camera-changed'); this.orbit = value; this.resize() }
-  setInspection(active: boolean): void { this.capture?.event('inspection', { active }); this.inspecting = active }
+  setInspection(active: boolean): void {
+    this.capture?.event('inspection', { active }); this.inspecting = active
+    if (active) this.suspendLook()
+    this.seatedLook.setContext({ inspection: active })
+  }
   projectSeat(seat: number): { x: number; y: number } {
     if (seat === 0) return { x: 12, y: 83 }
     // Labels are hidden during inspection. Their resting projection must not
@@ -236,19 +310,29 @@ export class PokerRoom {
     }
     const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy(); this.textures.set(key, texture); return texture
   }
-  setPlaying(playing: boolean): void { if (playing) this.capture?.cancelProbe('entered-game'); this.capture?.event('playing', { playing }); this.hero.setActive(playing) }
-  setPaused(paused: boolean): void { if (paused) this.capture?.cancelProbe('paused'); this.capture?.event('pause', { paused }); this.paused = paused; this.pausedRendered = false }
+  setPlaying(playing: boolean): void { if (playing) this.capture?.cancelProbe('entered-game'); this.capture?.event('playing', { playing }); this.hero.setActive(playing); this.lookPlaying = playing; this.seatedLook.setContext({ playing }); if (!playing) this.suspendLook() }
+  setPaused(paused: boolean): void { if (paused) { this.capture?.cancelProbe('paused'); this.suspendLook() } this.capture?.event('pause', { paused }); this.paused = paused; this.seatedLook.setContext({ paused }); this.pausedRendered = false }
   private publishLeisure(): void {
-    const value = { kind: this.hero.drinkKind, available: !this.paused && !this.inspecting && this.hero.leisureAvailable }
+    const value = { kind: this.hero.drinkKind, available: !this.paused && !this.inspecting && !this.seatedLook.contactPending && this.hero.leisureAvailable }
     const key = value.kind + ':' + value.available
     // React only hears transitions, not every animation frame. The renderer
     // owns availability; a UI timeout cannot predict interrupted return length.
     if (key !== this.leisureKey) { this.leisureKey = key; this.onLeisure(value) }
   }
-  smokeCigar(): boolean { const accepted = !this.paused && !this.inspecting && this.hero.smokeCigar(); this.capture?.event('smoke', { accepted }); this.publishLeisure(); return accepted }
-  sipDrink(): boolean { const accepted = !this.paused && !this.inspecting && this.hero.sipDrink(); this.capture?.event('drink', { accepted }); this.publishLeisure(); return accepted }
+  private requestLeisure(kind: 'smoke' | 'drink'): boolean {
+    if (this.paused || this.inspecting || this.seatedLook.contactPending) return false
+    if (!this.experimentalLook) return kind === 'smoke' ? this.hero.smokeCigar() : this.hero.sipDrink()
+    // Queue a request, not a prop animation. Body contacts stay exactly where
+    // their established owner authored them; begin only after the view centers.
+    this.syncLook()
+    const accepted = this.seatedLook.requestContact(kind)
+    if (accepted) this.cancelLook()
+    return accepted
+  }
+  smokeCigar(): boolean { const accepted = this.requestLeisure('smoke'); this.capture?.event('smoke', { accepted, queued: this.experimentalLook }); this.publishLeisure(); return accepted }
+  sipDrink(): boolean { const accepted = this.requestLeisure('drink'); this.capture?.event('drink', { accepted, queued: this.experimentalLook }); this.publishLeisure(); return accepted }
   orderDrink(kind: import('./props/specs').DrinkKind): boolean {
-    const accepted = !this.paused && !this.inspecting && this.hero.orderDrink(kind)
+    const accepted = !this.paused && !this.inspecting && !this.seatedLook.contactPending && this.hero.orderDrink(kind)
     this.capture?.event('order-drink', { kind, accepted }); this.publishLeisure(); return accepted
   }
   update(state: GameState): void {
@@ -301,16 +385,40 @@ export class PokerRoom {
     this.inspectionBlend = this.reduced.matches ? Number(this.hero.inspectionReady)
       : THREE.MathUtils.lerp(this.inspectionBlend, Number(this.hero.inspectionReady), 1 - Math.exp(-dt * 12))
     const peek = this.inspectionBlend
+    if (this.experimentalLook) this.syncLook()
+    const look = this.experimentalLook ? this.seatedLook.sample(dt) : null
+    const contact = this.experimentalLook ? this.seatedLook.takeContact() : null
+    if (contact) {
+      const kind = contact
+      const accepted = kind === 'smoke' ? this.hero.smokeCigar() : this.hero.sipDrink()
+      this.capture?.event('look-leisure-start', { kind, accepted })
+    }
     if (this.probeMode) this.gaze.set(0, 0)
     else this.gaze.lerp(this.reduced.matches ? new THREE.Vector2() : this.pointer, .045)
     this.camera.position.set(this.orbit * .12 * (1 - peek), THREE.MathUtils.lerp(PLAYER_LAYOUT.eye[1], 1.95, peek), THREE.MathUtils.lerp(PLAYER_LAYOUT.eye[2], 1.05, peek))
     this.camera.lookAt(THREE.MathUtils.lerp(this.orbit * .30 + this.gaze.x * .11, .14, peek), THREE.MathUtils.lerp(1.03 - this.gaze.y * .055, .793, peek), THREE.MathUtils.lerp(-.6, .30, peek))
+    if (look && !this.probeMode) {
+      // Yaw around room-up, not the pitched camera's local Y: the latter rolls
+      // the horizon at sideways limits and makes seated looking feel unsteady.
+      this.camera.rotateOnWorldAxis(this.worldUp, look.yaw * (1 - peek)); this.camera.rotateX(look.pitch * (1 - peek))
+    }
     this.camera.fov = THREE.MathUtils.lerp(70, 55, peek); this.camera.updateProjectionMatrix()
     // Dev-only inspection exposes complete furniture/decor placement. It moves
     // only the camera, never actors or props; production gameplay stays seated.
     if (this.diagnosticWide && !this.probeMode) {
       this.camera.position.set(3.8, 2.7, 2.8); this.camera.lookAt(0, 1.35, -3.15)
       this.camera.fov = 75; this.camera.updateProjectionMatrix()
+    }
+    if (this.experimentalLook) {
+      // Project labels in the same frame as the scene without React frame
+      // updates. Out-of-view anchors disappear instead of sticking to an edge.
+      this.camera.updateMatrixWorld()
+      for (const [seat, element] of this.worldLabels) {
+        const point = seat < 0 ? this.labelPoint.set(0, .94, -.36) : this.labelPoint.set(SEATS[seat][0], 1.79, SEATS[seat][1])
+        point.project(this.camera)
+        element.style.visibility = Math.abs(point.x) > .94 || Math.abs(point.y) > .9 || point.z > 1 || point.z < -1 ? 'hidden' : ''
+        element.style.left = `${(point.x + 1) * 50}%`; element.style.top = `${(1 - point.y) * 50}%`
+      }
     }
     // The director returns held props before allowing the lean. Body/prop poses
     // stay world-space; the camera never translates the arm or re-parents glass.
@@ -341,6 +449,7 @@ export class PokerRoom {
     this.capture?.frame(wallTime, frameMs, performance.now() - wallTime, () => ({
       camera: transform(this.camera), hero: this.hero.diagnosticPose(), paused: this.paused, inspectionBlend: this.inspectionBlend,
       tableCards: this.cardField.diagnosticPose(),
+      look: this.experimentalLook ? this.seatedLook.diagnostic() : null,
       people: this.people.map(h => ({ seat: h.seat, root: transform(h.root), drink: transform(h.drink.root),
         rightHand: transform(h.rightRig.hand.root), shoulder: h.rightRig.shoulder.toArray(), elbow: h.rightRig.elbow.toArray(), wrist: h.rightRig.wrist.toArray() })),
     }))
@@ -358,6 +467,15 @@ export class PokerRoom {
     this.alive = false; cancelAnimationFrame(this.raf); this.observer.disconnect(); this.renderer.domElement.removeEventListener('webglcontextlost', this.lost)
     document.removeEventListener('visibilitychange', this.visibility)
     this.container.parentElement?.removeEventListener('pointermove', this.look); this.container.parentElement?.removeEventListener('pointerleave', this.centerLook)
+    this.container.parentElement?.removeEventListener('pointerdown', this.recordLookInput)
+    this.container.parentElement?.removeEventListener('pointerup', this.recordLookInput)
+    this.cancelLook(); this.worldLabels.clear()
+    this.renderer.domElement.removeEventListener('pointerdown', this.beginLook)
+    this.renderer.domElement.removeEventListener('pointermove', this.moveLook)
+    this.renderer.domElement.removeEventListener('pointerup', this.endLook)
+    this.renderer.domElement.removeEventListener('pointercancel', this.cancelLook)
+    this.renderer.domElement.removeEventListener('lostpointercapture', this.cancelLook)
+    window.removeEventListener('blur', this.suspendLook)
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>()
     this.scene.traverse(object => {
       if (object instanceof THREE.Mesh || object instanceof THREE.Points || object instanceof THREE.Sprite) {

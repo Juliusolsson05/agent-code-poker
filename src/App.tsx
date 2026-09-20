@@ -37,6 +37,7 @@ export function App({ api }: { api: PokerApi }) {
   const [leisure, setLeisure] = useState<{ kind: DrinkKind; available: boolean }>({ kind: 'old-fashioned', available: false })
   const inspectionHeld = useRef(false)
   const [orbit, setOrbit] = useState(0)
+  const [lookEnabled, setLookEnabled] = useState(true)
   const [sceneReady, setSceneReady] = useState(0)
   const stage = useRef<HTMLDivElement>(null)
   const root = useRef<HTMLDivElement>(null)
@@ -100,6 +101,8 @@ export function App({ api }: { api: PokerApi }) {
   // dialogs and focus loss. Wall-clock animation would teleport to its ending.
   useEffect(() => { scene.current?.setPaused(paused || !!panel || confirmNew || !!error || sceneFailed) }, [paused, panel, confirmNew, error, sceneFailed, sceneReady])
   useEffect(() => { scene.current?.setInspection(inspecting) }, [inspecting, sceneReady])
+  useEffect(() => { scene.current?.setLookEnabled(lookEnabled) }, [lookEnabled, sceneReady])
+  useEffect(() => { scene.current?.setLookBlocked(drinkMenu || raiseOpen) }, [drinkMenu, raiseOpen, sceneReady])
   useEffect(() => {
     if (lobby || paused || panel || confirmNew || error || sceneFailed) {
       inspectionHeld.current = false; setInspecting(false)
@@ -249,6 +252,9 @@ export function App({ api }: { api: PokerApi }) {
         event.preventDefault(); if (!event.repeat) scene.current?.sipDrink(); return
       }
       if (isEditing(event.target)) return
+      if (event.key.toLowerCase() === 'r' && scene.current?.experimentalLook && !lobby && !paused && !panel && !raiseOpen && !inspecting) {
+        event.preventDefault(); if (!event.repeat) scene.current.recenterLook(); return
+      }
       if (event.code === 'Space' && !isInput(event.target) && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed) {
         event.preventDefault()
         if (!event.repeat) { inspectionHeld.current = true; setInspecting(true) }
@@ -269,6 +275,7 @@ export function App({ api }: { api: PokerApi }) {
         <button onClick={toggleMute} disabled={loading || saving || loadFailed} aria-label={muted ? 'Unmute sound' : 'Mute sound'} title="Sound (M)">{muted ? '♪̸' : '♪'}</button>
         <button onClick={() => openPanel('rules')} aria-label="How to play" title="How to play">?</button>
         <button onClick={() => openPanel('settings')} aria-label="Settings" title="Settings">⚙</button>
+        {!lobby && scene.current?.experimentalLook && <button aria-label="Recenter view" title="Drag the room to look · Recenter (R)" disabled={paused || !!panel || inspecting} onClick={() => { scene.current?.recenterLook(); root.current?.focus({ preventScroll: true }) }}>⌖</button>}
         {!lobby && <button onClick={() => setPaused(value => !value)} aria-label={paused ? 'Resume table' : 'Pause table'} title="Pause (Esc)">{paused ? '▶' : 'Ⅱ'}</button>}
       </div>
     </header>
@@ -291,14 +298,14 @@ export function App({ api }: { api: PokerApi }) {
         {s.players.map((p, i) => {
           if (i === 0) return null // Your seat is the camera; bankroll/cards already live in the foreground HUD.
           const position = scene.current?.projectSeat(i) ?? { x: 50, y: 50 }
-          return <div key={i} className={`seat ${s.actor === i ? 'active' : ''} ${p.folded ? 'folded' : ''} ${p.stack === 0 && !p.committed ? 'out' : ''}`}
+          return <div key={i} ref={element => scene.current?.bindWorldLabel(i, element)} className={`seat ${s.actor === i ? 'active' : ''} ${p.folded ? 'folded' : ''} ${p.stack === 0 && !p.committed ? 'out' : ''}`}
             style={{ left: `${position.x}%`, top: `${position.y}%`, '--seat-color': CHARACTERS[i].color } as CSSProperties}>
             <div className="seat-name"><span className="seat-dot" />{CHARACTERS[i].name}{s.dealer === i && <b className="dealer-badge" title="Dealer button">D</b>}{s.smallBlindSeat === i && <small>SB</small>}{s.bigBlindSeat === i && <small>BB</small>}</div>
             <strong>{chips(p.stack)}</strong><span className="seat-action">{s.actor === i ? i === 0 ? 'YOUR TURN' : 'THINKING' : p.action || CHARACTERS[i].title}</span>
             {showOpponents && i > 0 && !p.folded && <div className="opponent-cards">{p.hole.map(c => <PlayingCard card={c} key={c} small />)}</div>}
           </div>
         })}
-        <div className="pot-label"><span>{finished ? 'POT AWARDED' : 'IN THE POT'}</span><strong>◈ {chips(finished ? awarded : pot)}</strong>
+        <div className="pot-label" ref={element => scene.current?.bindWorldLabel(-1, element)}><span>{finished ? 'POT AWARDED' : 'IN THE POT'}</span><strong>◈ {chips(finished ? awarded : pot)}</strong>
           {s.awards.length > 1 && <small>{s.awards.length - 1} side pot{s.awards.length > 2 ? 's' : ''}</small>}
         </div>
         <div className="room-caption"><span>THE RIVER CLUB</span><i>Make yourself comfortable.</i></div>
@@ -346,6 +353,7 @@ export function App({ api }: { api: PokerApi }) {
         <label>Table pace<select value={speed} disabled={saving || loading || loadFailed} onChange={event => { const value = event.target.value as Save['speed']; setSpeed(value); preferences.current.speed = value; void persist(game.current?.snapshot() ?? null) }}><option value="relaxed">Relaxed</option><option value="brisk">Brisk</option></select></label><p>How long opponents take between decisions.</p>
         <label>Sound<button onClick={toggleMute} disabled={saving || loading || loadFailed} aria-pressed={!muted}>{muted ? 'Off' : 'On'}</button></label>
         <label>Camera angle<input type="range" min={-1} max={1} step={0.1} value={orbit} onChange={event => setOrbit(Number(event.target.value))} /></label>
+        {scene.current?.experimentalLook && <><label>Mouse-look<button aria-pressed={lookEnabled} onClick={() => setLookEnabled(value => !value)}>{lookEnabled ? 'On' : 'Off'}</button></label><p>Hold the left mouse button and drag the room. R centers your view. Controls never steer the camera. This setting lasts until reload.</p></>}
         <p>Motion follows your device’s reduced-motion preference.</p>
         <div className="settings-divider" /><h3>A fresh table</h3><p>Start everyone with 2,000 practice chips. This replaces your current table and hand history.</p><button className="secondary" onClick={() => setConfirmNew(true)} disabled={saving || loading}>Start a new table</button>
       </div> : <div className="rules-content"><p>Build the best five-card hand using your two cards and the five shared cards. You can use both, one, or neither of your cards.</p><h3>A hand in four acts</h3><p><b>Pre-flop:</b> two private cards. <b>Flop:</b> three shared cards. <b>Turn:</b> one more. <b>River:</b> the last card. Betting follows each street.</p><h3>Your move</h3><p><b>Check</b> when nothing is owed. <b>Call</b> to match. <b>Raise</b> to increase the total bet for this street. <b>Fold</b> to leave the hand. “Raise to” includes chips you already put in this street.</p><h3>All-in means all-in</h3><p>You can only win the chips you match. Additional bets form side pots. A short all-in may require a call without reopening a raise. Ties split each pot; odd chips go clockwise from the dealer.</p><h3>From strongest to weakest</h3><ol>{['Straight flush', 'Four of a kind', 'Full house', 'Flush', 'Straight', 'Three of a kind', 'Two pair', 'One pair', 'High card'].map(name => <li key={name}>{name}</li>)}</ol><p>Blinds stay at 10/20. Eliminated seats sit out; a moving button rotates through funded seats. Beat the table, or start fresh any time. Bots use their own cards and public information.</p><h3>Keyboard</h3><p><kbd>F</kbd> fold · <kbd>C</kbd> check/call · <kbd>M</kbd> sound · <kbd>Esc</kbd> pause. Buttons and text fields keep their normal keyboard behavior.</p><p>Everything is local. All chips are free practice currency.</p></div>}
