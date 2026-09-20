@@ -1,5 +1,22 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## Final sequencing correction — features first, animation polish last
+
+The user explicitly requests that once ALL remaining feature work is complete,
+we revisit hand animations and all other animations and give them a dedicated
+polish pass. The current hand-art pause still applies during multiplayer, bank,
+keyboard UI, drinking ownership/intoxication, mouse-look, snow/environment/audio
+and remaining non-animation integration. This supersedes any reading that hand
+quality was permanently removed from scope. Dealer cancellation is unchanged.
+
+At that final pass: collect fresh actual player/NPC close-ups and motion across
+card inspection, exterior glass grips, pickup/sip/return, cigar mouth contact,
+dealing/folds/chips and personality beats. Catalog failures before changing
+anatomy/coordinates; retain original bad recordings as negative controls. Then
+isolated ownership/contact contracts, implementation and source/shipped visual
+and performance evidence. Existing mathematical contact tests are not approval
+of hand silhouettes or animation quality. Do not revive the rejected dealer.
+
 ## LAN room-interaction parity — E13
 
 A: client.js mounts the real PokerRoom, but only exposes inspection/betting.

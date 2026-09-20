@@ -2,6 +2,13 @@
 
 ## Active direction — full multiplayer first (restarted goal loop)
 
+Latest user sequencing: finish the entire non-animation feature list first,
+then reopen hand animations and the other animations for a dedicated polish
+pass. Hands are paused now, not permanently excluded from the final game.
+That final pass covers anatomy/grips/contact, player/NPC drinking/smoking,
+dealing/chips and character motion, using fresh close-up recordings plus
+regression evidence. Do not resume it early. Human dealer remains canceled.
+
 LAN local interaction controls now connect S/D and the four-drink menu to the
 existing Room/InteractionDirector. No hand/arm art, new animation clock or
 cosmetic poker-wire action. Pause/loss/waiting/inspection/pending wager/menus
