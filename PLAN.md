@@ -2,6 +2,16 @@
 
 ## Active direction — full multiplayer first (restarted goal loop)
 
+Immediate user-visible gap (#3): normal source/shipped browser lobby has no LAN
+entry, and the existing5192 process still serves the old diagnostic HTML. Do
+not replace that potentially active memory-only host. B15 records these actual
+files/HTTP observations; C15 validates explicit private host destinations and
+web-only boundaries; D15 adds a visible browser-lobby Host/Join entry and honest
+standalone-start guidance; E15 verifies navigation and actual3D admission via
+CUA. A browser link does not start a Node process or turn on LAN exposure.
+No credential/code in URLs, server discovery scan, proxy, CORS relaxation or
+Vite LAN exposure. Preserve solo in its current tab. Installation stays offline.
+
 Bank implementation checkpoint: isolated reserve/debt proposals, atomic engine
 boundary transfer, identity/sequence ownership and version2 private checkpoints
 are implemented. Version1 migrates with unchanged chips and zero debt. Actual

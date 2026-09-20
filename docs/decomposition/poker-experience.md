@@ -1,5 +1,29 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## Discoverable website multiplayer — B15–E15 (issue #3)
+
+A: user reports no LAN settings in their browser lobby. Read-only inspection
+confirms App has only Take a seat/Return, and actual GET5192 returns the old
+Connection test page while current compiled LAN assets implement a3D room.
+D: source AND exact-shipped browser previews expose Play with friends in the
+lobby. Website-owned admission guidance distinguishes starting a standalone
+host from creating its table; guests use its printed private URL then name/code.
+No implication that a browser can spawn Node. Existing hosts and saves survive.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B15 | Missing-entry/stale-server catalog | Actual source inspection and HTTP5192 old HTML | Code-on-disk is not the serving process | User report plus current process/response |
+| C15 | Private host URL contract and website-only boundary | Reject credentials, public destinations, paths/queries/secrets and unsafe protocols | Navigation must not become a scan/proxy or credential handoff | Printed host addresses and explicit synthetic hostile input |
+| D15 | Visible lobby entry and Host/Join website flow | Browser-only navigation, explicit startup, preserved solo tab | Extension has no network capability; browser cannot silently start hosting | Existing standalone admission owns name/code/seat |
+| E15 | Source/shipped entry and real3D admission | CUA keyboard/links/cancel plus two-viewer gameplay/recovery | Static link tests do not prove multiplayer | Keep browser/LAN/active-host limits visible |
+
+Website navigation carries no seat token, name or room code. Only HTTP loopback
+or RFC1918 literal IPv4 host origins are accepted; users paste the exact printed
+URL. No DNS guesses or cross-origin health probing. The installed view contains
+no network client; a web-only launcher slot is exposed by preview-owned styles.
+Do not call the entry complete multiplayer or silently restart old5192. The
+later real multi-client and separate-device gates remain required.
+
 ## Fictional-chip bank — B14–E14
 
 Implementation checkpoint: C14/D14 and the E14 LAN menu candidate are built.
