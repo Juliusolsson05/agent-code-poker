@@ -1,5 +1,28 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## D4 fireplace geometry checkpoint — continuation 15
+
+Hands remain paused. CUA cannot reconnect to the owned camera QA tab, so the
+mouse-look candidate stays development-only. Continue the independently
+testable fireplace slice, without treating geometry tests as visual approval.
+
+- Recording/catalog: reuse the actual 03-21-27 room-block capture and corrected
+  04-36-26 decor capture. They establish the existing room, not a fire recording.
+  The left rear bay is empty; do not move furniture to make a fireplace fit.
+- Isolated contract: author a side-facing block hearth in that bay, test its
+  complete rendered bounds against those recorded obstacles and oriented
+  chairs, including positive clearance except intentional floor support.
+  Test stable geometry/material allocation, bounded flame updates, reduced
+  motion, no shadow light, and deterministic pause via the room visual clock.
+- Implementation: one vertex-colored masonry/log batch, one instanced opaque
+  block-flame batch, one bounded warm point light. No particle sprites, runtime
+  assets, wall-clock timers, hand edits or poker-state access. New light cost
+  is explicit; no claim of improved frame rate.
+- Integration: initially source-only `&fireplace`, with recorder bounds and
+  counts. Inspect seated/mouse-look/inspection views, source and production,
+  and capture measured costs before enabling by default. Licensed fire audio
+  remains its own unfinished asset/provenance/listening gate.
+
 ## Current user scope — supersedes older goal-loop boilerplate
 
 The user explicitly narrowed active work to this exact list. Keep older sections
