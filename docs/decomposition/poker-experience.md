@@ -1,5 +1,20 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## Live visibility correction
+
+The user reports no fireplace on ordinary `/dev/`. Code confirms the reason:
+both hearth and audio required `&fireplace`. Expose this candidate throughout
+source development, without touching saves; production stays gated. Older
+source-opt-in checkpoint notes describe the earlier state, not current access.
+This visibility fix is not a claim that final framing/listening has passed.
+
+Read-only native CUA screenshot of the user's ordinary `/dev/` after HMR now
+confirms the enlarged opening and flames are visible between center and
+right-center guests, with intact tree and left bar. No user-table clicks or
+save edits were performed for this check. Image was observed in the tool output,
+not exported as a golden fixture; current flame art remains an initial block
+candidate and audio listening/production verification remain unfinished.
+
 ## New feature backlog — LAN table, player identity and practice-chip bank
 
 User explicitly requested these additions to the feature list, not immediate

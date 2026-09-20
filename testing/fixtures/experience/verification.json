@@ -1,5 +1,5 @@
 {
-  "checkpoint": "Hands paused. Larger offset back-wall hearth and local CC0 fire recording implemented behind source-only fireplace flag. Mouse-look remains source-only pending real drag acceptance.",
+  "checkpoint": "Hands paused. Larger offset hearth and local CC0 fire recording now enabled on ordinary source /dev/. Read-only native CUA screenshot confirms visible opening between center and right-center guests. Production and listening acceptance remain open; mouse-look still requires source look flag.",
   "fireplaceCheckpoint": {
     "geometry": "2.21m wide, x1.4 rear wall; shared bay clips bar/counter/shelves without moving outer furniture. Actual recorded room is negative control; isolated rendered solids clear derived room, recorded decor and oriented chairs with3cm padding. Two mesh batches,18 flame blocks,one extra point light,no additional shadow; no measured performance approval.",
     "audio": "Creator Assets YouTube wdCzrjcO4OU official MP3 downloaded unmodified:59.031917s,44100Hz stereo,1423119bytes. CC0 primary-source provenance and SHA256 beside asset. Single media element with gesture/pause/mute/hidden/disposal gates; synthetic lifecycle tests, not listening proof.",

@@ -30,7 +30,10 @@ export class PokerRoom {
   // Keep this integration explicitly opt-in until real source/shipped checks
   // pass; a synthetic controller test is not permission to change live play.
   readonly experimentalLook = import.meta.env.DEV && new URLSearchParams(location.search).has('look')
-  private readonly experimentalFireplace = import.meta.env.DEV && new URLSearchParams(location.search).has('fireplace')
+  // The user reviews the ordinary live /dev/ page, not a private QA URL.
+  // Show this requested candidate there while keeping release acceptance
+  // separate. Gate production only; a hidden query flag made it invisible.
+  private readonly experimentalFireplace = import.meta.env.DEV
   private seatedLook = new SeatedLook()
   private lookPlaying = false
   private lookBlocked = false
@@ -120,8 +123,8 @@ export class PokerRoom {
     this.buildRoom()
     this.christmas = new ChristmasTavern(); this.scene.add(this.christmas.root)
     // Clearance/resource tests cannot approve composition or fire motion.
-    // Stage the asset in isolated source QA until actual browser evidence is
-    // retained; the user-facing shipped room must not silently inherit it.
+    // Live development exposes the candidate for user review; the shipped
+    // room stays separate until browser/listening acceptance is retained.
     if (this.experimentalFireplace) {
       this.fireplace = new Fireplace(); this.scene.add(this.fireplace.root)
     }

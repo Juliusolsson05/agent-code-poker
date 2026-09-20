@@ -50,7 +50,7 @@ export function App({ api }: { api: PokerApi }) {
 
   useEffect(() => {
     alive.current = true
-    audio.current = new PokerAudio(import.meta.env.DEV && new URLSearchParams(location.search).has('fireplace') ? fireplaceRecording : undefined)
+    audio.current = new PokerAudio(import.meta.env.DEV ? fireplaceRecording : undefined)
     let current = true
     void api.storage.get<Save>(SAVE_KEY).then(saved => {
       if (!current) return

@@ -1,5 +1,10 @@
 # Agent Code Poker
 
+Visibility correction: the user could not see the fireplace because it required
+the source-only query flag. The candidate and its licensed audio now appear on
+ordinary `/dev/` without flags; only production remains gated pending acceptance.
+No save migration or poker-state change. Older opt-in notes below are historical.
+
 New backlog addition (planning only): LAN host/join by lobby code; exactly six
 playing seats with humans replacing NPCs and NPCs filling the remainder; display
 name entry; self-authored player character models; per-client presentation that

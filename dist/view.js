@@ -24220,6 +24220,9 @@ class Vx {
   // Keep this integration explicitly opt-in until real source/shipped checks
   // pass; a synthetic controller test is not permission to change live play.
   experimentalLook = !1;
+  // The user reviews the ordinary live /dev/ page, not a private QA URL.
+  // Show this requested candidate there while keeping release acceptance
+  // separate. Gate production only; a hidden query flag made it invisible.
   experimentalFireplace = !1;
   seatedLook = new Ex();
   lookPlaying = !1;
