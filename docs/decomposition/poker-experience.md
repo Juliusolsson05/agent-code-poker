@@ -1,5 +1,46 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## Release scope and priority — continuation17
+
+The user confirms the whole agreed list is the remaining production scope and
+asks to start with biggest-impact items, specifically the dealer because it
+changes the layout. Priority: dealer/seating, LAN/player identity and relative
+seats, fictional bank/rebuys, finish keyboard controls, drinking/exterior glass
+contact and actual-sip-only intoxication, then audio/snow/remaining visual and
+performance acceptance. This supersedes the previous keyboard-first ordering;
+unfinished evidence gates remain open, not discarded. Hand-animation art stays
+paused. No automatic merge, public relay, real money or host-repo edits.
+
+24. Restore the previously requested **larger, clearly visible window snow**.
+    User says it is still effectively invisible. Existing count84/24Hz/reused
+    buffer is a cost boundary, not visibility acceptance. Actual source canvas
+   07-03-07-036Z-29.367.png again shows tiny faint specks. Compare same-window
+    crops and motion before/after size/contrast changes, keep occlusion by
+    mullions and confined aperture, and measure larger-sprite overdraw rather
+    than claiming unchanged performance from unchanged point count.
+
+### Dealer station: resolve the occupied center before the seventh character
+
+A: recorded room/seat transforms and current shared SEATS put seat3 at[0,-1.25],
+exactly where the dealer is requested. CardField already launches deals from
+[0,.96,-.84] but no person occupies that origin. D: a distinct non-playing
+dealer at center, five opponent presentation stations around the table, intact
+six-seat rules/privacy, no chair/body/prop/table intersections.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B/C5 station | Recorded seat/room baseline + isolated dealer-table layout | Original center conflict reproduced; oriented chair/body/prop envelope checks against actual room/table geometry | Adding a seventh ordinary NPC duplicates a playing seat and its cards/drink | Existing actual03-21 room bounds,05-52 public actions,07-03 seated capture |
+| D5 station | Dedicated dealer presenter with shared authored character geometry, no playing-seat capabilities; Room sole compositor | No drink/cards/bankroll/bot state; center stance, deterministic public-event attention, bounded resources | Dealer presentation must not become another ledger/card owner | Verified station plan; public engine event sequence |
+| E5 station | Source/production seated+wide dealer captures and motion/resource samples | Seven humans but only six playing seats; correct labels/chips/cards after redistribution; fireplace sightline | Geometry math cannot approve composition or frame cost | Fresh CUA isolated table; missing views stay open |
+
+Station layout must be shared by Room, CardField, ChipField and world labels;
+never move only a mesh and strand its chips/cards. Preserve engine seat IDs and
+player first-person anchors. Build dealer from the existing self-authored human
+substrate with an explicit non-player role, not a hidden drink/card-playing NPC.
+No hand-art iteration. Unknowns: five-opponent asymmetric spacing with a center
+dealer, rail/prop clearance, fireplace occlusion, chair spacing, and incremental
+rig cost. First verify layout before any default switch or character addition.
+
 ## Latest addition — NPCs grip glass interiors
 
 23. User reports NPC drinking looks wrong because hands grab from **inside**

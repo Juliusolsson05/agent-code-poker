@@ -1,5 +1,14 @@
 # Agent Code Poker
 
+Current release priority (user correction, continuation17): the full agreed list
+is the remaining production scope. Start with highest-impact structural work:
+dealer/seating → LAN/identity/seat projection → fictional bank/rebuys → keyboard
+betting acceptance → drinking/exterior grip and actual-sip-only intoxication →
+audio, visible snow and remaining visual/performance acceptance. Hand-animation
+art stays paused; no merge or host-repo changes. Larger visible window snow is
+explicitly restored as an active requirement, not dropped by the earlier short
+list. Latest screenshot07-03-07-036Z-29.367 shows faint subpixel-looking flakes.
+
 Latest user addition: NPC drinking grips appear to grab the glass from its
 inside. Track exterior-only vessel contact explicitly: palm/fingers wrap the
 outer surface, thumb opposes, no hand crosses the wall or hollow interior during
