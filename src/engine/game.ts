@@ -50,6 +50,26 @@ export class PokerGame {
   snapshot(): GameState { return copy(this.state) }
   get pot(): number { return this.state.players.reduce((n, p) => n + p.committed, 0) }
 
+  /** The table's only external chip boundary. The caller owns the outside
+   * reserve and identity/debt transaction; this pure engine owns all stacks.
+   * Validate before touching state so a rejected transfer cannot partially
+   * mint chips. Within a hand initialTotal is still strictly conserved.
+   *
+   * Completed results/history/startStack describe the OLD hand. A rebuy is not
+   * a poker win and must not rewrite net winnings or side-pot awards. The next
+   * startHand establishes new start stacks and deals only to funded players.
+   */
+  transferBetweenHands(seat: number, delta: number): void {
+    const s=this.state
+    if(s.phase!=='ready' && s.phase!=='complete')throw new Error('Transfer chips only between hands.')
+    if(!Number.isInteger(seat) || seat<0 || seat>=s.players.length || !Number.isSafeInteger(delta) || delta===0 ||
+      !money(s.players[seat].stack+delta) || !money(s.initialTotal+delta) || s.players.some(p=>p.bet!==0 || p.committed!==0))
+      throw new Error('Invalid table chip transfer.')
+    s.players[seat].stack+=delta;s.initialTotal+=delta
+    if(s.phase==='ready')s.players[seat].startStack=s.players[seat].stack
+    this.changed()
+  }
+
   startHand(deck?: Card[]): void {
     const s = this.state
     if (s.phase !== 'ready' && s.phase !== 'complete') throw new Error('Finish this hand first.')

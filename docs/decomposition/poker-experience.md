@@ -2,6 +2,17 @@
 
 ## Fictional-chip bank — B14–E14
 
+Implementation checkpoint: C14/D14 and the E14 LAN menu candidate are built.
+The recorded scripted bust drives engine/history/conservation tests. Actual
+HTTP and filesystem tests cover borrow, restart, duplicate ACK, partial repay
+and injected write failure preserving the prior checkpoint without returning a
+speculative view. That bank scenario uses an explicitly synthetic private seed;
+it is not a browser or Wi-Fi recording. Legacy checkpoint migration preserves
+chips with zero debt. Static SSR checks verify disabled offers and fictional
+debt disclosure, not confirmation interaction. Full verify147 tests/builds/SDK/
+preview pass. Real bank UI/multi-client acceptance and solo integration remain
+open. No animations, user saves or active host sessions were changed.
+
 A: pure PokerGame conserves its table total; HostTable persists authenticated
 membership and accepted wagers. There is no rebuy. A scripted existing six-seat
 all-in hand ended with one12000 stack and five zero stacks; startHand then has
@@ -38,7 +49,7 @@ Solo bank integration must share accounting, not copy the ledger into UI;
 its storage migration remains an explicit later integration requirement.
 
 Unknowns: multi-client stale confirmation UX, solo persistence migration,
-abandoned-debt display, disk failure during bank ACK and actual bank-chip
+abandoned-debt display and actual bank-chip
 arrival animation. Keep animation art deferred until other features are done.
 
 ## Final sequencing correction — features first, animation polish last

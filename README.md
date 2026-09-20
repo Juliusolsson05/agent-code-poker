@@ -74,7 +74,16 @@ Typing, menus, inspection, waiting admission and paused/disconnected tables
 block new leisure requests. Orders do not count as sips or cause intoxication.
 Remote human drink/gesture synchronization is not implemented yet; opponent
 ambient gestures are still presentation-only, not evidence of a remote action.
-Actual recovery/two-browser3D acceptance, bank debt and separate-device
+The table menu includes a **Practice bank** candidate: busted players may
+borrow2,000 fictional chips between hands, with explicit confirmation and
+matching debt. Repay500 or the available maximum between hands; no interest,
+cash or purchases. Debt follows the authenticated player through reconnects
+and host restart, not the chair. Leaving does not erase debt; ending the entire
+room ends its fictional ledger. Transfers use the same durable, duplicate-safe
+command stream as wagers. Old host checkpoints migrate with zero debt and
+unchanged chips. Solo bank integration and live multi-client bank acceptance
+remain open; passing HTTP tests is not browser verification.
+Actual recovery/two-browser3D acceptance and separate-device
 LAN acceptance remain open. The installed extension has no
 network-hosting API and does not load this standalone server.
 

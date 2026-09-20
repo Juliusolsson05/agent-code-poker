@@ -2,6 +2,15 @@
 
 ## Active direction — full multiplayer first (restarted goal loop)
 
+Bank implementation checkpoint: isolated reserve/debt proposals, atomic engine
+boundary transfer, identity/sequence ownership and version2 private checkpoints
+are implemented. Version1 migrates with unchanged chips and zero debt. Actual
+HTTP restart/duplicate/failed-write tests pass; failed persistence exposes no
+speculative bank result. LAN menu confirmation binds the observed revision.
+Full verify147 tests, TypeScript, both builds, SDK contracts and exact-byte
+preview pass. Bank UI coverage is static SSR, not live browser interaction.
+Solo integration and real multi-client bust/borrow/repay acceptance remain open.
+
 Bank B14–E14 begins with explicit fictional accounting while LAN browser
 acceptance remains open. Default rebuy is2000 (the starting stack), busted only,
 between hands, no interest. Optional repayment is between hands from the

@@ -1,6 +1,7 @@
 import { chooseAction, observe, type Observation } from '../engine/bots'
 import { CHARACTERS, PokerGame, type Action } from '../engine/game'
 import { projectTable, type TableView } from './view'
+import { createPracticeBank, planBankTransfer, restorePracticeBank, REBUY_CHIPS, type BankState, type BankOperation } from './bank/PracticeBank'
 
 type Identity = { id: string; name: string }
 type Member = Identity & {
@@ -10,13 +11,14 @@ type Member = Identity & {
 type Options = { random?: () => number; bot?: (observation: Observation) => Action }
 // This is an intentionally private-storage schema, NOT a transport DTO. Only
 // the standalone host may persist it. Never spread it into a SessionView.
-export type HostCheckpoint = { version: 1; host: string; revision: number; members: Member[]; game: ReturnType<PokerGame['snapshot']> }
-type Intent = { sequence: number; revision: number; action: Action }
+export type HostCheckpoint = { version: 2; host: string; revision: number; members: Member[]; game: ReturnType<PokerGame['snapshot']>; bank: BankState }
+type Intent = { sequence: number; revision: number; action: Action | BankOperation }
 type Code = 'accepted' | 'duplicate' | 'unauthorized' | 'invalid' | 'disconnected' | 'waiting' |
   'sequence-conflict' | 'out-of-order' | 'stale' | 'not-your-turn' | 'illegal'
 export type Receipt = { ok: boolean; code: Code; revision: number }
 export type SessionView = Omit<TableView, 'players'> & {
-  revision: number; self: { seat: number; waiting: boolean; nextSequence: number }
+  revision: number; self: { seat: number; waiting: boolean; nextSequence: number;
+    bank: { debt: number; borrowAmount: number; canBorrow: boolean; repayMax: number; reason: string | null } }
   players: (TableView['players'][number] & {
     name: string; kind: 'human' | 'bot'; connected: boolean; pendingName: string | null
   })[]
@@ -43,6 +45,11 @@ function intent(value: unknown): Intent | null {
     !Number.isSafeInteger(value.sequence) || Number(value.sequence) < 1 ||
     !Number.isSafeInteger(value.revision) || Number(value.revision) < 0 || !record(value.action)) return null
   const a = value.action
+  if(a.type==='borrow')return keys(a,['type']) ? {sequence:Number(value.sequence),revision:Number(value.revision),action:{type:'borrow'}} : null
+  if(a.type==='repay') {
+    if(!keys(a,['type','amount']) || !Number.isSafeInteger(a.amount) || Number(a.amount)<1 || Number(a.amount)>1_000_000)return null
+    return {sequence:Number(value.sequence),revision:Number(value.revision),action:{type:'repay',amount:Number(a.amount)}}
+  }
   if (a.type === 'raise') {
     if (!keys(a, ['type', 'to']) || !Number.isSafeInteger(a.to) || Number(a.to) < 0 || Number(a.to) > 1_000_000) return null
     return { sequence: Number(value.sequence), revision: Number(value.revision), action: { type: 'raise', to: Number(a.to) } }
@@ -68,6 +75,7 @@ export class HostTable {
   #revision = 0
   #bot: (observation: Observation) => Action
   #random: () => number
+  #bank: BankState
 
   constructor(host: Identity, options: Options = {}) {
     principal(host.id)
@@ -80,6 +88,7 @@ export class HostTable {
     const deckRandom = options.random ?? (() => globalThis.crypto.getRandomValues(word)[0] / 0x1_0000_0000)
     this.#random = deckRandom
     this.#game = new PokerGame(deckRandom)
+    this.#bank = createPracticeBank(this.#game.snapshot().initialTotal)
     this.#bot = options.bot ?? (o => chooseAction(o))
     this.#host = host.id
     this.#members.set(host.id, { id: host.id, name, seat: 0, active: true, connected: true, leaving: false, sequence: 0, lastRequest: null })
@@ -90,14 +99,14 @@ export class HostTable {
    * restoring chips without the accepted sequence (which would replay a bet),
    * or restoring a seat without its private-card entitlement. */
   exportHostCheckpoint(): HostCheckpoint {
-    return { version: 1, host: this.#host, revision: this.#revision,
-      members: [...this.#members.values()].map(m => ({ ...m })), game: this.#game.snapshot() }
+    return { version: 2, host: this.#host, revision: this.#revision,
+      members: [...this.#members.values()].map(m => ({ ...m })), game: this.#game.snapshot(), bank: structuredClone(this.#bank) }
   }
 
   static restoreHostCheckpoint(value: unknown, options: Options = {}): HostTable {
     const invalid = () => new Error('Invalid host checkpoint. Original saved data has been preserved.')
     try {
-      if (!record(value) || !keys(value, ['version', 'host', 'revision', 'members', 'game']) || value.version !== 1 ||
+      if (!record(value) || !keys(value, value.version===1 ? ['version', 'host', 'revision', 'members', 'game'] : ['version', 'host', 'revision', 'members', 'game','bank']) || value.version!==1 && value.version!==2 ||
         typeof value.host !== 'string' || !Number.isSafeInteger(value.revision) || Number(value.revision) < 0 ||
         Number(value.revision) >= Number.MAX_SAFE_INTEGER - 10 || !Array.isArray(value.members) ||
         value.members.length < 1 || value.members.length > 6) throw invalid()
@@ -116,7 +125,8 @@ export class HostTable {
           if (typeof m.lastRequest !== 'string' || m.lastRequest.length > 256) throw invalid()
           const accepted = intent(JSON.parse(m.lastRequest))
           if (!accepted || JSON.stringify(accepted) !== m.lastRequest || accepted.sequence !== m.sequence ||
-            accepted.revision >= Number(value.revision)) throw invalid()
+            accepted.revision >= Number(value.revision) || value.version===1 &&
+              (accepted.action.type==='borrow' || accepted.action.type==='repay')) throw invalid()
         }
         seats.add(Number(m.seat)); ids.add(m.id)
         members.push({ id: m.id, name: m.name, seat: Number(m.seat), active: m.active,
@@ -129,6 +139,10 @@ export class HostTable {
       if (state.players.length !== 6 || state.revision > Number(value.revision) ||
         state.phase === 'ready' && members.some(m => !m.active)) throw invalid()
       table.#game = game; table.#members = new Map(members.map(m => [m.id, m]))
+      // Version1 predated external issuance. Preserve its exact chips as the
+      // starting base; never infer a loan from a lost hand. Version2 restores
+      // debt/reserve with the same private game and command fingerprint.
+      table.#bank = value.version===1 ? createPracticeBank(state.initialTotal) : restorePracticeBank(value.bank,state.initialTotal)
       // Every old socket lease is dead after a process restart. Invalidate
       // queued intents even if no wager occurred, while retaining duplicate
       // ACK fingerprints. Transport separately requires explicit host resume.
@@ -189,7 +203,8 @@ export class HostTable {
     const parsed = intent(request)
     if (!parsed) return reply('invalid')
     if (!m.connected) return reply('disconnected')
-    if (!m.active) return reply('waiting')
+    const bankCommand=parsed.action.type==='borrow' || parsed.action.type==='repay'
+    if (!m.active && !bankCommand) return reply('waiting')
     const fingerprint = JSON.stringify(parsed)
     // A retry may arrive after everybody else's turn. Check the last accepted
     // sequence before revision/actor so its ACK is repeatable, but never apply
@@ -198,8 +213,21 @@ export class HostTable {
     if (parsed.sequence === m.sequence) return reply(fingerprint === m.lastRequest ? 'duplicate' : 'sequence-conflict')
     if (parsed.sequence !== m.sequence + 1) return reply('out-of-order')
     if (parsed.revision !== this.#revision) return reply('stale')
-    if (this.#game.snapshot().actor !== m.seat) return reply('not-your-turn')
-    try { this.#game.act(m.seat, parsed.action) } catch { return reply('illegal') }
+    const state=this.#game.snapshot()
+    if(parsed.action.type==='borrow' || parsed.action.type==='repay') {
+      try {
+        // One synchronous transaction, then the transport commits game, bank
+        // and fingerprint before ACK. A queued arrival may fund its busted
+        // chair at a completed boundary without acquiring the previous cards.
+        // Planning is non-mutating; an engine refusal leaves both ledgers intact.
+        const next=planBankTransfer(this.#bank,id,parsed.action,{phase:state.phase,stack:state.players[m.seat].stack,tableTotal:state.initialTotal})
+        this.#game.transferBetweenHands(m.seat,next.delta)
+        this.#bank=next.bank
+      } catch { return reply('illegal') }
+    } else {
+      if (state.actor !== m.seat) return reply('not-your-turn')
+      try { this.#game.act(m.seat, parsed.action) } catch { return reply('illegal') }
+    }
     m.sequence = parsed.sequence; m.lastRequest = fingerprint; this.#revision++
     return reply('accepted')
   }
@@ -225,8 +253,14 @@ export class HostTable {
     if (!member.connected || member.leaving) throw new Error('Principal is disconnected or has left.')
     const state = this.#game.snapshot(), privateSeat = member.active ? member.seat : null
     const view = projectTable(state, privateSeat, this.#game.legal(privateSeat), member.seat)
+    const debt=this.#bank.accounts.find(a=>a.id===id)?.debt??0, stack=state.players[member.seat].stack
+    const boundary=state.phase==='ready' || state.phase==='complete'
+    let reason: string|null=!boundary ? 'Bank transfers are only available between hands.' : stack!==0 ? 'Rebuys are available when your stack is empty.' : null
+    if(!reason)try { planBankTransfer(this.#bank,id,{type:'borrow'},{phase:state.phase,stack,tableTotal:state.initialTotal}) }
+    catch(error) { reason=error instanceof Error?error.message:'The practice bank is unavailable.' }
     return { ...view, revision: this.#revision,
-      self: { seat: member.seat, waiting: !member.active, nextSequence: member.sequence + 1 },
+      self: { seat: member.seat, waiting: !member.active, nextSequence: member.sequence + 1,
+        bank: {debt,borrowAmount:REBUY_CHIPS,canBorrow:!reason,repayMax:boundary?Math.min(stack,debt):0,reason} },
       players: view.players.map(p => {
         const occupant = [...this.#members.values()].find(m => m.seat === p.seat)
         return { ...p, name: occupant?.active ? occupant.name : CHARACTERS[p.seat].name,

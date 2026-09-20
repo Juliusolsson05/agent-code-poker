@@ -5,6 +5,7 @@ import { BettingControls } from '../../src/components/BettingControls'
 import { SeatRecovery } from './SeatRecovery'
 import { ResponseOrder, ObsoleteResponse } from './ResponseOrder'
 import { LeisureControls, leisureShortcut } from './LeisureControls'
+import { BankControls } from './BankControls'
 const el = id => document.getElementById(id)
 const recovery = new SeatRecovery(() => sessionStorage, () => localStorage)
 const responses = new ResponseOrder()
@@ -14,6 +15,7 @@ let room = null, renderFailed = false, inspected = false, menuOpen = false, conn
 let drinkMenuOpen = false, wagerOpen = false, leisure = { kind: 'old-fashioned', available: false }
 const labels = new Map(), bettingRef = createRef(), bettingRoot = createRoot(el('actions'))
 const leisureRoot = createRoot(el('leisure'))
+const bankRoot = createRoot(el('bank'))
 const focusTable = () => el('app').focus()
 const syncLookBlocked = () => room?.setLookBlocked(wagerOpen || menuOpen || drinkMenuOpen)
 const onWagerOpen = open => { wagerOpen=open;syncLookBlocked();renderLeisure() }
@@ -109,7 +111,7 @@ function render() {
   if (!state) {
     room?.dispose(); room=null; labels.clear(); el('labels').replaceChildren(); bettingRoot.render(null)
     inspected=false;menuOpen=false;drinkMenuOpen=false;wagerOpen=false;leisure={kind:'old-fashioned',available:false}
-    connectionLost=false;authorityRevision=-1;el('menu').hidden=true;leisureRoot.render(null);showSaved(); return
+    connectionLost=false;authorityRevision=-1;el('menu').hidden=true;leisureRoot.render(null);bankRoot.render(null);showSaved(); return
   }
   const v = state.view, own = v.players[v.self.seat]
   if(v.revision !== authorityRevision) { authorityRevision=v.revision; controlsRevision++ }
@@ -158,6 +160,8 @@ function render() {
   el('pause').disabled = pending; el('pause').textContent = state.paused ? 'Resume table' : 'Pause table'
   el('leave').disabled = pending
   el('leave').textContent = state.isHost ? 'End session for everyone' : 'Leave table'
+  bankRoot.render(createElement(BankControls,{offer:v.self.bank,revision:v.revision,
+    blocked:pending || state.paused || connectionLost || ended || !menuOpen,onConfirm:bankTransfer}))
   const canAct = !pending && !state.paused && !connectionLost && !ended && !menuOpen && !drinkMenuOpen && !v.self.waiting && v.actor === v.self.seat && v.phase === 'betting'
   bettingRoot.render(createElement(BettingControls,{ref:bettingRef, revision:controlsRevision, blocked:!canAct,
     legal:v.legal,pot:v.pot,currentBet:v.currentBet,ownBet:own.bet,bigBlind:v.bigBlind,onAction:wager,
@@ -211,6 +215,15 @@ function wager(action) {
   if(pending || ended || connectionLost || menuOpen || drinkMenuOpen || !state || state.paused || state.view.actor!==state.view.self.seat) return false
   const v = state.view
   void run(() => api('/api/action', { sequence: v.self.nextSequence, revision: v.revision, action }))
+  return true
+}
+function bankTransfer(action,revision) {
+  if(pending || ended || connectionLost || !state || state.paused || !menuOpen || state.view.revision!==revision)return false
+  const v=state.view,offer=v.self.bank
+  if(action.type==='borrow' ? !offer.canBorrow : action.amount<=0 || action.amount>offer.repayMax)return false
+  // Same authenticated command sequence as wagers; no client balance/debt
+  // mutation, separate bank save or retry after a lost acknowledgement.
+  void run(()=>api('/api/action',{sequence:v.self.nextSequence,revision,action}))
   return true
 }
 function menu(open) {menuOpen=open;el('menu').hidden=!open;syncLookBlocked();render();if(!open)focusTable()}

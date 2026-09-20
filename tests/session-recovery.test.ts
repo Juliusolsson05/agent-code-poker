@@ -72,7 +72,8 @@ test('synthetic corrupt checkpoint fails closed and exported values cannot mutat
   checkpoint.game.players[0].stack++
   assert.deepEqual(original.view(identity(0)), before)
   const mutations = [
-    (c: any) => { c.version = 2 },
+    // Version2 adds the bank; unsupported future versions still fail closed.
+    (c: any) => { c.version = 3 },
     (c: any) => { c.members[1].seat = 0 },
     (c: any) => { c.members[1].id = c.host },
     (c: any) => { c.members[0].leaving = true },
