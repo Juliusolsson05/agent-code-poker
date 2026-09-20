@@ -1,0 +1,12 @@
+{
+  "source": "actual CUA read-only DOM measurement after compact band correction; /dev/?qa=narrow-37; wager open",
+  "viewport": [500, 722],
+  "rects": {
+    "bankroll-tag":{"bottom":382.22222900390625,"left":11.99652862548828,"right":131.92709350585938,"top":326.7361145019531},
+    "betting-tray":{"bottom":637.6736450195312,"left":79.99566650390625,"right":419.9956970214844,"top":404.2274475097656},
+    "community-board":{"bottom":382.2222366333008,"left":252.92535400390625,"right":488.0034942626953,"top":285.6770935058594},
+    "quick-actions":{"bottom":700.2257461547852,"left":12.000868797302246,"right":487.9991598129273,"top":647.1181030273438},
+    "room-top-right":{"bottom":149.43577575683594,"left":11.99652862548828,"right":488.0034866333008,"top":100.00000762939452},
+    "table-info":{"bottom":86.55382442474365,"left":11.99652862548828,"right":280.7638931274414,"top":75.9982681274414}
+  }
+}

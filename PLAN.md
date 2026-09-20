@@ -4,6 +4,18 @@
 
 ### Narrow controls — record before layout correction
 
+Checkpoint: shared compact CSS now separates tools/metadata and keeps board,
+stack and open wager readable. Actual source500x722 and shipped711x800 DOM boxes
+are retained and audited alongside original overlapping boxes (issue#4). Source
+keyboard all-in/cancel/reopen/fine/coarse sizing submits61 only on Enter; shipped
+restores1939, cancels sizing and calls111, then inspects/pauses/reloads restoring
+1828stack/flop8D2DAH/pot2988. Shipped warnings/errors empty. Default viewport
+restored and original desktop presentation inspected. NPC held PNG retained;
+no animation/art changes or listening/performance claims. Session37 details
+tool scrolling and the limits of sampled studio contact checks.
+Final npm run verify183 tests, both builds,2SDK contracts and1exact-byte preview
+pass. No dependencies/lockfile changes; dist and LAN stylesheet rebuilt.
+
 Actual CUA711x800 viewport: public board(x464–699,y578–675) overlaps open
 wager tray(x185–526,y482–715); top tools overlap hand/blind metadata. B25–E25
 retains DOM measurements before adjusting only shared responsive CSS. Give

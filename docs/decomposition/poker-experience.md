@@ -4,6 +4,16 @@
 
 ### B25–E25 narrow public-board and control separation
 
+Checkpoint: B25 actual overlapping DOM bounds and seat1 held PNG retained;
+C25 audits original collisions and actual accepted source500x722/shipped711x800
+bounds. D25 shared CSS only, no runtime state/pose changes. E25 CUA keyboard
+cancel/size/confirm and shipped call/inspection/pause/reload verified; source
+raise61→1939, shipped call111→1828 and reload restores same flop/pot2988. Default
+viewport reset; desktop presentation inspected. Session37 records partial-label
+native focus behavior (activation works; strip can scroll), sampled NPC contact
+not animation approval, and no listening/FPS/reduced-motion/LAN/Electron claim.
+Final verify183 tests/builds/SDK/exact-byte preview pass; lockfile unchanged.
+
 A: actual source CUA711x800 DOM bounds and screenshot show board/tray and
 metadata/tools overlap; shared styles own these positions in solo/LAN. D: every
 public card and wager control is readable without overlap in compact windows,

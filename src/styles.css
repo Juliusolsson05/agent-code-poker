@@ -267,5 +267,32 @@ h2 { font-family: Georgia, serif; font-size: 33px; font-weight: 400; letter-spac
 /* At narrower widths the centered betting buttons use the same horizontal
  * space. Keep the board on the right but lift it above the decision row. */
 @media (max-width: 1000px) { .community-board { bottom: 125px; } .drink-menu { max-height: calc(100% - 350px); } }
+/* Actual711px QA put the board underneath the open wager and table metadata
+ * underneath the leisure controls. Give those independent bands instead of
+ * fixing z-index (which only chooses which information becomes unreadable).
+ * Scrolling the optional tool strip preserves every control and native keyboard
+ * focus reveal; neither poker actions nor the always-visible board scroll away.
+ * Desktop/host intrinsic layout stays unchanged above this compact breakpoint. */
+@media (max-width: 800px) {
+  .table-info { left: 12px; }
+  .room-top-right { top: 100px; left: 12px; right: 12px; overflow-x: auto; padding-bottom: 5px; }
+  .room-top-right button { flex-shrink: 0; }
+  .drink-menu { top: 142px; }
+  .poker:has(.betting-tray) .community-board { bottom: 340px; }
+}
+@media (max-width: 600px) {
+  .quick-actions { width: calc(100% - 24px); }
+  .keyboard-betting { width: 100%; }
+  .keyboard-betting>button { min-width: 0; flex: 1; }
+  .bankroll-tag { left: 12px; bottom: 84px; }
+  .bankroll-tag strong { font-size: 18px; }
+  .table-whisper.with-actions { left: auto; right: 12px; bottom: 84px; transform: none; max-width: 45%; text-align: right; }
+  .community-board { bottom: 155px; }
+  /* At500px the open tray spans both lower readouts. Keep stack and board in
+   * the same upper band; the tray itself already says whose decision this is. */
+  .poker:has(.betting-tray) .bankroll-tag { bottom: 340px; }
+  .poker:has(.betting-tray) .table-whisper { visibility: hidden; }
+  .drink-menu { top: 160px; }
+}
 .website-multiplayer { display: none; }
 .practice-bank{border-block:1px solid #a58d6055;margin:18px 0;padding:14px 0}.practice-bank h3{font:20px Georgia,serif;margin:0}.practice-bank p{font-size:12px}.practice-bank button{font:inherit;font-size:12px;padding:9px;background:#24271f;color:#ead8b2;border:1px solid #b9a07866;border-radius:4px}.practice-bank .row{display:flex;flex-wrap:wrap;gap:8px}.practice-bank button:disabled{opacity:.45;cursor:not-allowed}

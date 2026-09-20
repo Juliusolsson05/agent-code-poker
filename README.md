@@ -49,7 +49,9 @@ Hold **Space** while the table is focused to lean over your cards and chips; rel
 
 The public community cards stay in a compact **bottom-right** readout throughout
 the hand, with empty slots for undealt streets. It does not expose private cards
-or need an inspection toggle. Narrow layouts lift it above the betting row.
+or need an inspection toggle. Compact windows lift it above the open wager tray,
+with stack/status kept clear of the decision buttons. Optional table tools scroll
+horizontally when needed; Tab and Enter still reach and activate them.
 
 ## Boundaries
 
@@ -215,9 +217,11 @@ fullscreen render cost but does not guarantee 60 FPS.
 no shadows, direct render, baseline). These are diagnostic omissions, not quality
 presets. Repeated-baseline drift above 25% rejects comparison; passing that guard
 alone is not a performance guarantee. **Capture fixed view** samples the real
-rig's resting pose at time12. `&resolved-canvas-aa` opts into removing redundant
-canvas MSAA for a paired image experiment; normal/shipped play retains it until
-that comparison is valid. The scene target always retains4xMSAA.
+rig's resting pose at time12. Normal/source/shipped/LAN now omit redundant canvas
+MSAA after the canonical browser pair proved byte-identical; the scene target
+still retains4xMSAA. This is an allocation reduction, not a claimed FPS gain.
+The recorder's **Render diagnostics** button shows actual context/buffer settings
+without assuming a browser download succeeded.
 
 The current failing baseline and provenance live in `testing/fixtures/experience/`;
 these are not approved visual goldens. The staged plan is
