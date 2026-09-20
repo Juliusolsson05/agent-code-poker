@@ -170,6 +170,13 @@ centers the view; drinks/cigar wait for centering. Menus and pause cancel a
 pending request. Hovering never steers the view, and betting controls do not
 capture camera drags. This changes no poker rules or hand/prop poses.
 
+Window snow uses84 larger soft flakes in one draw, with24Hz position uploads
+and a frozen reduced-motion view. It stays behind the window's wooden bars,
+not across the table. The NPC drink pickup now approaches above the rim before
+lowering the existing grip around the exterior; release reverses that route.
+Surface and projection regressions pass, but fresh source/shipped motion and
+visual acceptance for these candidates remains open. No new hand art is included.
+
 `/dev/?qa=my-check&stats&record` isolates a QA save and enables a bounded local
 trace recorder. Record evidence, exercise the real controls, capture views, then
 save the trace. It records public actions, transforms and frame timings—not deck

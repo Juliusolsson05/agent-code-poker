@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { CHRISTMAS_LAYOUT } from './environment/layout'
+import { WindowSnow } from './environment/WindowSnow'
 
 /** Cozy interior / hostile winter exterior. Snow is confined to the window's
  * aperture in world space rather than overlaid over the whole image; it cannot
@@ -9,10 +10,7 @@ export class ChristmasTavern {
   readonly root = new THREE.Group()
   readonly treeBounds = new THREE.Box3()
   readonly decorBounds = new Map<string, THREE.Box3>()
-  private snow: THREE.Points
-  private snowSeeds: { x: number; y: number; speed: number; drift: number }[] = []
-  private snowTexture: THREE.CanvasTexture
-  private snowFrame = -1
+  private snow: WindowSnow
   constructor() {
     this.root.name = 'christmas-tavern'
     const green = new THREE.MeshStandardMaterial({ color: '#163a2d', roughness: .98 })
@@ -96,22 +94,7 @@ export class ChristmasTavern {
       const tail = new THREE.Mesh(new THREE.BoxGeometry(.025, .10, .022), red)
       tail.position.set(side * .024, -.317, .073); tail.rotation.z = side * -.18; wreathGroup.add(tail)
     }
-    const canvas = document.createElement('canvas'); canvas.width = canvas.height = 32
-    const g = canvas.getContext('2d')!, gradient = g.createRadialGradient(16, 16, 0, 16, 16, 16)
-    gradient.addColorStop(0, '#ffffff'); gradient.addColorStop(.5, '#ffffffbb'); gradient.addColorStop(1, '#ffffff00')
-    g.fillStyle = gradient; g.fillRect(0, 0, 32, 32); this.snowTexture = new THREE.CanvasTexture(canvas)
-    // At the seated camera this aperture is only a few hundred pixels wide.
-    // Dense bright particles became television static, not a distant storm.
-    // Let snow accumulation and cool light carry winter; motion stays sparse.
-    const positions = new Float32Array(84 * 3)
-    for (let i = 0; i < 84; i++) {
-      const frac = (v: number) => v - Math.floor(v)
-      this.snowSeeds.push({ x: frac(Math.sin(i * 12.9) * 43758), y: frac(Math.sin(i * 37.1 + 2) * 23421), speed: .045 + frac(Math.sin(i * 8.7) * 29341) * .07, drift: .028 + i % 7 * .008 })
-    }
-    const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-    this.snow = new THREE.Points(geometry, new THREE.PointsMaterial({ color: '#aabccb', size: .010, map: this.snowTexture, transparent: true, opacity: .40, depthWrite: false }))
-    this.snow.name = 'window-snow'
-    this.snow.frustumCulled = false; this.root.add(this.snow)
+    this.snow = new WindowSnow(); this.root.add(this.snow.mesh)
     // Hundreds of decorative bulbs must not mean hundreds of draw calls. Bake
     // static transforms into instances after authoring the tree/garland groups.
     this.root.updateMatrixWorld(true)
@@ -134,16 +117,8 @@ export class ChristmasTavern {
     this.frame(0, false)
   }
   frame(time: number, reduced: boolean): void {
-    const tick = reduced ? 0 : Math.floor(time * 24)
-    if (tick === this.snowFrame) return
-    this.snowFrame = tick
-    const t = reduced ? 0 : time, positions = this.snow.geometry.getAttribute('position') as THREE.BufferAttribute
-    this.snowSeeds.forEach((seed, i) => {
-      const x = ((seed.x + t * seed.drift + Math.sin(t * .7) * .09) % 1 + 1) % 1
-      const y = ((seed.y - t * seed.speed) % 1 + 1) % 1
-      positions.setXYZ(i, -4.145 + x * 1.20, 1.04 + y * 1.90, -5.017)
-    })
-    positions.needsUpdate = true
+    this.snow.frame(time,reduced)
   }
-  dispose(): void { this.snowTexture.dispose() }
+  diagnosticSnow(){return this.snow.diagnostic()}
+  dispose(): void { this.snow.dispose() }
 }

@@ -180,6 +180,7 @@ export class PokerRoom {
       this.renderer.info.autoReset = false
       this.capture = new SceneCapture(this.renderer, () => this.visualTime, () => ({
         poseSampleHz: 15, camera: transform(this.camera), hero: this.hero.diagnosticPose(),
+        windowSnow: this.christmas.diagnosticSnow(),
         christmasBounds: new THREE.Box3().setFromObject(this.christmas.root).min.toArray().concat(new THREE.Box3().setFromObject(this.christmas.root).max.toArray()),
         treeBounds: this.christmas.treeBounds.min.toArray().concat(this.christmas.treeBounds.max.toArray()),
         decorBounds: [...this.christmas.decorBounds].map(([name, bounds]) => ({ name, bounds: bounds.min.toArray().concat(bounds.max.toArray()) })),
@@ -548,6 +549,9 @@ export class PokerRoom {
     this.renderer.domElement.removeEventListener('pointercancel', this.cancelLook)
     this.renderer.domElement.removeEventListener('lostpointercapture', this.cancelLook)
     window.removeEventListener('blur', this.suspendLook)
+    // Snow owns its private resources and detaches before the shared static
+    // scene sweep, so neither disposal path double-frees the same geometry.
+    this.christmas.dispose()
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>()
     this.scene.traverse(object => {
       if (object instanceof THREE.Mesh || object instanceof THREE.Points || object instanceof THREE.Sprite) {
@@ -556,6 +560,6 @@ export class PokerRoom {
         if (object instanceof THREE.SkinnedMesh) object.skeleton.dispose()
       }
     }); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); this.materials.forEach(m => m.dispose()); this.textures.forEach(t => t.dispose())
-    this.capture?.dispose(); this.hero.dispose(); this.chips.dispose(); this.christmas.dispose(); this.post.dispose(); this.renderer.dispose(); this.renderer.domElement.remove(); this.drinkTint.remove(); this.stats?.remove()
+    this.capture?.dispose(); this.hero.dispose(); this.chips.dispose(); this.post.dispose(); this.renderer.dispose(); this.renderer.domElement.remove(); this.drinkTint.remove(); this.stats?.remove()
   }
 }

@@ -2,7 +2,21 @@
 
 ## Active direction — finish the non-LAN gameplay list
 
-### Next slice: visible, bounded window snow
+Current queue: recover real source/shipped checks for mouse-look, NPC exterior
+pickup and snow; next implementation slice is public-event chip audio and
+independent ambience/effects levels. Keep actual listening and performance
+acceptance separate. Do not restart or replace a running LAN host for this work.
+
+### Visible, bounded window snow — implementation checkpoint
+
+Implemented WindowSnow with one Christmas consumer, original84seeds/24Hz clock,
+.044size/.65opacity and explicit single-owner disposal. Recorded camera projects
+the old point to.995buffer pixels versus4.378for candidate. Regressions first
+failed at old size, then pass buffer reuse/throttling/reduced freeze/disposal and
+existing aperture/decor checks. Full verify170 tests/builds/SDK/preview passes.
+Source QA showed only the fullscreen shell before CUA timed out; production
+attempt reported browser unavailable. No fresh visual/FPS approval. Session34
+retains the distinction; next real trace will include snow settings metadata.
 
 Retained10-29-18 camera/viewport and51.215PNG show sparse near-subpixel snow in
 the window. Pinned Three points shader applies size*bufferHeight/2/viewDepth;
@@ -14,7 +28,7 @@ aperture/depth behind mullions. Test actual camera-derived pixel budget, origina
 positions, buffer reuse and throttling before implementation. Record real source
 and shipped snowy-window motion when CUA returns; no FPS claim from math tests.
 
-### Active slice: exterior NPC glass acquisition/release
+### Exterior NPC glass acquisition/release — implementation checkpoint
 
 Implementation checkpoint: finite-surface regression and existing anatomy/contact
 tests pass; full verify168 tests/builds/SDK/preview passes. The isolated route
@@ -42,7 +56,7 @@ until full contact. Add explicit NPC pose/grip diagnostic fields for future
 actual close-ups. Browser is unavailable this turn; visual/contact acceptance
 stays open until source/shipped motion is captured. No anatomy/art changes.
 
-### Active slice: normal seated mouse-look
+### Normal seated mouse-look — acceptance open
 
 Implementation checkpoint: shared mouse-look profile now builds for source,
 shipped and LAN. Recorded pointer replay passes; full verify165 tests/builds/

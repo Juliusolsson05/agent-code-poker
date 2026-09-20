@@ -4,6 +4,15 @@
 
 ### B22–E22 visible window snow without density growth
 
+Checkpoint: tests fail at old.995buffer-pixel diameter, then pass candidate
+4.378pixel projection,84count/24Hz buffer reuse/reduced freeze and exact-once
+disposal. WindowSnow is owned only by Christmas; Room reads public metadata.
+Full verify170 tests/builds/SDK/HTTP preview passes. E22 remains OPEN: source
+CUA returned fullscreen shell then timed out; shipped attempt reported browser
+unavailable. No new screenshot, listening or measured FPS approval. Session34
+documents synthetic/recorded distinctions. Next work: public-event chip audio
+and ambience/effects controls, then actual listening/performance gates.
+
 | Stage | Produces | Verified by | Why separate | Reality check |
 |---|---|---|---|---|
 | B22 | Existing raw camera/viewport and51.215PNG; point-size catalog | Retained image inspected; pinned Three points shader/source confirms perspective attenuation | Bigger flakes are not more particles or global DPR | Actual10-29-18 source capture, size.010/opacity.40 source |
