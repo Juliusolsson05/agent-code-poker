@@ -1,5 +1,38 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## Installed-extension hosting requirement — B17–E17
+
+User now requires starting LAN from inside Agent Code. Terminal instructions
+and separate-site admission are development scaffolding, not final acceptance.
+Read-only evidence: pinned SDK RuntimeApiV2 exposes storage/files/notifications,
+not process launch/listen/connect; current host capability union agrees. Host
+runtimeService creates sandboxed Node-disabled windows; frameDocument restricts
+connect-src to extension origin. runtime.request is a view/runtime bridge, not
+an escape hatch into Node. No host files changed during this audit.
+
+Proposed boundary, pending authority to change host/SDK: explicit Host button
+requests a revision-bound LAN grant from Agent Code; host owns listener,
+private-address policy, lifecycle/revocation and bounded transport. The poker
+runtime retains the pure engine/HostTable/private projections and serializes
+durable commits before ACK. The original view talks through the supported
+runtime bridge; guests use an approved scoped connection or declared static
+web client. No arbitrary shell execution, public relay, unrestricted fetch,
+firewall changes, dynamically granted unknown capability or Node in the view.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B17 | SDK/host capability audit and required authority | Actual pinned types and host sandbox/CSP | A website cannot stand in for installed-extension hosting | No launch/network capability exists today |
+| C17 | Narrow host/SDK transport/lifecycle contract | Grant/denial, identity/revision, bounds, local-address policy, revocation tests | No game-specific unrestricted execution permission | Host repository scope must first be authorized |
+| D17 | Host implementation plus extension adapter | Same pure ledger and commit-before-ACK/privacy invariants across website/runtime | Keep poker UI and authority independent of transport | No unsupported manifest fields or pretend launcher |
+| E17 | Packaged Agent Code Host/Join and guest acceptance | Actual Electron install, start/resume/end, two viewers, no terminal, crash/revocation | Browser/HTTP checks cannot verify SDK lifecycle | Explicit release requirement, not optional follow-up |
+
+Related environment mismatch: Room.experimentalFireplace and App fire audio
+depend on import.meta.env.DEV, so shipped/LAN builds omit the fireplace and
+shelf-aware layout. LAN client also never creates PokerAudio. B16 shared-view
+integration must use a single deliberate scene/audio profile, preserving the
+current festive room rather than blessing an old production appearance. This
+diagnosis is source evidence, not a claim that new graphics have been verified.
+
 ## User correction: original UI, multiplayer underneath — B16–E16
 
 The standalone LAN client renders a different header, plain-text hand/board,

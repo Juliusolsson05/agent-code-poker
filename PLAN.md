@@ -2,6 +2,22 @@
 
 ## Active direction — full multiplayer first (restarted goal loop)
 
+NEW REQUIRED END STATE: Host LAN game must work INSIDE the installed Agent Code
+extension, without a terminal command. The standalone-only restriction is no
+longer the desired product; CLI hosting remains a development adapter, not the
+final UX. Read-only SDK/host audit finds no launch/listen/connect capability;
+the runtime has Node disabled and frames restrict connect-src. Host/SDK changes
+need an explicit scope expansion before editing those repositories. Proposed
+direction: permission-gated host-managed LAN transport/lifecycle, existing
+extension runtime as poker authority, same original view for solo/LAN, no shell
+execution or sandbox escape. Do not add imaginary SDK permissions or APIs.
+
+Fireplace regression cause confirmed: Room gates fireplace AND shelf-aware
+layout on import.meta.env.DEV; the LAN build is production and excludes both.
+App also gates fire audio on DEV; LAN client has no audio owner. UI convergence
+must include one explicit room/audio feature configuration for source, shipped
+and LAN, with fresh browser evidence—not merely copy current LAN CSS.
+
 USER CORRECTION: preserve the original poker UI. The standalone client's
 separate header/labels/summary/card strip is rejected, not accepted multiplayer
 presentation. Next work is shared original presentation fed by local/remote
