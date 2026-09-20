@@ -2,6 +2,26 @@
 
 ## Durable multiplayer recovery — B12–E12
 
+### E12 response-ownership substage
+
+A: client.js guards successful envelopes inline, but throws obsolete responses
+into an unconditional poll catch. That catch can disable a newly resumed seat.
+D: obsolete replies/errors have no UI effects; the latest accepted authority
+view owns pause/controls, and switching/forgetting a seat invalidates every old
+request, even if the same credential is later resumed. No automatic wager retry.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| Record/catalog | Public-only envelope metadata for state/pause/resume | Actual isolated HTTP requests; no tokens/cards retained | Observation changes need not change poker revision | Existing server and client inspected; browser gate still open |
+| Contracts | ResponseOrder tests before implementation | Actual HTTP envelopes delivered normally and with synthetic reordering | Errors must obey the same owner as views | Delay/seat replacement are injected, not claimed production recordings |
+| Implementation | Pure server/client/ResponseOrder module | Epoch, process-generation, observation and obsolete-error tests | Prevent catch/render from re-arbitrating response ownership | Contracts above; single consumer client.js |
+| Integration | Client uses owner for every request completion | Full verify, solo source/shipped regression, then actual LAN browser gate | HTTP ordering is not real browser recovery | CUA only; do not bypass Chrome's blocked QA navigation |
+
+Engine/session authority, scene, audio and persistence must not import this
+browser-only ordering module. Unknowns remain browser lifecycle/native fetch
+cancellation timing and actual multi-tab recovery. Suppressed obsolete requests
+are not acknowledged wagers; UI must never invent a receipt or retry them.
+
 Latest E12 implementation (supersedes the earlier CLI-gated checkpoint below):
 SeatRecovery provides opt-in browser keys, explicit resume/forget and independent
 per-seat entries. Denied storage does not throw away a live admission; retry

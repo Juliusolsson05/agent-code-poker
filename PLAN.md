@@ -2,6 +2,14 @@
 
 ## Active direction — full multiplayer first (restarted goal loop)
 
+Next E12 slice: isolate client response ownership. The inline response check
+ignores an obsolete body but its rejected Promise still reaches poll's catch,
+which can mark a newer connection lost. Catalog actual HTTP envelope shapes,
+then test delayed delivery/credential replacement as explicitly synthetic
+faults. One ResponseOrder module will own epoch/generation/observation decisions;
+both successful replies and errors must obey it. Never retry a wager. Keep the
+active5192 host untouched and LAN browser acceptance open.
+
 E12 implementation now adds opt-in saved-seat recovery, explicit resume/forget,
 storage-denial warnings, and pre-admission nonce persistence. The host's new
 SQLite OS lease releases on process death without PID-file stealing; deliberate
