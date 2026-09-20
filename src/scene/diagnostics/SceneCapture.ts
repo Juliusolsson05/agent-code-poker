@@ -16,6 +16,7 @@ export class SceneCapture {
   private recorder = new ExperienceRecorder()
   private panel = document.createElement('aside')
   private status = document.createElement('output')
+  private renderDetails = document.createElement('pre')
   private id = ''
   private imageRequested = false
   private lastPose = -Infinity
@@ -49,6 +50,17 @@ export class SceneCapture {
       this.event('capture-stop', null); this.recorder.stop()
       this.download(new Blob([JSON.stringify(this.recorder.export(), null, 2)], { type: 'application/json' }), `poker-evidence-${this.id || 'empty'}.json`); this.updateStatus()
     })
+    // A requested download is not proof that the browser saved a file. Keep
+    // allocation settings directly inspectable without requesting permissions
+    // or reading browser internals. Refresh only on explicit input: querying
+    // GL state per frame would perturb the performance being investigated.
+    this.renderDetails.setAttribute('aria-label', 'Render context diagnostics')
+    this.renderDetails.style.cssText = 'margin:0;white-space:pre-wrap;width:100%;max-height:180px;overflow:auto'
+    this.renderDetails.hidden = true
+    button('Render diagnostics', () => {
+      this.renderDetails.hidden = !this.renderDetails.hidden
+      if (!this.renderDetails.hidden) this.renderDetails.textContent = JSON.stringify(this.environment(), null, 2)
+    })
     button('Capture view', () => { this.finishProbe('image-requested'); this.imageRequested = true; this.event('image-request', null) })
     if (setView) {
       button('Wide room', () => { this.finishProbe('camera-changed'); setView(true); this.event('diagnostic-view', { wide: true }) })
@@ -72,7 +84,7 @@ export class SceneCapture {
       if (this.probe || this.recorder.active || !setProbeMode('balanced')) return
       this.fixedImage = true
     })
-    this.panel.append(this.status); renderer.domElement.parentElement!.append(this.panel); this.updateStatus()
+    this.panel.append(this.status, this.renderDetails); renderer.domElement.parentElement!.append(this.panel); this.updateStatus()
     window.addEventListener('error', this.error)
     document.addEventListener('visibilitychange', this.visibility)
     window.addEventListener('resize', this.probeResize)

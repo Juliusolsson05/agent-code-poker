@@ -104,11 +104,11 @@ export class PokerRoom {
   private leisureKey = ''
   constructor(private container: HTMLElement, private onFailure: () => void, private onLayout: () => void = () => {},
     private onLeisure: (value: { kind: import('./props/specs').DrinkKind; available: boolean }) => void = () => {}, viewerSeat = 0) {
-    // The first pixel comparison inherited NPC sip history and was invalid.
-    // Keep the established canvas setting in shipped/live play until a fresh
-    // canonical pair passes; allocation reasoning alone is not visual signoff.
-    const resolvedCanvas = import.meta.env.DEV && new URLSearchParams(location.search).has('resolved-canvas-aa')
-    this.renderer = new THREE.WebGLRenderer(resolvedCanvas ? RENDERER_OPTIONS : { ...RENDERER_OPTIONS, antialias: true })
+    // Canonical14-12-39/14-13-19 browser PNGs are byte-identical; actual context
+    // diagnostics confirm canvas samples4→0. Geometry still resolves4x in the
+    // post target. Remove only the redundant fullscreen-triangle allocation,
+    // not silhouette coverage, lighting or the established render budget.
+    this.renderer = new THREE.WebGLRenderer(RENDERER_OPTIONS)
     if (import.meta.env.DEV && new URLSearchParams(location.search).has('stats')) {
       this.stats = document.createElement('output'); this.stats.setAttribute('aria-label', 'Rendering performance')
       this.stats.style.cssText = 'position:absolute;left:16px;top:94px;z-index:20;padding:8px;background:#0a1010dc;color:#cee3c2;font:12px monospace;pointer-events:none'

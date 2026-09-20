@@ -4,6 +4,18 @@
 
 ### B24–E24 canonical pipeline check and redundant canvas samples
 
+Checkpoint: B24/C24 retain exact PNG pair and raw baseline pass profile. Actual
+visible context readout reports false/0 canvasAA/samples,1994x1253buffer and
+1.221527452119875pixelRatio at1633x1025viewport. D24 adopted the existing option;
+scene4x/HDR/bloom/shadows unchanged. Full verify180 tests/builds/SDK/preview pass.
+E24 partial: source call48; shipped restore1952, inspection, fold, drink request,
+river/showdown and pause observed; source/shipped screenshots inspected. Shipped
+warning/error log empty. Shipped reload recovered, restoring completed hand1,
+stack1952/award4068. Fresh normal source QA restores the same completed hand and
+inspection screenshot, with empty warning/error log. Interrupted checks above
+recovered; this still does not approve active-play FPS or all motion/hardware.
+Session36 preserves missing exports and separate actual/context/math claims.
+
 A: unchanged production PostProcessing resolves4x HDR scene coverage before
 OutputPass draws one fullscreen triangle. Room still overrides canvas AA true,
 because E2's old image pair inherited different NPC sip histories. D: one scene

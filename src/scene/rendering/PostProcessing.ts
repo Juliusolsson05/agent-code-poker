@@ -9,8 +9,9 @@ import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
  * spends color/depth storage without improving a hand/card silhouette. The real
  * browser baseline reports canvasAntialias=true/defaultSamples=4. Keep MSAA on
  * the scene target below: removing THAT was the old voxel-shimmer regression.
- * This candidate is opt-in in DEV until a valid canonical browser pair passes;
- * Room deliberately retains the established canvas setting in shipped play. */
+ * Canonical14-12-39/14-13-19 browser PNGs are byte-identical; a separate actual
+ * context readout confirms canvas0 samples. This proves that one fixed view,
+ * not an FPS speedup or motion quality on every device. */
 export const RENDERER_OPTIONS: THREE.WebGLRendererParameters = { antialias: false, powerPreference: 'high-performance' }
 
 /** One owner for offscreen buffers, output transform and post passes. Room owns

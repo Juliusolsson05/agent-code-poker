@@ -6,6 +6,14 @@
   "privacy": "Public action labels and scene transforms only. No deck, hole-card identities, save objects or unrelated browser content in traces.",
   "renderProfiles": [
     {
+      "file": "poker-profile-2026-09-20T14-12-29-610Z.json.gz",
+      "rawSha256": "77e78b2ed1e48f9d89e65a40f19b514db3acb3bd7630ec7a42b8221cff27ed73",
+      "expectedWindows": 5,
+      "provenance": "Actual CUA Chrome fixed-lobby pass ablation on9a0c697, canonical pose/camera,1994x1253 buffer; original download losslessly compressed. Baseline/no-bloom/no-shadows/direct/baseline,4s warmup6s sample each.",
+      "frameP50P95Ms": [[16.7,18.5],[16.7,18.5],[16.7,18.4],[16.7,18.7],[16.7,18.6]],
+      "limitations": "Repeated-baseline drift passes. Sparse asynchronous GPU measurements remain distinct from rAF delivery. Does not prove active-game60FPS, canvas-AA speedup or exclusive shader cost. Second candidate profile export missing, not retained."
+    },
+    {
       "file": "poker-profile-2026-09-20T05-03-34-188Z.json.gz",
       "rawSha256": "4d5a9ae8197bcda53993cb54ddd2cee0a8f7c22ceafee193f69e3de593df6d6f",
       "expectedWindows": 5,
@@ -253,6 +261,8 @@
     }
   ],
   "rigImages": [
+    { "file": "poker-fixed-2026-09-20T14-12-39-305Z.png", "subject": "Canonical lobby canvas-AA baseline", "candidate": "Actual CUA Chrome fixed-view export,1994x1253 on9a0c697. Exact PNG SHA256 ce448b9f3961d9ef7567b8784236dc9a017d1ec0f516908fae9f03e8b2ad9bcd. Same canonical rest pose/time12 and camera as candidate; not motion approval." },
+    { "file": "poker-fixed-2026-09-20T14-13-19-540Z.png", "subject": "Canonical lobby resolved-canvas candidate", "candidate": "Actual CUA Chrome &resolved-canvas-aa fixed-view export,1994x1253. Byte-identical to14-12-39; no pixel processing/resizing. Context metadata and active-play checks are separate gates; no FPS claim." },
     { "file": "table-lettering-before.png", "url": "/dev/?qa=table-quality-9&record&stats", "subject": "Actual inspection view before lettering candidate", "seconds": 40.700, "candidate": "Actual Chrome canvas export poker-evidence-2026-09-20T05-43-43-579Z-40.700.png,2137x1169. No raw session export retained before hot reload/browser disconnect. Not a fixed-pose golden or performance benchmark." },
     { "file": "thumb-cigar-side-rest.png", "subject": "Player cigar", "action": "idle", "seconds": 0, "candidate": "Actual source studio four-view export after thumb side-rest correction. User subsequently rejected overall hand naturalness and paused further hand-animation work. NOT approved art." },
     { "file": "player-contact-puff.png", "subject": "Player contact rig", "action": "smoke", "seconds": 1.3, "candidate": "Actual source studio export including sleeves and orange authored lip marker. Controlled pose, not live motion or final anatomy approval." },

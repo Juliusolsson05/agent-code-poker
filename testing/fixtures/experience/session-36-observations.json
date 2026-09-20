@@ -1,0 +1,37 @@
+{
+  "source": "manual CUA observations; not an automatically recorded trace",
+  "date": "2026-09-20",
+  "plans": ["7eb9500", "d0b620e"],
+  "canonicalImages": ["poker-fixed-2026-09-20T14-12-39-305Z.png", "poker-fixed-2026-09-20T14-13-19-540Z.png"],
+  "imageResult": "Original PNGs are byte-identical,1994x1253; canonical lobby rest pose/time12, same camera. No image processing, no motion/FPS claim.",
+  "profile": "poker-profile-2026-09-20T14-12-29-610Z.json.gz",
+  "profileResult": "Actual five-window baseline/no-bloom/no-shadows/direct/baseline; repeated baseline ratio1. Frame p50=16.7ms in each window; p95=18.5,18.5,18.4,18.7,18.6ms. Sparse GPU timer values are separate and cannot be inferred from rAF delivery.",
+  "candidateContext": {
+    "provenance": "Actual game-owned Render diagnostics button, CUA accessibility observation in isolated render-context-36 QA. Not reconstructed from config or a missing export.",
+    "viewport": [1633, 1025],
+    "buffer": [1994, 1253],
+    "dpr": 1.7999999523162842,
+    "pixelRatio": 1.221527452119875,
+    "canvasAntialias": false,
+    "defaultSamples": 0,
+    "reducedMotion": false
+  },
+  "sourceChecks": [
+    "Entered hand1 with2000 chips and3H9D; current warm fireplace, snow, folded backs and UI visible in CUA screenshot.",
+    "Requested Old Fashioned; keyboardC called48, observed1952stack/pot126.",
+    "Initial inspection attempt interrupted. Fresh normal source /dev/?qa=render-context-36 without diagnostic flags restores completed hand1,stack1952,award4068; Cards & chips inspection screenshot observed. Warning/error log empty. This recovers the interrupted check without claiming a raw active trace."
+  ],
+  "productionChecks": [
+    "Actual /dev/?production&qa=render-context-36 returned to source save: hand1,stack1952,flop5H9SJD,pot533.",
+    "Inspection screenshot shows readable cards/chips/felt, folded backs resting on felt and bottom-right public board.",
+    "KeyboardF folds; Look up returns seated; D requests sip; later image shows returned glass/cigar, fireplace/window snow, river5H9SJD8S5S.",
+    "Showdown awards Cleo4068, viewer stays1952; Escape pauses with Your seat is saved.",
+    "Warning/error console capture empty. Reload initially timed out during observation; recovered via existing tab, Return to your table restored completed hand1,stack1952,award4068,net-48 and same river. QA tab closed afterward."
+  ],
+  "limitations": [
+    "Second profile and candidate trace did not appear in Downloads. Not retained or used as timing evidence. Browser-internal downloads page unavailable; no workaround or permission changes.",
+    "DEV context readout adds no production UI and runs only on explicit click. It proves settings, not file delivery.",
+    "Source/shipped screenshots above inspected in CUA transcript, not stored PNG goldens. Only canonical pair retained as images.",
+    "No active-play benchmark, close-up NPC transition signoff, audio listening, narrow/reduced-motion, live LAN or Electron acceptance. Hand art unchanged and last in queue."
+  ]
+}

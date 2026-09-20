@@ -10,6 +10,19 @@ LAN/installed-host and final art gates explicit; do not restart a running host.
 
 ### Canonical render-allocation check — staged before adoption
 
+Checkpoint: normal Room now consumes RENDERER_OPTIONS, preserving4x HDR scene
+target/bloom/shadows/geometry. Actual visible DEV context confirms canvasAAfalse,
+samples0 and unchanged1994x1253buffer. Canonical original PNG equality is tested;
+manifest retains baseline profile and pair. Full verify180 tests, both builds,
+2SDK checks and1exact-byte preview pass. Source enters/calls48; shipped restores
+stack1952, inspects, folds, returns to seated/drinks, reaches showdown and pauses.
+Shipped warning/error capture empty; screenshots inspected through CUA. Shipped
+reload recovered and restored completed hand1,stack1952/award4068. Fresh normal
+source QA without diagnostic flags also restores that hand and inspects; its
+warning/error capture is empty. Browser interruptions recovered for these checks.
+Session36 records details and limitations.
+No FPS gain claim, final NPC motion approval or listening evidence.
+
 E2's previously blocked canonical pair is now captured through real CUA:
 14-12-39 baseline and14-13-19 resolved-canvas candidate are byte-identical PNGs
 at1994x1253. Fresh fixed-lobby pass ablation14-12-29 passes repeated-baseline
