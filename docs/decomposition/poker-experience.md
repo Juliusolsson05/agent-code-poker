@@ -2,6 +2,40 @@
 
 ## Durable multiplayer recovery — B12–E12
 
+Latest E12 implementation (supersedes the earlier CLI-gated checkpoint below):
+SeatRecovery provides opt-in browser keys, explicit resume/forget and independent
+per-seat entries. Denied storage does not throw away a live admission; retry
+nonce persists before POST. UI uses names/text and numeric option indices, never
+credential values. Synthetic storage tests cover reload/close/denial/multiple
+tabs/malformed legacy values; these are not actual browser recovery recordings.
+
+The SQLite OS lease now replaces new PID locks. Both the store-only writer and
+the complete actual HTTP host were deliberately SIGKILLed in isolated child
+processes; subsequent hosts restore the acknowledged wager/private views and
+return duplicate ACK without spending twice. These tests first failed with the
+old PID/staging mechanism. Existing disk-fault/permission/ownership tests remain
+intact. Legacy locks are preserved/refused. Interrupted regular staging files
+are retained under private UUID archive names. Normal CLI now enables private
+local checkpoints; --memory-only explicitly requests disposable state. Node22.13
+LTS/24+ is recorded in package and lockfile; no added dependency.
+
+Actual LAN-browser acceptance remains open: Chrome again blocks5193. Its old
+QA server had no room (410), so only that owned empty server was replaced with
+the recovery candidate; active5192 was not touched. The user was asked to open
+the isolated QA URL manually; no browser protections were altered. CUA source
+initially refused connection because the5191 preview had stopped; absence was
+confirmed before restarting npm run dev. Do not confuse these observations with
+successful browser recovery, listening, Wi-Fi or performance verification.
+
+Full verification checkpoint:129 tests pass, TypeScript, extension/LAN builds,
+2 SDK contracts and exact-byte preview. Source CUA call76, inspection, pause,
+reload/return restores hand1/stack1924/pot1224. Shipped call60 restores hand1/
+stack1940/pot200. Held props and settled folded backs inspected; captured warn/
+error logs empty. Session22 notes are manual observations, not raw LAN recordings
+or image goldens. Actual LAN recovery/play, Wi-Fi, listening/FPS and Electron
+remain open. The previous interrupted turn changed authoritative code and
+produced passing isolated tests: progress, not a wait or a no-progress turn.
+
 E12 client slice contract: keep the current credential tab-scoped, with an
 explicit, explained opt-in to remember a seat in this browser. A fresh tab lists
 saved names but never automatically claims one; Resume is a deliberate action

@@ -1,5 +1,7 @@
-import { closeSync, constants, fchmodSync, fsyncSync, fstatSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import { closeSync, constants, fchmodSync, fsyncSync, fstatSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { randomUUID } from 'node:crypto'
+import { DatabaseSync } from 'node:sqlite'
 
 const LIMIT = 256 * 1024
 const absent = (error: unknown) => (error as NodeJS.ErrnoException).code === 'ENOENT'
@@ -14,23 +16,48 @@ const absent = (error: unknown) => (error as NodeJS.ErrnoException).code === 'EN
  * measurement; do not call this free. File fsync + atomic rename + directory
  * fsync cover process interruption, subject to the underlying filesystem.
  *
- * A leftover lock fails closed. We do not infer that a PID is dead and steal
- * its lock: PID reuse and competing stale-lock cleaners can create two ledger
- * owners. Crash-lock recovery remains explicit operator work, not a silent
- * "new table". A normal close releases it without deleting the saved table.
+ * SQLite supplies an OS-managed EXCLUSIVE lease, held for this owner's whole
+ * lifetime in a separate EMPTY database. No poker state lives there. Unlike a
+ * PID file, the OS releases this lock on SIGKILL without guessing at stale PIDs.
+ * See sqlite.org/lockingv3.html. Never delete/replace the lease inode, and use
+ * local disk, not a network share whose lock semantics may differ. The JSON
+ * checkpoint stays the only ledger. Node22.13 LTS/24+ provides node:sqlite;
+ * some supported versions emit its experimental warning, which we keep visible.
  */
 export class CheckpointStore {
   #directory: string
-  #lock: number
+  #lock: DatabaseSync
   #closed = false
   #failed = false
   constructor(directory: string) {
     this.#directory = directory
     mkdirSync(directory, { recursive: true, mode: 0o700 })
-    try { this.#lock = openSync(join(directory, 'host.lock'), 'wx', 0o600) }
-    catch { throw new Error('Host checkpoint is already owned or locked. Preserve it; check the other host before recovery.') }
-    try { writeFileSync(this.#lock, JSON.stringify({ pid: process.pid, version: 1 })); fsyncSync(this.#lock) }
-    catch (error) { closeSync(this.#lock); unlinkSync(join(directory, 'host.lock')); throw error }
+    // Old experimental writers use a different protocol. Even a stale legacy
+    // file must not be stolen by the new protocol while an old host may run.
+    try { lstatSync(join(directory, 'host.lock')); throw new Error('Host checkpoint is already owned by a legacy writer; preserve its lock.') }
+    catch (error) { if (!absent(error)) throw error }
+    const lease = join(directory, 'host-lease.sqlite')
+    try { writeFileSync(lease, '', { flag: 'wx', mode: 0o600 }) }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error }
+    const stat = lstatSync(lease)
+    if (!stat.isFile() || stat.isSymbolicLink() || (stat.mode & 0o077) !== 0) throw new Error('Invalid private host checkpoint lease.')
+    // Do not open/close an ordinary descriptor on an existing lease: POSIX
+    // closing any descriptor for an inode can drop that process's file locks.
+    // SQLite coordinates its own connections; lstat above does not open it.
+    this.#lock = new DatabaseSync(lease)
+    try { this.#lock.exec('BEGIN EXCLUSIVE') }
+    catch { this.#lock.close(); throw new Error('Host checkpoint is already owned or locked. Close the other host before retrying.') }
+    try {
+      const pending = join(directory, 'table.pending')
+      let staged
+      try { staged = lstatSync(pending) } catch (error) { if (!absent(error)) throw error }
+      if (staged) {
+        if (!staged.isFile() || staged.isSymbolicLink() || staged.size > LIMIT || (staged.mode & 0o077) !== 0) throw new Error('Unknown checkpoint staging entry.')
+        // Only the published table.json was acknowledged. Preserve interrupted
+        // bytes for investigation, never promote a partial/unacknowledged bet.
+        renameSync(pending, join(directory, `interrupted-${randomUUID()}.json`))
+      }
+    } catch { this.#lock.close(); throw new Error('Host checkpoint staging cannot be recovered; original data preserved.') }
   }
   load(): unknown {
     this.#assertOpen()
@@ -72,6 +99,6 @@ export class CheckpointStore {
   }
   close(): void {
     if (this.#closed) return
-    this.#closed = true; closeSync(this.#lock); unlinkSync(join(this.#directory, 'host.lock'))
+    this.#closed = true; this.#lock.close()
   }
 }

@@ -5,7 +5,7 @@
   "type": "module",
   "description": "A block-built poker room for Agent Code",
   "engines": {
-    "node": ">=22.12"
+    "node": "^22.13.0 || >=24.0.0"
   },
   "scripts": {
     "dev": "vite --config vite.dev.config.ts --host 127.0.0.1",

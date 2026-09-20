@@ -4,6 +4,8 @@ import { mkdtempSync, rmSync, readFileSync, mkdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { startLanHost } from '../server/http'
+import { spawn, type ChildProcess } from 'node:child_process'
+import { once } from 'node:events'
 
 test('actual loopback clients recover seats/private cards and duplicate ACK after durable host restart', async t => {
   const directory = mkdtempSync(join(tmpdir(), 'poker-host-restart-'))
@@ -66,4 +68,41 @@ test('synthetic disk fault over actual HTTP rejects acknowledgement and freezes 
   assert.deepEqual(readFileSync(join(directory, 'table.json')), before)
   const poll = await fetch(host.origin + '/api/state', { headers: { Authorization: `Bearer ${admitted.token}` } })
   assert.equal(poll.status, 503)
+})
+
+test('actual isolated host SIGKILL preserves an acknowledged wager and its replay protection', { timeout: 15000 }, async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'poker-http-crash-'))
+  const module = new URL('../server/http.ts', import.meta.url).href
+  let child: ChildProcess | undefined, origin = ''
+  const stop = async () => {
+    if (child && child.exitCode === null && child.signalCode === null) { const exited = once(child, 'exit');child.kill('SIGKILL');await exited }
+  }
+  t.after(async () => { await stop();rmSync(directory, { recursive: true, force: true }) })
+  const boot = async () => {
+    child = spawn(process.execPath, ['--import', 'tsx', '--input-type=module', '-e',
+      `import {startLanHost} from ${JSON.stringify(module)}; const host=await startLanHost({port:0,automaticTicks:false,checkpointDirectory:process.argv[1]});process.stdout.write(host.origin)`, directory], { stdio: ['ignore', 'pipe', 'pipe'] })
+    const [bytes] = await Promise.race([once(child.stdout!, 'data'), once(child, 'exit').then(() => { throw new Error('Host exited before listening') })])
+    origin = String(bytes); assert.match(origin, /^http:\/\/127\.0\.0\.1:\d+$/)
+  }
+  await boot()
+  const tokens: string[] = []
+  const api = async (path: string, body?: object, seat = 0) => {
+    const r = await fetch(origin + path, { method: body ? 'POST' : 'GET', headers: { Origin: origin,
+      'Content-Type': 'application/json', Authorization: `Bearer ${tokens[seat] || ''}` }, ...(body ? { body: JSON.stringify(body) } : {}) })
+    assert.ok(r.ok); return r.json()
+  }
+  const created = await api('/api/create', { name: 'Host', nonce: 'a'.repeat(64) });tokens.push(created.token)
+  for (let seat = 1; seat < 6; seat++) tokens.push((await api('/api/join', { name: `Guest ${seat}`, nonce: String(seat).repeat(64), code: created.code })).token)
+  await api('/api/start', { revision: (await api('/api/state')).view.revision })
+  const before = await api('/api/state', undefined, 3)
+  const request = { sequence: before.view.self.nextSequence, revision: before.view.revision, action: { type: 'call' } }
+  const accepted = await api('/api/action', request, 3)
+  assert.equal(accepted.receipt.code, 'accepted')
+  await stop(); await boot()
+  const recovered = await api('/api/state', undefined, 3)
+  assert.equal(recovered.paused, true);assert.equal(recovered.durable, true)
+  assert.deepEqual(recovered.view.players.map((p: any) => ({ stack: p.stack, bet: p.bet, cards: p.cards })),
+    accepted.view.players.map((p: any) => ({ stack: p.stack, bet: p.bet, cards: p.cards })))
+  await api('/api/state');await api('/api/pause', { paused: false })
+  assert.equal((await api('/api/action', request, 3)).receipt.code, 'duplicate')
 })

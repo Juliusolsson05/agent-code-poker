@@ -2,6 +2,27 @@
 
 ## Active direction — full multiplayer first (restarted goal loop)
 
+E12 implementation now adds opt-in saved-seat recovery, explicit resume/forget,
+storage-denial warnings, and pre-admission nonce persistence. The host's new
+SQLite OS lease releases on process death without PID-file stealing; deliberate
+child-process SIGKILL tests preserve acknowledged chips/cards and duplicate ACKs.
+Interrupted staging bytes are archived privately, never promoted. New CLI
+launches persist to ignored .poker-lan/ by default; --memory-only is explicit.
+Node22.13 LTS or24+ required, with built-in sqlite's warning disclosed; no added
+package. Existing5192 user session remains untouched. Fresh5193 CUA navigation
+is still Chrome-blocked; user asked to open that isolated page manually. Browser
+saved-seat/restart and real multi-client3D/Wi-Fi acceptance remain open. The old
+memory-only checkpoint below is historical, superseded by this implementation.
+
+Verification checkpoint:129 tests, TypeScript, both builds,2 SDK contracts and
+exact-byte preview pass. CUA source call76/inspection/pause/reload restores hand1,
+stack1924/pot1224; shipped call60 restores hand1/stack1940/pot200. Held cards/cigar,
+folded backs and five opponents inspected; captured warnings/errors empty.
+Session22 manual notes distinguish these solo browser checks from missing LAN
+browser acceptance. No FPS/listening/Electron claim. Package/lockfile record the
+Node version floor; compiled LAN output rebuilt. Continue real multi-client
+recovery/turn/seat-projection verification before declaring multiplayer complete.
+
 B12–D12 checkpoint: private host export/restore, bounded atomic file store and
 optional host commit-before-ACK are implemented. Actual isolated HTTP restart
 restores all6 seats/cards/balances and rejects duplicate spending; explicit end

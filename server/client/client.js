@@ -2,18 +2,35 @@ import { createElement, createRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import { PokerRoom } from '../../src/scene/Room'
 import { BettingControls } from '../../src/components/BettingControls'
+import { SeatRecovery } from './SeatRecovery'
 const el = id => document.getElementById(id)
-const storageKey = 'poker-lan-connection-test-v1'
+const recovery = new SeatRecovery(() => sessionStorage, () => localStorage)
 const hex = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), v => v.toString(16).padStart(2, '0')).join('')
 let token = '', admissionNonce = hex(), state = null, pending = false, polling = false, ended = false
 let room = null, renderFailed = false, inspected = false, menuOpen = false, connectionLost = false, controlsRevision = 0, authorityRevision = -1
 const labels = new Map(), bettingRef = createRef(), bettingRoot = createRoot(el('actions'))
 const focusTable = () => el('app').focus()
 const onWagerOpen = open => room?.setLookBlocked(open || menuOpen)
-try { const saved = JSON.parse(sessionStorage.getItem(storageKey) || 'null'); token = saved?.token || ''; admissionNonce = saved?.nonce || admissionNonce } catch { /* Leave unrelated storage untouched. */ }
+const currentKey = recovery.current()
+let savedKeys = [], playerName = currentKey?.name || 'Guest'
+if (currentKey) { token = currentKey.token; admissionNonce = currentKey.nonce; el('name').value = playerName }
 const records = [], started = new Date().toISOString()
 let truncated = false
-function save() { sessionStorage.setItem(storageKey, JSON.stringify({ token, nonce: admissionNonce })) }
+const seatKey = () => ({ token, nonce: admissionNonce, name: playerName })
+function save(remember = false) {
+  if (!recovery.save(seatKey(), remember)) el('storage-warning').textContent = 'Browser storage is unavailable. You can play, but keep this tab open: your seat may not survive closing or reloading it.'
+}
+function forget(key) {
+  if (!recovery.forget(key)) el('storage-warning').textContent = 'Browser storage blocked cleanup. This device may still remember the seat; clear its poker site data before sharing this browser.'
+}
+function showSaved() {
+  savedKeys = recovery.saved()
+  el('recovery').hidden = token || !savedKeys.length
+  el('saved-seats').replaceChildren(...savedKeys.map((key, index) => {
+    const option = document.createElement('option'); option.value = String(index); option.textContent = key.name; return option
+  }))
+  el('resume-seat').disabled = el('forget-seat').disabled = pending
+}
 function record(path, status, data) {
   if (records.length >= 512) { truncated = true; return }
   const v = data?.view
@@ -53,10 +70,10 @@ const card = value => `${({11:'J',12:'Q',13:'K',14:'A'})[value%13+2] || value%13
 function render() {
   el('entry').hidden = !!state; el('table').hidden = !state
   el('inspect').hidden = el('details').hidden = !state
-  el('create').disabled = pending; el('join').disabled = pending
+  el('create').disabled = pending || !!token; el('join').disabled = pending || !!token
   if (!state) {
     room?.dispose(); room=null; labels.clear(); el('labels').replaceChildren(); bettingRoot.render(null)
-    inspected=false;menuOpen=false;connectionLost=false;authorityRevision=-1;el('menu').hidden=true; return
+    inspected=false;menuOpen=false;connectionLost=false;authorityRevision=-1;el('menu').hidden=true;showSaved(); return
   }
   const v = state.view, own = v.players[v.self.seat]
   if(v.revision !== authorityRevision) { authorityRevision=v.revision; controlsRevision++ }
@@ -84,6 +101,7 @@ function render() {
   el('heading').textContent = `${own.name} · Seat ${v.self.seat+1}`
   el('connection').textContent = connectionLost || ended ? 'Connection interrupted — wagering disabled' : !state.hostConnected ? 'Host disconnected — table suspended' : state.paused ? 'Table paused' : v.self.waiting ? 'Seat reserved — joining next hand' : v.actor===v.self.seat ? 'Your move' : 'Connected · LAN'
   el('invite').textContent = state.code ? `Lobby code: ${state.code.slice(0,5)}-${state.code.slice(5)}` : 'Six playing seats · empty seats are NPCs'
+  el('host-storage').textContent = state.durable ? 'Host saves this table privately. A host restart pauses play until the host resumes.' : 'Disposable host: stopping its process ends this table.'
   const phase=v.phase==='betting'?['Pre-flop','Flop','Turn','River'][v.street]:v.phase==='ready'?'Waiting for host':v.phase==='complete'?'Hand complete':v.phase==='showdown'?'Showdown':'Dealing'
   const winners=v.phase==='complete'?v.results.filter(r=>r.won>0).map(r=>`${v.players[r.seat].name} wins ${r.won}`).join(' · '):''
   el('phase').textContent = `Hand ${v.handNumber} · ${phase} · Pot ${v.pot} · Your stack ${own.stack}${winners?' · '+winners:''}`
@@ -113,16 +131,36 @@ async function run(work) {
   finally { pending = false; render() }
 }
 async function enter(joining) {
-  const result = await api(joining ? '/api/join' : '/api/create', { name: el('name').value, nonce: admissionNonce, ...(joining ? { code: el('code').value } : {}) })
-  token = result.token; save(); await api('/api/state')
+  playerName = el('name').value
+  // Save the retry identity before sending. A lost admission response must not
+  // become a second player when this tab reloads and retries with the same name.
+  save()
+  const result = await api(joining ? '/api/join' : '/api/create', { name: playerName, nonce: admissionNonce, ...(joining ? { code: el('code').value } : {}) })
+  token = result.token; save(el('remember').checked); await api('/api/state')
 }
 el('create').onclick = () => run(() => enter(false)); el('join').onclick = () => run(() => enter(true))
 el('start').onclick = () => run(() => api('/api/start', { revision: state.view.revision }))
 el('pause').onclick = () => run(() => api('/api/pause', { paused: !state.paused }))
-el('leave').onclick = () => run(async () => { await api('/api/leave', {}); token=''; state=null; admissionNonce=hex(); save(); el('connection').textContent='Left table' })
+el('leave').onclick = () => run(async () => { await api('/api/leave', {}); forget(seatKey());token=''; state=null; admissionNonce=hex(); el('connection').textContent='Left table' })
 el('forget').onclick = () => {
-  token=''; state=null; ended=false; admissionNonce=hex(); save()
+  forget(seatKey());token=''; state=null; ended=false; admissionNonce=hex()
   el('forget').hidden=true; el('error').textContent=''; el('connection').textContent='Not connected'; render()
+}
+el('resume-seat').onclick = () => {
+  const selected = savedKeys[Number(el('saved-seats').value)]
+  if (!selected) return
+  void run(async () => {
+    token=selected.token;admissionNonce=selected.nonce;playerName=selected.name;ended=false;renderFailed=false
+    save(); await api('/api/state')
+  })
+}
+el('forget-seat').onclick = () => {
+  const selected = savedKeys[Number(el('saved-seats').value)]
+  if (selected) { forget(selected);showSaved() }
+}
+el('remember-current').onclick = () => {
+  if (recovery.save(seatKey(), true)) el('seat-note').textContent = 'Seat remembered on this browser. Close this tab before resuming it in another.'
+  else el('storage-warning').textContent = 'Browser storage is unavailable. Keep this tab open; the seat was not safely remembered.'
 }
 function wager(action) {
   // Capture one intent before awaiting. Never silently update its revision or

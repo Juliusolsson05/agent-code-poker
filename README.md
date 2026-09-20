@@ -4,7 +4,7 @@ A standalone Agent Code extension: six-seat No-Limit Texas Hold’em in a seated
 
 ## Development
 
-Node 22.12 or newer. Run `npm ci`, then `npm run dev`. Open [the live preview](http://127.0.0.1:5191/dev/). Changes hot-reload. `npm run verify` checks rules, scene invariants, TypeScript and production packaging. After building, `/dev/?production` loads the shipped view bundle rather than source.
+Node22 LTS (22.13+) or24+. Run `npm ci`, then `npm run dev`. Open [the live preview](http://127.0.0.1:5191/dev/). Changes hot-reload. `npm run verify` checks rules, scene invariants, TypeScript and production packaging. After building, `/dev/?production` loads the shipped view bundle rather than source. The standalone host uses Node's built-in SQLite only for an OS-managed ownership lease; some supported Node versions emit its experimental warning.
 
 The preview stores a separate local-browser save. It does not read installed Agent Code saves. To test installation, load this repository folder in Agent Code’s extension settings and run **Play Agent Code Poker**. Production `dist/` is committed because GitHub installation does not build source archives.
 
@@ -42,7 +42,7 @@ app's full `GameState` or cast a redacted view back into one.
 ### Experimental 3D LAN website
 
 `npm run build` compiles both the extension and `lan-dist/`. `npm run lan`
-starts the separate, memory-only3D multiplayer candidate at
+starts the separate, persistent3D multiplayer candidate at
 `http://127.0.0.1:5192/`. It does not modify solo saves.
 Create a table on the host computer, then share its lobby
 code. `npm run lan -- --lan` explicitly enables private-LAN connections and
@@ -52,28 +52,36 @@ encrypted: use a trusted LAN, never port-forward or publicly deploy this host.
 
 Six seats are maintained by the host, with NPCs filling unclaimed seats. Arrivals
 during a hand wait for the next deal without receiving the old NPC cards.
-Tab-scoped credentials resume the same seat after reload; a new tab is a new
-player. Guest absence permits bot fallback after 15 seconds; host absence
-suspends the table. Leaving as host or stopping the process ends this disposable
-session. Clear an ended connection explicitly; network errors never create a
-replacement table. Closing a tab currently loses its tab-scoped credential;
-durable seat recovery is still required before release. **Table menu** shows
+Tab-scoped credentials resume the same seat after reload. Opt into **Remember my
+seat on this browser** before joining, or use the table-menu equivalent. A new
+tab offers **Resume saved seat**, never automatic takeover; close the previous
+tab first. Use the same host URL. Shared-device users should Leave or Forget
+their saved key. Storage denial shows a warning without discarding the live
+connection. Guest absence permits bot fallback after15 seconds; host absence
+suspends the table. A process restart restores the private host checkpoint and
+requires explicit host resume. Leaving as host ends the table for everyone.
+Clear an ended connection explicitly; network errors never create a replacement
+table. `--memory-only` opts into a disposable host that loses its room on stop.
+**Table menu** shows
 the code/roster and host pause/end controls. The host deals the next hand.
 Betting uses the shared keyboard tray (F/C/B, arrows, presets1–4, Enter/Esc),
 and Space inspects only your allowed cards. Each viewer occupies the near seat;
 opponent models follow stable authority identities, not their display slot.
-Durable sessions, actual two-browser3D acceptance, bank debt and separate-device
+Actual recovery/two-browser3D acceptance, bank debt and separate-device
 LAN acceptance remain open. The installed extension has no
 network-hosting API and does not load this standalone server.
 
-Host recovery is under isolated integration: `startLanHost` accepts an optional
-private `checkpointDirectory` for testing commit-before-ACK and restart. It is
-not enabled by the CLI yet. Checkpoints contain private cards and credentials:
-never publish, serve, export or commit that directory. Corrupt data, failed writes
-and leftover ownership/staging files fail closed; do not delete them to start a
-new table. Safe interrupted-host cleanup and closed-tab seat recovery remain
-release gates. Normal shutdown preserves a checkpoint; explicit host Leave
-persists an ended-session tombstone. Solo saves are never involved.
+The CLI stores its private checkpoint in ignored `.poker-lan/` on local disk.
+It contains private cards and credentials: never share, serve, export or commit
+that directory. A SQLite EXCLUSIVE lease prevents concurrent owners and releases
+on process death; it stores no poker ledger. Interrupted staging bytes are
+preserved as private `interrupted-*.json` files, never promoted to accepted bets.
+Corrupt data, failed writes or legacy experimental `host.lock` files fail closed;
+preserve them and investigate rather than deleting them to create a new table.
+Use local disk, not network shares. Normal shutdown preserves a checkpoint;
+explicit host Leave persists an ended-session tombstone. Solo saves are untouched.
+Actual multi-browser recovery remains an acceptance gate, despite passing
+isolated HTTP and deliberate child-process kill tests.
 
 `src/presentation/RoomProjection.ts` is the room's only reconciliation layer.
 Local/remote inputs become explicit visible/hidden/absent card views and rotated

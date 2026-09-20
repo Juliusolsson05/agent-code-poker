@@ -133,7 +133,7 @@ export async function startLanHost(options: Options = {}) {
   // distinct from wager revision: pause/lease responses also need an ordering
   // guard so a late poll cannot visually undo an acknowledged pause or action.
   const envelope = (r: Room, c: Credential) => ({ generation, observation: ++r.observation, view: r.table.view(c.id), isHost: c === r.host,
-    paused: r.paused || !r.host.connected, hostConnected: r.host.connected,
+    paused: r.paused || !r.host.connected, hostConnected: r.host.connected, durable: !!store,
     ...(c === r.host ? { code: r.code } : {}) })
   const send = (response: ServerResponse, status: number, value: unknown) => {
     // The synchronous commit finishes before ANY API response is published.
