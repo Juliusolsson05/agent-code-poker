@@ -4,6 +4,7 @@ import type { Calibration, Quat } from './interactions/contracts'
 import { PLAYER_LAYOUT } from './environment/layout'
 import { CIGAR, drinkAnchors, isDrinkKind, type DrinkKind } from './props/specs'
 import { CIGAR_HAND_CONTACT, GLASS_HAND_CONTACT, GLASS_HAND_ROTATION } from './HandGrips'
+import type { CompletedSip } from '../interaction/drinking/DrinkWarmth'
 
 export type { InteractionPose } from './interactions/contracts'
 const rotation = (x: number, y: number, z: number): Quat => new Quaternion().setFromEuler(new Euler(x, y, z)).toArray()
@@ -16,6 +17,15 @@ const basis = (x: Vector3, y: Vector3, z: Vector3): Quat => new Quaternion().set
 export class InteractionDirector {
   readonly calibration: Calibration
   private leisure: Leisure
+  private kind:DrinkKind='old-fashioned'
+  private observedSips=0
+  private completed:CompletedSip|null=null
+  private collectSip():void {
+    if(this.leisure.completedSips===this.observedSips)return
+    this.observedSips=this.leisure.completedSips
+    this.completed={id:this.observedSips,actor:'player',kind:this.kind}
+  }
+  takeCompletedSip():CompletedSip|null {this.collectSip();const event=this.completed;this.completed=null;return event}
   constructor() {
     const trayRotation = basis(new Vector3(-1, 0, 0), new Vector3(0, 0, -1), new Vector3(0, -1, 0))
     // The recorded Euler pose aimed the ember +Z, back toward the eyes, while
@@ -45,15 +55,15 @@ export class InteractionDirector {
     this.calibration.drinkMouth.position = new Vector3(...PLAYER_LAYOUT.mouth)
       .sub(new Vector3(...anchors.rim).applyQuaternion(new Quaternion(...this.calibration.drinkMouth.rotation))).toArray()
   }
-  canOrder(now: number): boolean { return this.leisure.canReplaceDrink(now) }
+  canOrder(now: number): boolean { const allowed=this.leisure.canReplaceDrink(now);this.collectSip();return allowed }
   orderDrink(kind: DrinkKind, now: number): boolean {
     // A menu may be stale by the time its click arrives. Arbitration, not UI
     // disabled styling, guarantees that an owned/in-flight glass cannot change.
     if (!isDrinkKind(kind) || !this.canOrder(now)) return false
-    this.calibrateDrink(kind); return true
+    this.calibrateDrink(kind); this.kind=kind; return true
   }
   setActive(active: boolean, now: number): void { this.leisure.setActive(active, now) }
   begin(action: 'drink' | 'smoke', now: number): boolean { return this.leisure.begin(action, now) }
   inspect(active: boolean, now: number): void { this.leisure.inspect(active, now) }
-  sample(now: number) { return this.leisure.sample(now) }
+  sample(now: number) { const pose=this.leisure.sample(now);this.collectSip();return pose }
 }

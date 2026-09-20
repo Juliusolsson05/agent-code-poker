@@ -4,6 +4,18 @@
 
 ### Next slice: completed-sip feedback, no anatomy edits
 
+Checkpoint: player owner emits one completed-sip receipt at existing sip-end,
+and optional Off/Subtle/Soft room-only warmth consumes it. No pose timing or art
+changed. Actual wine/order/water/off recording retained; it exposed receipt/frame
+timestamp inversions, preserved as a negative control. Logging order corrected;
+fresh10-22-27 trace has one Old Fashioned receipt and monotonic timestamps.
+Shipped sip/Off/call20/inspection/pause/reload restores stack1980/pot90 and zero
+exposure. Full verify163 tests/builds/SDK/preview pass; corpus check rerun after
+fresh capture. NPC exterior grip, capped/reduced-motion visual acceptance and
+all remaining mouse-look/snow/audio/performance gates remain open. LAN keeps
+this optional effect off; settings are session-local. Next resume that backlog,
+not hand art. Session31 documents actual versus synthetic evidence.
+
 The existing Leisure sampler owns reach/lift/sip/return on the paused visual
 clock but emits no completed-sip receipt. Recordings already retain real drink
 orders and interruptions; add tests at the existing sip-end3s boundary before

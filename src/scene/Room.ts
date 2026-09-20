@@ -17,6 +17,7 @@ import type { TraceValue } from './diagnostics/Recorder'
 import { CHAIR_BLOCKS, PLAYER_LAYOUT, SEATS, seatYaw } from './environment/layout'
 import { createFeltPrint } from './TablePrint'
 import { SeatedLook } from './camera/SeatedLook'
+import { DrinkWarmth, type DrinkEffectLevel } from '../interaction/drinking/DrinkWarmth'
 
 import { createRoomPlan, type RoomBlock } from './environment/RoomPlan'
 import { createTavernLighting, TAVERN_EXPOSURE } from './environment/Lighting'
@@ -31,6 +32,18 @@ import { PostProcessing, RENDERER_OPTIONS } from './rendering/PostProcessing'
 export class PokerRoom {
   onAudioListener?: (matrix: ArrayLike<number>) => void
   private lastAudioPose = -Infinity
+  private drinkWarmth = new DrinkWarmth()
+  private drinkTint = document.createElement('div')
+  private tintOpacity = ''
+  setDrinkEffect(level:DrinkEffectLevel):void {
+    this.drinkWarmth.setLevel(level);this.paintDrinkEffect()
+    this.capture?.event('drink-effect-setting',{level})
+  }
+  private paintDrinkEffect():void {
+    const opacity=this.drinkWarmth.opacity.toFixed(3)
+    if(opacity===this.tintOpacity)return
+    this.tintOpacity=opacity;this.drinkTint.style.opacity=opacity
+  }
   // Fresh drag/comfort evidence is unavailable while CUA is disconnected.
   // Keep this integration explicitly opt-in until real source/shipped checks
   // pass; a synthetic controller test is not permission to change live play.
@@ -105,6 +118,11 @@ export class PokerRoom {
     this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
     this.renderer.domElement.setAttribute('aria-label', 'Seated first-person view of a dimly lit poker table, detailed voxel opponents, and an amber-lit bar')
     this.renderer.domElement.setAttribute('role', 'img'); container.append(this.renderer.domElement)
+    // A static room-only edge tint adds no render target, camera transform or
+    // blur. HUD/cards/readouts outside this container keep their original CSS.
+    // Quantized opacity avoids rewriting style on every tiny decay frame.
+    this.drinkTint.className='drink-warmth';this.drinkTint.setAttribute('aria-hidden','true')
+    container.append(this.drinkTint);this.paintDrinkEffect()
     this.renderer.domElement.addEventListener('webglcontextlost', this.lost)
     container.parentElement?.addEventListener('pointermove', this.look)
     container.parentElement?.addEventListener('pointerleave', this.centerLook)
@@ -332,7 +350,7 @@ export class PokerRoom {
     }
     const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy(); this.textures.set(key, texture); return texture
   }
-  setPlaying(playing: boolean): void { if (playing) this.capture?.cancelProbe('entered-game'); this.capture?.event('playing', { playing }); this.hero.setActive(playing); this.lookPlaying = playing; this.seatedLook.setContext({ playing }); if (!playing) this.suspendLook() }
+  setPlaying(playing: boolean): void { if (playing) this.capture?.cancelProbe('entered-game'); this.capture?.event('playing', { playing }); this.hero.setActive(playing); this.lookPlaying = playing; this.seatedLook.setContext({ playing }); if (!playing) {this.suspendLook();this.hero.takeCompletedSip();this.drinkWarmth.reset();this.paintDrinkEffect()} }
   setPaused(paused: boolean): void { if (paused) { this.capture?.cancelProbe('paused'); this.suspendLook() } this.capture?.event('pause', { paused }); this.paused = paused; this.seatedLook.setContext({ paused }); this.pausedRendered = false }
   private publishLeisure(): void {
     const value = { kind: this.hero.drinkKind, available: !this.paused && !this.inspecting && !this.seatedLook.contactPending && this.hero.leisureAvailable }
@@ -412,6 +430,11 @@ export class PokerRoom {
     if (!this.probeMode) this.visualTime += dt
     const t = this.probeMode ? 12 : this.visualTime, now = t * 1000
     this.hero.setInspection(this.inspecting); this.hero.frame(t, this.reduced.matches)
+    this.drinkWarmth.advance(dt)
+    const sip=this.hero.takeCompletedSip()
+    if(sip)this.drinkWarmth.accept(sip)
+    const sipOpacity=this.drinkWarmth.opacity
+    this.paintDrinkEffect()
     this.publishLeisure()
     // Inspection is a presentation-only lean, never a second gameplay mode.
     // Time-based damping avoids different transition speeds on 60/144Hz screens.
@@ -491,6 +514,11 @@ export class PokerRoom {
       people: this.people.map(h => ({ seat: h.seat, root: transform(h.root), drink: transform(h.drink.root),
         rightHand: transform(h.rightRig.hand.root), shoulder: h.rightRig.shoulder.toArray(), elbow: h.rightRig.elbow.toArray(), wrist: h.rightRig.wrist.toArray() })),
     }))
+    // frame() retains frame-start wall time. Emitting a performance.now() event
+    // before it made the first real sip trace go backwards by.2–.3ms. Record
+    // the receipt after that frame, preserving actual clocks without sorting
+    // or rewriting raw evidence. The visual completion time remains identical.
+    if(sip)this.capture?.event('completed-player-sip',{...sip,opacity:sipOpacity})
     if (this.stats) {
       this.measuredFrames++; this.measuredCpu += performance.now() - wallTime
       if (wallTime - this.measuredAt > 1000) {
@@ -522,6 +550,6 @@ export class PokerRoom {
         if (object instanceof THREE.SkinnedMesh) object.skeleton.dispose()
       }
     }); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); this.materials.forEach(m => m.dispose()); this.textures.forEach(t => t.dispose())
-    this.capture?.dispose(); this.hero.dispose(); this.chips.dispose(); this.christmas.dispose(); this.post.dispose(); this.renderer.dispose(); this.renderer.domElement.remove(); this.stats?.remove()
+    this.capture?.dispose(); this.hero.dispose(); this.chips.dispose(); this.christmas.dispose(); this.post.dispose(); this.renderer.dispose(); this.renderer.domElement.remove(); this.drinkTint.remove(); this.stats?.remove()
   }
 }

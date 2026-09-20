@@ -30,6 +30,13 @@ a new table explicitly ends that practice room, its history and its debt.
 
 **Drinks ▾** opens a compact free menu: Old Fashioned, winter ale, red wine or water. **D** sips the current drink. Ordering is available only once your hand has finished its current action; it replaces the glass on your coaster and never spends chips. Drink selection is cosmetic and resets to Old Fashioned on reload, without changing the saved poker hand. Grips remain under visual refinement.
 
+Solo **Settings → Drink effect** selects Off, Subtle or Soft edge warmth. It
+builds only after completed player alcoholic sips—not orders, NPC drinks or
+water. This is cosmetic, not a blood-alcohol simulation: no blur, sway or rules
+changes. Six sips cap it; it fades over ten active minutes from the cap, freezes
+when paused and resets on leaving/reload. Off clears it immediately. The setting
+lasts until reload. The LAN adapter currently leaves this optional effect off.
+
 Hold **Space** while the table is focused to lean over your cards and chips; release to look up. The **Cards & chips** button toggles the same view without holding a key. Buttons and inputs retain normal Space behavior. Inspection does not pause betting or reveal opponents' cards. The website fills the browser and offers a fullscreen button; Agent Code host fullscreen is deferred.
 
 The public community cards stay in a compact **bottom-right** readout throughout

@@ -30,6 +30,8 @@ export class Leisure {
   private startOwner: Owner = 'right-hand'
   private returning: InteractionPose | null = null
   private returnDuration = .45
+  private countedSip = false
+  completedSips = 0
 
   constructor(readonly calibration: Calibration) {}
 
@@ -49,7 +51,7 @@ export class Leisure {
   begin(action: 'drink' | 'smoke', now: number): boolean {
     this.sample(now)
     if (!this.active || this.requestedInspection || this.action !== 'idle') return false
-    this.action = action; this.startedAt = now; this.startOwner = this.cigarOwner
+    this.action = action; this.startedAt = now; this.startOwner = this.cigarOwner; this.countedSip = false
     return true
   }
 
@@ -82,6 +84,13 @@ export class Leisure {
 
   sample(now: number): InteractionPose {
     const c = this.calibration, age = Math.max(0, now - this.startedAt)
+    // Completion belongs to this owner, not to a D-key handler or renderer
+    // frame counter. The held-at-mouth interval ends at3s. Crossing it once
+    // counts even if a frame skips the boundary; interrupting before it changes
+    // action to return and cannot later manufacture a sip. Paused clock = no sip.
+    if(this.action==='drink' && age>=3 && !this.countedSip) {
+      this.completedSips++;this.countedSip=true
+    }
     const duration = this.action === 'drink' ? 5.35 : this.action === 'smoke' ? (this.startOwner === 'table' ? 4.15 : 3.6) : this.returnDuration
     if (this.action !== 'idle' && age >= duration) {
       if (this.action === 'return') this.cigarOwner = this.returning!.cigar.owner

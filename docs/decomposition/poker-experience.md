@@ -4,6 +4,19 @@
 
 ### B19–E19 completed-sip feedback
 
+Implementation checkpoint: Leisure owns completion count, InteractionDirector
+tags the consumed drink and FirstPerson exposes receipts to Room. Downstream
+DrinkWarmth lives outside the isolated ownership core: a failed isolation test
+caught the initial placement, and the dependency boundary was restored without
+weakening that test. Room adds a static edge layer, not another render target.
+Full verify163 tests/builds/contracts/preview pass. CUA wine/water/order/off raw
+trace retained with exactly2 known timestamp inversions as a negative control;
+event emission moved after frame diagnostics and the fresh candidate is fully
+monotonic. Source and shipped show exposure only after a sip and immediate Off.
+Shipped call20/inspection/pause/reload restores stack1980/pot90 and sober effect.
+Session31 records limitations: no final grip/anatomy, cap/reduced-motion device,
+FPS or Electron signoff; LAN deliberately keeps the optional effect off.
+
 Existing real player drink/interruption recordings and calibrated ownership
 sampler are the baseline. Current source emits requests but no completion; no
 intoxication effect exists. Preserve geometry and all motion timing.

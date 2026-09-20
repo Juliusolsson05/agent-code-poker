@@ -64,7 +64,27 @@
       "images": ["poker-evidence-2026-09-20T03-21-27-774Z-6.417.png"]
     }
   ],
+  "timingNegativeControls": [
+    {
+      "file": "poker-evidence-2026-09-20T10-19-46-200Z.json.gz",
+      "rawSha256": "b62901f4f2f39766f685a45a3352f1b0f22ff4c19ccfc7cfad5dd59d881747ee",
+      "provenance": "Actual source CUA: wine order then sip, water order then sip, effect Off, legal call20, inspection and pause. Wine receipt at19.6298s opacity.015, water at31.9434s opacity.013153 (decay only). No receipt on ordering.",
+      "frameCount": 1918,
+      "poseCount": 484,
+      "images": [],
+      "limitations": "Exactly two actual timestamp reversals: sip event was emitted before a frame recorded with its earlier start timestamp. Preserve raw bytes as a diagnostics negative control, not a monotonic candidate trace or visual/performance approval."
+    }
+  ],
   "candidateSessions": [
+    {
+      "file": "poker-evidence-2026-09-20T10-22-27-476Z.json.gz",
+      "rawSha256": "6ef272bc6b7cc82d6c18991fc2f81a41f90d1b97d8afc405ecaeaeeb2bb5cbfb",
+      "provenance": "Actual source CUA after receipt timestamp-order correction: restore hand1 stack1980, completed Old Fashioned sip with exactly one receipt and opacity.015, later pause. All recorded timestamps monotonic.",
+      "frameCount": 930,
+      "poseCount": 231,
+      "images": ["poker-evidence-2026-09-20T10-22-27-476Z-32.955.png"],
+      "limitations": "Canvas export excludes CSS effect and HUD; whole-UI screenshot inspected separately in CUA. Not a golden, contact approval or controlled performance comparison."
+    },
     {
       "file": "poker-evidence-2026-09-20T10-00-32-431Z.json.gz",
       "rawSha256": "36baaf46b3bd9b5919e1fe69c1b51c0654133b6886dbd42289e503e32e8a1167",

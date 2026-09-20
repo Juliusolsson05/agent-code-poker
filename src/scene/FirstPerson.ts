@@ -62,6 +62,7 @@ export class FirstPerson {
   }
   get leisureAction(): LeisureAction { return this.resolved.action }
   get drinkKind(): DrinkKind { return this.drink.kind }
+  takeCompletedSip() {return this.director.takeCompletedSip()}
   get leisureAvailable(): boolean { return this.active && !this.inspecting && this.director.canOrder(this.now) }
   orderDrink(kind: DrinkKind): boolean {
     if (!isDrinkKind(kind) || !this.leisureAvailable) return false

@@ -1,0 +1,17 @@
+{
+  "kind": "manual CUA observations plus retained unmodified browser recordings",
+  "date": "2026-09-20",
+  "candidate": "completed-sip feedback after plan69ee7a3",
+  "source": [
+    "qa=sip-31&record: order wine, observe DOM tint opacity0, sip wine, later observe opacity.014. Order and sip water. Settings Off immediately sets opacity0. Call20, inspection and pause.",
+    "Raw10-19-46 captures exactly2 completed player receipts: wine.015 and water.01315296 (decay only), after their3s sip boundary. It also exposed exactly2 timestamp reversals because receipts preceded frame-start timestamps; retained verbatim as a timing negative control.",
+    "After logging correction, reload restores hand1 stack1980. Raw10-22-27 captures one Old Fashioned completion with opacity.015 and no timestamp reversals. Later tint.013; original HUD/cards readable in CUA screenshot. Canvas export retained but does not contain CSS tint/HUD.",
+    "Captured source warning/error logs empty on the first recording. Source hand1 progressed to flop stack1980/pot932 during the second recording."
+  ],
+  "shipped": [
+    "Fresh /dev/?production&qa=sip-31ship sober tint0. Old Fashioned sip then tint.012; Settings Off immediately restores0.",
+    "Call20 through keyboard, inspect cards/chips, screenshot inspected, pause/reload/Return/Pause restores hand1 preflop stack1980/pot90 and tint0. Captured warn/errors empty."
+  ],
+  "automated": "Synthetic completion/cancel/pause/skipped-frame/water/duplicate/cap/decay/off tests; actual wine/water receipt replay; original ownership isolation and recorded mouth-contact tests preserved.",
+  "limits": ["No NPC exterior-grip or final hand-art approval", "No capped-effect visual or reduced-motion device check", "No measured FPS/listening/Electron or LAN effect acceptance", "LAN leaves optional effect off; solo setting and exposure are session-local", "Raw negative-control timestamps were not sorted or rewritten"]
+}

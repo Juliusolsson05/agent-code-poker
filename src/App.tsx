@@ -14,6 +14,7 @@ import { PokerHeader, TableInfo, SeatContents, PotContents, TableReadout } from 
 import { BettingControls, type BettingHandle } from './components/BettingControls'
 import { BankControls } from './components/BankControls'
 import { restoreSoloSave, soloCheckpoint, freshSoloBank, soloBankOffer, transferSoloBank, type BankState, type BankOperation, type Preferences } from './solo/table'
+import type { DrinkEffectLevel } from './interaction/drinking/DrinkWarmth'
 
 const SAVE_KEY = 'poker.table.v1'
 type Save = Preferences
@@ -47,6 +48,7 @@ export function App({ api }: { api: PokerApi }) {
   const inspectionHeld = useRef(false)
   const [orbit, setOrbit] = useState(0)
   const [lookEnabled, setLookEnabled] = useState(true)
+  const [drinkEffect,setDrinkEffect]=useState<DrinkEffectLevel>('subtle')
   const [sceneReady, setSceneReady] = useState(0)
   const stage = useRef<HTMLDivElement>(null)
   const root = useRef<HTMLDivElement>(null)
@@ -122,6 +124,7 @@ export function App({ api }: { api: PokerApi }) {
   useEffect(() => { scene.current?.setPaused(paused || !!panel || confirmNew || !!error || sceneFailed) }, [paused, panel, confirmNew, error, sceneFailed, sceneReady])
   useEffect(() => { scene.current?.setInspection(inspecting) }, [inspecting, sceneReady])
   useEffect(() => { scene.current?.setLookEnabled(lookEnabled) }, [lookEnabled, sceneReady])
+  useEffect(() => { scene.current?.setDrinkEffect(drinkEffect) }, [drinkEffect, sceneReady])
   useEffect(() => { scene.current?.setLookBlocked(drinkMenu || raiseOpen) }, [drinkMenu, raiseOpen, sceneReady])
   useEffect(() => {
     if (lobby || paused || panel || confirmNew || error || sceneFailed) {
@@ -387,6 +390,7 @@ export function App({ api }: { api: PokerApi }) {
       </div> : panel === 'settings' ? <div className="settings-content">
         <label>Table pace<select value={speed} disabled={saving || loading || loadFailed} onChange={event => { const value = event.target.value as Save['speed']; setSpeed(value); preferences.current.speed = value; void persist(game.current?.snapshot() ?? null) }}><option value="relaxed">Relaxed</option><option value="brisk">Brisk</option></select></label><p>How long opponents take between decisions.</p>
         <label>Sound<button onClick={toggleMute} disabled={saving || loading || loadFailed} aria-pressed={!muted}>{muted ? 'Off' : 'On'}</button></label>
+        <label>Drink effect<select aria-label="Drink effect" value={drinkEffect} onChange={event=>setDrinkEffect(event.target.value as DrinkEffectLevel)}><option value="off">Off</option><option value="subtle">Subtle</option><option value="soft">Soft</option></select></label><p>A gentle edge warmth only after your completed alcoholic sips. No camera sway or blur. Water and ordering do not add it. Off clears it; this preference lasts until reload.</p>
         <label>Camera angle<input type="range" min={-1} max={1} step={0.1} value={orbit} onChange={event => setOrbit(Number(event.target.value))} /></label>
         {scene.current?.experimentalLook && <><label>Mouse-look<button aria-pressed={lookEnabled} onClick={() => setLookEnabled(value => !value)}>{lookEnabled ? 'On' : 'Off'}</button></label><p>Hold the left mouse button and drag the room. R centers your view. Controls never steer the camera. This setting lasts until reload.</p></>}
         <p>Motion follows your device’s reduced-motion preference.</p>
