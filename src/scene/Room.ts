@@ -14,6 +14,7 @@ import { ChristmasTavern } from './Christmas'
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import { createTableSurface, dealerPosition, TABLE } from './Table'
 import { SceneCapture, transform } from './diagnostics/SceneCapture'
+import { PLAYER_LAYOUT } from './environment/layout'
 
 export const SEATS: [number, number][] = [[0, 1.7], [-1.82, -.39], [-1.10, -1.03], [0, -1.25], [1.10, -1.03], [1.82, -.39]]
 type Block = { color: string; position: [number, number, number]; size: [number, number, number] }
@@ -113,7 +114,7 @@ export class PokerRoom {
       // Both sides receive only the back texture, including in the inspector.
       human.cards.add(createHeldCardFan(() => this.cardTexture(null)).fan)
     }
-    this.hero = new FirstPerson(this.geometry, c => this.cardTexture(c)); this.camera.add(this.hero.root); this.scene.add(this.camera, this.hero.tableProps)
+    this.hero = new FirstPerson(this.geometry, c => this.cardTexture(c)); this.scene.add(this.camera, this.hero.root, this.hero.tableProps)
     this.chips = new ChipField(SEATS); this.scene.add(this.chips.root)
     this.cardField = new CardField(SEATS, c => this.cardTexture(c)); this.scene.add(this.cardField.root)
     this.dealer = new THREE.Mesh(new THREE.CylinderGeometry(.039, .039, .012, 32), this.material('#b9af99')); this.dealer.visible = false; this.scene.add(this.dealer)
@@ -249,7 +250,7 @@ export class PokerRoom {
   private resize(): void {
     this.pausedRendered = false
     const width = this.container.clientWidth, height = Math.max(1, this.container.clientHeight)
-    this.camera.aspect = width / height; this.camera.position.set(this.orbit * .12, 1.43, 2.02); this.camera.lookAt(this.orbit * .3, 1.03, -.60)
+    this.camera.aspect = width / height; this.camera.position.set(this.orbit * .12, PLAYER_LAYOUT.eye[1], PLAYER_LAYOUT.eye[2]); this.camera.lookAt(this.orbit * .3, PLAYER_LAYOUT.look[1], PLAYER_LAYOUT.look[2])
     this.camera.updateProjectionMatrix(); this.camera.updateMatrixWorld(); this.renderer.setSize(width, height); this.composer.setSize(width, height)
     this.labelCamera.aspect = this.camera.aspect; this.labelCamera.position.copy(this.camera.position)
     this.labelCamera.lookAt(this.orbit * .3, 1.03, -.60); this.labelCamera.updateProjectionMatrix(); this.labelCamera.updateMatrixWorld()
@@ -318,19 +319,18 @@ export class PokerRoom {
     const dt = this.paused ? 0 : Math.min(.1, frameMs / 1000); this.lastFrame = wallTime
     this.visualTime += dt
     const t = this.visualTime, now = t * 1000
+    this.hero.setInspection(this.inspecting); this.hero.frame(t, this.reduced.matches)
     // Inspection is a presentation-only lean, never a second gameplay mode.
     // Time-based damping avoids different transition speeds on 60/144Hz screens.
-    this.inspectionBlend = this.reduced.matches ? Number(this.inspecting)
-      : THREE.MathUtils.lerp(this.inspectionBlend, Number(this.inspecting), 1 - Math.exp(-dt * 12))
+    this.inspectionBlend = this.reduced.matches ? Number(this.hero.inspectionReady)
+      : THREE.MathUtils.lerp(this.inspectionBlend, Number(this.hero.inspectionReady), 1 - Math.exp(-dt * 12))
     const peek = this.inspectionBlend
     this.gaze.lerp(this.reduced.matches ? new THREE.Vector2() : this.pointer, .045)
-    this.camera.position.set(this.orbit * .12 * (1 - peek), THREE.MathUtils.lerp(1.43, 1.95, peek), THREE.MathUtils.lerp(2.02, 1.05, peek))
+    this.camera.position.set(this.orbit * .12 * (1 - peek), THREE.MathUtils.lerp(PLAYER_LAYOUT.eye[1], 1.95, peek), THREE.MathUtils.lerp(PLAYER_LAYOUT.eye[2], 1.05, peek))
     this.camera.lookAt(THREE.MathUtils.lerp(this.orbit * .30 + this.gaze.x * .11, .14, peek), THREE.MathUtils.lerp(1.03 - this.gaze.y * .055, .793, peek), THREE.MathUtils.lerp(-.6, .30, peek))
     this.camera.fov = THREE.MathUtils.lerp(70, 55, peek); this.camera.updateProjectionMatrix()
-    // Camera-parented hands cannot follow the lean into the table: lower them
-    // out of view while the dedicated own-card inspection surface takes over.
-    this.hero.root.position.y = -peek * .8
-    this.hero.setInspection(this.inspecting || peek > .01)
+    // The director returns held props before allowing the lean. Body/prop poses
+    // stay world-space; the camera never translates the arm or re-parents glass.
     this.cardField.setInspection(peek > .45)
     this.people.forEach(human => {
       const seat = human.seat, player = this.state?.players[seat], gesture = this.gestures.get(seat)
@@ -346,7 +346,7 @@ export class PokerRoom {
     })
     this.dust.rotation.y = this.reduced.matches ? 0 : Math.sin(t * .02) * .08
     this.christmas.frame(t, this.reduced.matches)
-    this.hero.frame(now / 1000, this.reduced.matches); this.chips.frame(now / 1000, this.reduced.matches); this.cardField.frame(now / 1000, this.reduced.matches)
+    this.chips.frame(now / 1000, this.reduced.matches); this.cardField.frame(now / 1000, this.reduced.matches)
     if (this.stats || this.capture) this.renderer.info.reset()
     this.composer.render()
     this.capture?.frame(wallTime, frameMs, performance.now() - wallTime, () => ({

@@ -1,9 +1,11 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
-Status: Stage B baseline captured and independently inspected; Stage C catalog
-written. Interaction/layout contracts and replacement implementation are next.
-Scope: issue #1, `feat/voxel-poker`. Existing uncommitted anatomy/Christmas work is
-provisional, not an accepted baseline. No automatic merge.
+Status: Stage B baseline captured; C/D1 hero ownership/connected reach implemented
+and replayed through actual production bones. Fresh source recording confirms
+bounded reach and safe interrupted return. D2 props/grips and C/D3 environment
+remain open, as do final quality/performance gates.
+Scope: issue #1, `feat/voxel-poker`. Anatomy/Christmas art remains provisional,
+not an accepted visual baseline. No automatic merge.
 
 Method: Julius explicitly requested `Juliusolsson05/staged-decomposition`, read at
 `001b71068cc975b038fb780a367103a8f3f19fa8`. This repository is below its normal
@@ -213,3 +215,46 @@ byte identity plus visible controls and absence of the duplicate-Three warning.
 The browser additionally exposed the SDK's relative shared runtime chunk; the
 endpoint and integration test must cover every emitted JS artifact, not only
 the entry. No arbitrary paths, nested paths or non-JS files are served there.
+
+### C/D1 implementation slice: hero leisure ownership
+
+Work per recorded case, with the hero drink/cigar sequence first. The recorded
+camera z=2.02 places the eyes almost a metre behind the table edge, so a normal
+arm cannot reach the existing drink/tray. The candidate calibration moves the
+seated eye to z=1.50, establishes a world-space shoulder frame, and moves both
+props to the near felt within a 0.57m arm chain. This is a physical-layout
+correction, not a longer stretchy arm. Verify the new player view before final
+acceptance. Environment tree/bar contracts remain a separate C/D3 slice.
+
+First produce and replay an isolated director without mesh dependencies, using
+the recorded command order/visual times. Then integrate that verified output
+into the production hero presenter. Keep these two gates distinct: a correct
+sampler does not yet fix the rendered hand. All phases are sampled from absolute
+visual time so skipped frames cannot omit a prop transfer. Inspection requests
+a short safe return before the camera leans; pause freezes the supplied clock.
+The right hand never owns the glass and cigar simultaneously. If inspection
+interrupts a sip, the cigar may remain safely on the tray until next requested.
+
+The isolated sampler passed the original 500-pose/command replay before hero
+integration. The presenter now consumes resolved joints (not a second IK solve),
+and an integration replay checks actual sleeve-bone/hand-root coincidence and
+the world-space shoulder frame. A dependency test enforces the single director
+consumer and excludes browser/engine/mesh dependencies from the ownership core.
+
+Fresh source capture `2026-09-20T03-39-26-621Z` contains 569 poses, three drink
+starts, pause/resume while lifting, safe interrupted glass return, inspection
+and cigar pickup from the tray. Maximum actual shoulder-to-wrist distance is
+0.553774m in the 0.57m arm chain; no reach correction beyond floating-point
+noise. A new replay preserves this real mid-sip interruption and checks against
+teleporting prop/wrist movement. Four images preserve visible results and the
+remaining poor finger/glass geometry. This closes the hero's unbounded-reach
+substrate, not overall hand quality, opponent ownership, or final visual signoff.
+
+C/D1 checkpoint verification: `npm run verify` passes 34 tests, TypeScript/build,
+two SDK packaging tests and the real preview HTTP integration. Production QA
+reproduces interrupted glass return, inspection then immediate cigar retrieval,
+legal call 66, pause/resume and reload preserving hand 1 turn, stack 1,914 and
+pot 595. Fresh tab reports no console warnings/errors. The new camera makes
+the finger ribbons and slab beards particularly apparent; D2 remains necessary.
+Candidate frame p50/p95 27.4/31.8ms is NOT a performance comparison because the
+camera/workload differs from baseline. Electron-host verification remains open.

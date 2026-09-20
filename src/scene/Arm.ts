@@ -63,6 +63,14 @@ export class SeatedArm {
     pole.addScaledVector(direction, -pole.dot(direction)).normalize()
     this.elbow.copy(this.shoulder).addScaledVector(direction, along).addScaledVector(pole, Math.sqrt(Math.max(0, a * a - along * along)))
     this.wrist.copy(this.shoulder).addScaledVector(direction, distance)
+    this.poseJoints(this.elbow, this.wrist, handRotation)
+  }
+  /** A resolved interaction already owns its joints. Re-running IK here would
+   * create a second arbitration layer whose clamp/pole could detach a prop
+   * despite a valid director snapshot. Legacy independent poses may use solve;
+   * the hero's interaction consumes these exact resolved local-space joints. */
+  poseJoints(elbow: THREE.Vector3, wrist: THREE.Vector3, handRotation: THREE.Euler): void {
+    this.elbow.copy(elbow); this.wrist.copy(wrist)
     const upperRotation = new THREE.Quaternion().setFromUnitVectors(UP, this.elbow.clone().sub(this.shoulder).normalize())
     const foreRotation = new THREE.Quaternion().setFromUnitVectors(UP, this.wrist.clone().sub(this.elbow).normalize())
     const wristRotation = new THREE.Quaternion().setFromEuler(handRotation)

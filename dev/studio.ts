@@ -31,7 +31,7 @@ export function mountStudio(container: HTMLElement): void {
   }
   const geometry = new THREE.BoxGeometry(), hero = new FirstPerson(geometry, texture)
   const seat = new THREE.PerspectiveCamera(70, 1.4, .035, 35)
-  seat.position.set(0, 1.43, 2.02); seat.lookAt(0, 1.03, -.6); seat.add(hero.root); scene.add(seat, hero.tableProps)
+  seat.position.set(0, 1.43, 1.50); seat.lookAt(0, 1.03, -.6); scene.add(seat, hero.root, hero.tableProps)
   hero.setActive(true); hero.update([0, 12], false, 1, -10)
   const requestedSeat = Number(new URLSearchParams(location.search).get('seat') ?? 2)
   const actorSeat = Number.isInteger(requestedSeat) && requestedSeat >= 1 && requestedSeat <= 5 ? requestedSeat : 2
@@ -57,6 +57,7 @@ export function mountStudio(container: HTMLElement): void {
     if (action.value === 'smoke') hero.smokeCigar()
     if (action.value === 'drink') hero.sipDrink()
     hero.frame(time, false)
+    hero.showInspectionSubject(opponent ? '' : selection)
     Object.entries(hero.inspectionTargets).forEach(([name, object]) => { object.visible = !opponent && name === selection })
     human.sipAt = action.value === 'drink' ? 0 : -100; human.nextSip = 100
     poseHuman(human, time, { reduced: false, active: false, folded: action.value === 'fold', showing: false, hasCards: true, dealt: 1, action: action.value, actionAge: time, gaze: 0 })
@@ -64,6 +65,7 @@ export function mountStudio(container: HTMLElement): void {
     ;[human.leftRig, human.rightRig].forEach((arm, i) => { dots[i * 3].position.copy(arm.shoulder); dots[i * 3 + 1].position.copy(arm.elbow); dots[i * 3 + 2].position.copy(arm.wrist) })
     scene.updateMatrixWorld(true)
     let bounds = new THREE.Box3().setFromObject(targets[selection])
+    if (selection === 'Player cigar') bounds.union(new THREE.Box3().setFromObject(hero.tableProps.getObjectByName('player-cigar')!))
     if (selection === 'Opponent left arm' || selection === 'Opponent right arm') {
       const rig = selection.includes('left') ? human.leftRig : human.rightRig
       rig.mesh.computeBoundingBox(); bounds.union(new THREE.Box3().setFromObject(rig.mesh))
@@ -84,7 +86,7 @@ export function mountStudio(container: HTMLElement): void {
   window.addEventListener('resize', render); render()
   import.meta.hot?.dispose(() => {
     window.removeEventListener('resize', render); hero.dispose()
-    scene.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose()) } })
+    scene.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose()); if (o instanceof THREE.SkinnedMesh) o.skeleton.dispose() } })
     renderer.dispose(); renderer.domElement.remove(); style.remove()
   })
 }

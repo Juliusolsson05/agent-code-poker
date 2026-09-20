@@ -9,14 +9,16 @@
       "frequency": { "acceptedStarts": 2, "completed": 1, "interrupted": 1 },
       "evidence": "At visual 31.8281, right wrist world [1.086105,0.711337,0.517719], camera distance 1.988202m. Screenshot 18.065 shows disconnected hand at table. Hero has only a wrist-parented short sleeve, no shoulder/elbow chain.",
       "expected": "Reachable drink/ashtray homes and a connected shoulder-elbow-wrist chain. Resolve prop and wrist in one frame. Do not silently clamp wrist while prop continues independently.",
-      "status": "open"
+      "status": "hero-reach-contract-verified; hand-art-open",
+      "candidate": "poker-evidence-2026-09-20T03-39-26-621Z.json.gz: 569 actual poses, maximum shoulder-to-wrist 0.553774m within a 0.57m chain. Actual production bone replay verifies shoulder/elbow/wrist attachment. Source and shipped-bundle interruption/cigar pickup checked visually. Finger/prop penetration remains a separate D2 gate."
     },
     {
       "id": "drink-contact-is-not-reach",
       "trace": "poker-evidence-2026-09-20T03-19-01-705Z.json.gz",
       "evidence": "During attached sip phases the authored hand/glass anchors agree to 4.8e-16m. The visible reach is still wrong: a contact-equality test alone would bless this bug.",
       "expected": "Contact constraints AND reachable connected body geometry; both must pass.",
-      "status": "open"
+      "status": "negative-control-preserved; visible-contact-open",
+      "candidate": "interaction-replay.test.ts preserves the old failure despite equal anchors; interaction-integration.test.ts additionally checks actual sleeve/hand attachment. These do not approve finger surfaces or glass wrap."
     },
     {
       "id": "pause-inspection-ownership",
@@ -25,7 +27,8 @@
       "frequency": { "pauseResume": 1, "inspectionDuringDrink": 1 },
       "evidence": "Pause correctly freezes visual time. Inspection cancels directly to homes, without an explicit return phase; cigar request at 39.1742 is rejected during residual inspection blend although the UI button is enabled.",
       "expected": "Pause preserves pose; inspection has an explicit safe interruption/return policy and UI availability matches interaction availability.",
-      "status": "open"
+      "status": "hero-return-policy-verified; full-ui-availability-open",
+      "candidate": "Fresh source recording captures mid-sip inspection returning the glass before inspectionReady, with cigar left on tray. Production preview reproduces return and accepts cigar immediately after Look up. Pause/idempotence and sparse-frame replay pass. Buttons can still appear available while an action is busy; D2 menu availability must consume resolved busy state."
     },
     {
       "id": "tree-bar-clearance",
@@ -61,5 +64,5 @@
       "status": "open"
     }
   ],
-  "notYetRecorded": ["drink ordering (not implemented)", "reduced-motion interaction", "visibility interruption mid-sip", "frame skip across ownership boundaries", "production bundle parity", "fresh cozy-lighting acceptance", "all five opponent grips and faces"]
+  "notYetRecorded": ["drink ordering (not implemented)", "reduced-motion interaction", "visibility interruption mid-sip", "browser frame skip across ownership boundaries (synthetic sparse replay only)", "fresh cozy-lighting acceptance", "all five opponent grips and faces"]
 }

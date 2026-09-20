@@ -1,25 +1,35 @@
 {
-  "checkpoint": "recorded failing baseline, not finished-game acceptance",
+  "checkpoint": "C/D1 hero ownership and bounded connected reach; not finished-game acceptance",
   "date": "2026-09-20",
   "automated": {
     "command": "npm run verify",
     "result": "passed",
-    "coverage": "rules/geometry/recorder/fixture integrity, TypeScript, production build, SDK packaging and exact-byte production-preview HTTP integration",
+    "coverage": "34 tests including real-input ownership replay, actual production skeleton integration and forbidden-import boundary; TypeScript, production build, 2 SDK packaging checks and exact-byte production-preview HTTP integration",
     "limitation": "Passing tests do not approve the recorded contact, anatomy, lighting or performance defects"
   },
   "sourceBrowser": {
     "url": "/dev/?qa=christmas-rig&stats&record",
-    "checked": ["enter hand", "call", "two drink starts", "pause/resume", "card inspection", "cigar", "restore after HMR"],
-    "evidence": "manifest.json sessions and images",
+    "checked": ["enter hand", "call", "three candidate drink starts", "pause/resume mid-lift", "mid-sip inspection with safe return", "cigar retrieval after inspection", "restore after HMR"],
+    "evidence": "manifest.json baseline sessions and candidateSessions, including raw 2026-09-20T03-39-26-621Z and four paired images",
     "console": "No warnings/errors observed in recorded source session"
   },
   "productionBrowser": {
     "url": "/dev/?production&qa=evidence-production",
-    "checked": ["enter/restore hand", "call 20", "Old Fashioned control and motion", "private card inspection", "pause/resume", "cigar motion", "reload/restore same flop, stack 1980 and pot 186"],
+    "checked": ["restore hand", "Old Fashioned interrupted during lift", "glass returned before private inspection", "immediate Look up then cigar pickup from tray", "call 66", "pause/resume", "reload/restore same turn, stack 1914 and pot 595"],
     "previewDefectFixed": "Eager source import caused duplicate Three.js; Vite transformed dist cache served stale view. Dev-only flat JS endpoint now serves current bundle and relative SDK chunk byte-for-byte with no-store.",
-    "console": "No new warnings/errors after route and shared-chunk fix; earlier failed attempts remain in browser log history",
-    "visual": "Same known detached reach, poor fingers/facial hair and overlapping tree as source; NOT accepted"
+    "console": "Fresh production QA tab reports no warnings/errors before and after reload",
+    "visual": "Hero world-space arms remain connected during observed return/retrieval; poor fingers/facial hair and overlapping tree remain visible. Screenshots inspected through CUA, not saved as golden approval. NOT final art acceptance"
+  },
+  "candidateMeasurement": {
+    "trace": "poker-evidence-2026-09-20T03-39-26-621Z.json.gz",
+    "frames": 1710,
+    "poses": 569,
+    "maxActualShoulderWristMetres": 0.553774077,
+    "maxReachCorrectionMetres": 1.576e-16,
+    "frameP50Ms": 27.4,
+    "frameP95Ms": 31.8,
+    "limitation": "Different camera and interaction workload from baseline. Instrumented session with screenshots; not a controlled performance improvement or 60Hz claim. No GPU timing measured."
   },
   "host": "Electron installation not verified; host fullscreen explicitly deferred",
-  "remaining": ["interaction ownership/reach rebuild", "block-built drinks and ordering", "ashtray", "anatomy and facial hair", "tree clearance", "cozy lighting", "controlled performance comparison", "fixture-driven replacement regressions", "fresh final source/production visual acceptance"]
+  "remaining": ["opponent interaction ownership/contact", "block-built drinks and ordering", "ashtray", "hand topology and visible grip contact", "anatomy and facial hair", "tree clearance", "cozy lighting", "controlled performance comparison", "reduced motion and visibility interruption checks", "fresh final source/production visual acceptance"]
 }

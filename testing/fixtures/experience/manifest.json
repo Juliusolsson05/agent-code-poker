@@ -33,6 +33,26 @@
       "images": ["poker-evidence-2026-09-20T03-21-27-774Z-6.417.png"]
     }
   ],
+  "candidateSessions": [
+    {
+      "file": "poker-evidence-2026-09-20T03-39-26-621Z.json.gz",
+      "rawSha256": "9e1a90589613c06a949361372fce1745afd68e678107f72c59904bd2406898e4",
+      "provenance": "Actual Chrome source QA after world-space hero director integration: three drinks, pause/resume mid-lift, interrupted glass return, inspection and cigar retrieval from tray",
+      "frameCount": 1710,
+      "poseCount": 569,
+      "maxActualShoulderWristDistanceMetres": 0.5537740770508257,
+      "maxDirectorReachCorrectionMetres": 1.576213700060856e-16,
+      "frameMsP50": 27.40000000037253,
+      "frameMsP95": 31.800000000745058,
+      "limitations": "Different camera calibration and real interaction sequence; not a controlled performance comparison. Finger/glass mesh contact and broader art defects remain unaccepted.",
+      "images": [
+        "poker-evidence-2026-09-20T03-39-26-621Z-18.205.png",
+        "poker-evidence-2026-09-20T03-39-26-621Z-37.184.png",
+        "poker-evidence-2026-09-20T03-39-26-621Z-50.001.png",
+        "poker-evidence-2026-09-20T03-39-26-621Z-64.461.png"
+      ]
+    }
+  ],
   "rigImages": [
     { "file": "poker-rig-player-cards-idle-0.png", "url": "/dev/?studio", "subject": "Player cards", "action": "idle", "seconds": 0 },
     { "file": "poker-rig-player-cigar-idle-0.png", "url": "/dev/?studio", "subject": "Player cigar", "action": "idle", "seconds": 0 },

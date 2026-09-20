@@ -13,7 +13,7 @@ const manifest = JSON.parse(readFileSync(new URL('manifest.json', base), 'utf8')
 // acceptable. Replays must assert the user's semantics against new pose output,
 // never compare a fixed renderer to these bad poses as visual golden truth.
 test('recorded experience corpus remains verbatim, finite and free of private engine data', () => {
-  for (const session of manifest.sessions) {
+  for (const session of [...manifest.sessions, ...(manifest.candidateSessions ?? [])]) {
     const bytes = gunzipSync(readFileSync(new URL(session.file, base)))
     if (session.rawSha256) assert.equal(createHash('sha256').update(bytes).digest('hex'), session.rawSha256)
     const trace = JSON.parse(bytes.toString())
