@@ -13,6 +13,11 @@ focus. No new state owner or hand/scene edits. Check real source/shipped geometr
 keyboard cancel/confirm, menu reachability and restore; no synthetic CSS/FPS proof.
 NPC seat1 studio0.5/0.8/2.6/5.4s shows exterior approach/held/release and connected
 arm; held2.6 PNG retained. Motion still stiff: final animation polish stays last.
+At actual500x722 the first compact pass clears the board but stack(x12–132,
+y583–638) still intersects tray(x80–420,y404–638). Revise the contract: while
+open, stack shares the board's upper band and redundant turn whisper hides;
+do not fix stacking order or change amounts. Scrollbar also makes tool strip
+bottom149, so drink menu starts160 at that size. Preserve this failing geometry.
 
 Current queue: close-up NPC motion/contact review, controlled render performance
 and listening/mix acceptance after the public-event audio checkpoint. Actual

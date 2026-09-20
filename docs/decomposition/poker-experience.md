@@ -23,6 +23,12 @@ No animation/art edits. Unknowns: short-height extremes, OS text enlargement and
 reduced-motion device behavior; do not certify all responsive sizes from one.
 Skill's plan approval pause is waived; this is committed before CSS changes.
 
+E25 smaller-window finding: first pass at500x722 still overlaps stack583–638
+with tray404–638 (x12–132 vs80–420). Resolve compact bands, not z-order: stack
+alongside board above tray during sizing; redundant turn whisper hidden only
+while sizing. Closed tray keeps stack/status above decision row. Tool scrollbar
+extends to149px, so menu uses160px top at this width. Original data retained.
+
 ### B24–E24 canonical pipeline check and redundant canvas samples
 
 Checkpoint: B24/C24 retain exact PNG pair and raw baseline pass profile. Actual
