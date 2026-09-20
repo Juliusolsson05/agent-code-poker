@@ -6,6 +6,9 @@ bounded reach and safe interrupted return. D2 block props and safe ordering are
 implemented/browser-checked; D3 decor clearances and warm-room candidate are
 verified against production geometry and seated/wide browser views. Grip and
 character art, transition ownership and final quality/performance remain open.
+The September 20 scope addition below makes NPC/player drinking, cigar-to-lip
+contact, an optional intoxication filter, a fireplace and high-quality fire/chip
+audio explicit unfinished acceptance gates.
 Scope: issue #1, `feat/voxel-poker`. Anatomy/Christmas art remains provisional,
 not an accepted visual baseline. No automatic merge.
 
@@ -42,7 +45,9 @@ have one owner, and pause/inspection/frame gaps do not duplicate or strand them.
 Opponents have connected believable poses, restrained facial hair and private
 cards. Drinks, garnish and smoking props are locally authored fine block forms.
 The cozy Christmas room has clear furniture/wall separation, warm readable faces
-and cards, restrained snow and stable trim. The game keeps its unobtrusive UI.
+and cards, restrained snow, stable trim and a visible block-built fireplace.
+Natural fire crackle and tactile chip sounds complement rather than overwhelm
+the room. The game keeps its unobtrusive UI.
 
 Acceptance includes recorded before/after close-ups and seated motion, meaningful
 fixture-driven integration tests, measured frame-time/resource comparisons at
@@ -120,6 +125,25 @@ changes to the Agent Code host.
 
 ## D3 — cozy spatially valid environment
 
+Reopened by September 20 user feedback: the current snow is too faint and the
+room still needs warmer, softer glow. Existing geometry-clearance approval is
+not cozy-lighting approval. Baseline image `04-36-26-293Z-15.305.png` shows the
+window flakes as tiny faint specks; current material uses size .010/opacity .40,
+84 points, one draw and cached 24Hz uploads. Increase apparent flake size and
+controlled contrast first, not particle count; retain aperture clipping, buffer
+reuse and reduced-motion freeze. Compare seated motion and same-window crops
+at matched viewport/exposure, with actual frame timings. Do not claim constant
+GPU cost merely because count/draws remain fixed: larger sprites add overdraw.
+
+For warmth, record the existing exposure/practical settings, then introduce
+motivated amber fireplace/string-light bounce and soft source-local glow. Avoid
+an indiscriminate orange screen tint, overexposed skin, luminous cards, flickery
+bulbs or additional shadow maps. Match seated and wide views, inspect paper,
+faces, dark corners and metal trim, and measure the rendering delta. The
+fireplace's lighting belongs to this shared budget, not a second independent
+lighting system. Final snow visibility and cozy glow remain open acceptance
+gates until fresh visual evidence, not just numerical color changes, passes.
+
 - **Produces:** shared room/furniture/decor placement data, non-intersecting tree
   and presents, coherent warm lighting/material settings, bounded exterior snow.
 - **Verified by:** production geometry clearance tests against wall/bar/chair
@@ -129,6 +153,171 @@ changes to the Agent Code host.
   and exposures, not arbitrary local offsets added inside a prop builder.
 - **Reality check:** B's intersections and images, not an idealized empty room.
   Light changes reviewed on the actual player view and at close contact views.
+
+## D4 — drinking/smoking contact, intoxication, fireplace and tactile audio (September 20)
+
+### Small HUD slice — always-visible community cards
+
+The user additionally requests table cards always visible in the right corner.
+Current `App.tsx` hides its five-card board behind `boardOpen` and the “Inspect
+community cards” button; selecting Drinks closes it. This observable UI contract
+is the baseline, not an engine defect. Replace that toggle with a persistent,
+compact top-right public board during every active/saved hand, including pause
+and inspection. Keep undealt placeholders, street labels and accessible card
+names. The component accepts only the public board, never player/deck objects.
+Render-state tests cover preflop/flop/turn/river/reset without inventing cards;
+actual narrow/wide browser checks must establish no overlap with the drink
+menu, action controls or private cards. Dialogs may cover the room; the board
+must not intercept gameplay pointers or create a new bottom dashboard.
+
+This is required scope, not a polish wish list. The user reports NPC drinking
+still looks broken and explicitly requests a fireplace, convincing downloaded
+fire crackle and satisfying chip sounds. Existing held-contact geometry tests
+do not approve a reach/sip/return sequence. `Human.ts` still schedules sips with
+mutable history, and `audio.ts` currently substitutes short pitched oscillators
+for chips: neither is accepted as the finished experience. The subsequent user
+report adds an incorrectly angled cigar that never touches the player's lips,
+inadequate player drinking mechanics, and a requested intoxication filter when
+drinking. Existing reach/grip tests do not establish either mouth contact.
+
+### B4 — capture these specific starting conditions
+
+- **Produces:** real seated and rig close-up motion recordings covering each of
+  the five NPCs reaching, lifting, sipping and returning; glass/wrist/elbow/
+  shoulder/mouth world transforms, ownership and visibility alongside pause,
+  reduced-motion changes, folding/dealing and long frame gaps. Capture both
+  entry/exit transitions, not only the attractive held pose. Preserve the
+  current unnatural cardless-hand pose as a separate observation.
+- **Player contact baseline:** record complete cigar pickup/puff/return and
+  drink reach/lift/sip/return in seated and side-on diagnostic views, including
+  interrupted and paused phases. Capture the actual cigar's mouth-end and axis,
+  ember end, glass rim, mouth/lip frame and hand transforms. Catalog direction
+  error, separation, penetration and missed contact separately; a camera near
+  plane is not an anatomical mouth anchor. Preserve the user's reported failure
+  as unverified until a real recording confirms its measurable shape.
+- **Audio baseline:** capture/listen to current chip actions after a genuine
+  user gesture; record trigger time versus visible chip arrival, overlapping
+  bot actions, pause/mute/hidden/reload behavior. Record sample format, capture
+  route and listening judgment. A screenshot or mocked AudioContext is not
+  evidence of audible quality; an unavailable audio capture remains an open gate.
+- **Environment baseline:** retain seated and wide views and production room
+  bounds before choosing a hearth location. Do not assume an empty wall or
+  move existing furniture until its real occupied volumes have been checked.
+- **Verified by:** immutable raw files plus provenance, reproducible UI steps
+  and a catalog separating each observed defect from an untested suspicion.
+
+### C4 — explicit motion, spatial and audio contracts
+
+- **NPC ownership:** consume one deterministic interaction snapshot for both
+  arm and vessel. Table/rest, hand-held and returned are exclusive owners;
+  targets share a seat-to-world transform. Capture-derived limits govern reach,
+  elbow clearance, rim-to-mouth placement and pose continuity. Specify pause,
+  reduced-motion and canceled/late-frame behavior before replacing scheduling.
+  A prop must never teleport while visible, duplicate, detach or expose cards.
+- **Player smoking/drinking:** define one player mouth frame consistently with
+  the first-person shoulder/head frame. The cigar mouth-end approaches the lips,
+  ember points outward and remains away from skin; the hand's grip is derived
+  from that resolved prop pose, not a separately guessed rotation. The glass
+  rim reaches the lips before a sip counts; tilt is bounded and liquid remains
+  contained. Contact and orientation tolerances come from actual dimensions.
+  In a stable sip/puff interval, mouth contact, supporting hand contact and
+  bounded shoulder/elbow reach must all hold simultaneously. If infeasible,
+  revisit pose/anchor placement rather than stretch limbs or hide clipping.
+  Pause, inspection and cancellation preserve single ownership and a safe
+  return; restarting must not double-count the same completed sip.
+- **Intoxication:** cosmetic-only, optional, gradual and capped, driven by
+  explicit completed-sip events from the PLAYER'S drink owner, never by NPC
+  drinking, ordering/selecting a drink, merely holding it, key presses,
+  held duration or animation frames. Old Fashioned/ale/wine contribute; water
+  does not. Interrupted pre-contact reaches do not count. Decide the visual
+  decay/reset contract and document it before implementing; never portray it
+  as real blood-alcohol simulation. A reversible mild vignette/color/focus
+  treatment may build over successive sips without obscuring cards, bets or
+  menus. Do not start with camera roll, double vision, strong blur or flashing.
+  Reduced-motion and a separate intensity/off control must support a steady,
+  readable view, including disabling it while active. No changes to odds,
+  legal actions, bot knowledge, input latency, chips or betting judgment prompts.
+  Freeze the effect clock on pause/hidden alongside interaction time. The
+  effect consumes public cosmetic sip events, not engine state or private cards.
+- **Hearth:** one shared layout envelope owns surround, opening, fire/logs and
+  mantle. Test production bounds against walls, bar, furniture, Christmas tree,
+  gifts and character reach envelopes; intentional mounting against a wall is
+  distinct from protruding through it. Keep the fireplace visible from the
+  normal seated camera without adding an obstructive foreground object.
+- **Audio:** a cosmetic public-event adapter is the sole gameplay consumer;
+  sound cannot mutate the ledger or inspect private cards. Separate chip/card
+  effects from ambience gains, preserve global mute, and unlock only through a
+  genuine gesture. Deduplicate event IDs; synchronize chip contact sound to
+  rendered arrival, never to every animation frame. Bound voices and decoded
+  buffers, suspend ambience when paused/hidden, and dispose all nodes on exit.
+- **Asset policy:** the user authorizes web audio acquisition only. Prefer CC0;
+  otherwise require explicit redistribution/derivative permission compatible
+  with this shipped extension, with no account/payment needed. Record original
+  URL, author, exact license URL/text, access date, original hash and edits in
+  an audio asset manifest; retain required attribution. No ripped video/music,
+  ambiguous-license downloads, imported characters or runtime fetching. Bundle
+  the licensed audio locally and verify the exact production artifact includes
+  it. This is a narrow exception to the earlier all-self-authored asset policy.
+- **Verified by:** fixture-derived contract tests with deliberately detached
+  wrists, duplicated sounds/props and bad hearth placement as negative controls.
+  Synthetic boundary tests supplement, not replace, recorded failures.
+
+### D4 implementation — prove one instance before expanding
+
+1. Fix the player's lip-aligned cigar and full drink sequence, then one NPC's
+   full recorded drinking sequence through isolated interaction
+   ownership, then apply the verified sampler to every seat and drink. Review
+   elbow/sleeve silhouettes and mouth contact in motion from the player's eye.
+   Verify approach, stable contact and withdrawal, including cigar orientation
+   in side views and glass rim/face separation through tilt, before more detail.
+2. Build the block hearth and logs from the verified room plan. Use a bounded,
+   low-cost flame/ember treatment and motivated warm light; retain readable
+   matte cards, no strobing or added expensive shadow owner. Reduced motion
+   uses a calm fire state. Profile with the hearth off/on at the same camera.
+3. Audition licensed fire and chip recordings. Fire needs a seamless quiet bed
+   with sparse varied crackles, not a conspicuous short repeated loop. Chips
+   need distinct light contact, stack/set-down and pot-gather textures, bounded
+   variation and believable weight; no piercing tones, constant clatter or
+   casino reward fanfare. “Satisfying” means tactile feedback, not manipulative
+   reward timing. Handle decoding failure gracefully with silent play available.
+4. Isolate audio scheduling/mixing from asset loading and scene presentation.
+   Expose compact effects/ambience controls, persist preferences safely, and
+   confirm a mute cannot be undone by late decode/resume or tab restoration.
+5. Implement the isolated completed-sip effect accumulator and cheap visual
+   treatment only after drinking contact/ownership passes. Deduplicate sip IDs,
+   clamp intensity, honor off/reduced-motion and use a documented decay/reset
+   rule. Compare sober/mid/capped/off views at the same pose; profile its actual
+   rendering cost rather than add an unmeasured full-resolution blur chain.
+
+### E4 — integration and perceptual acceptance
+
+- Replay recorded NPC transitions through actual production bones and inspect
+  fresh motion for all five seats: attached joints, supported vessel, sensible
+  elbow path, clear table/chair/face, uninterrupted private-card concealment.
+- Replay player cigar/drink recordings with actual mesh anchors and negative
+  controls for a reversed cigar, absent lip contact and duplicated sip events.
+  Retain seated plus side close-ups and real motion showing mouth contact
+  without face/hand penetration. Test all drink types, successful/canceled sips,
+  pause/inspection/hidden transitions, effect cap/decay/off/reduced-motion and
+  repeat restoration. Verify readable private cards and action amounts in
+  sober, intermediate and capped-effect screenshots. Synthetic effect-state
+  tests alone are not approval of comfort, drinking motion or mouth contact.
+- Retain seated/wide fireplace images, actual geometry clearance results and
+  same-device before/after frame/resource measurements. Budget flame geometry,
+  lights, voices and audio bytes explicitly after measuring the first instance.
+- Listen to repeated chips, simultaneous actions and at least two fire-loop
+  boundaries; record whether seams, clipping, harsh transients or repetition
+  remain. Digital peak/loop-boundary analysis is additional evidence, not a
+  replacement for listening. Distinguish actual output capture from source-file
+  analysis and do not label an unlistened mix approved.
+- Test gesture unlock, mute/unmute, independent gains, pause, hidden/resume,
+  reduced motion, decode failure and repeated mount/dispose. No duplicate chip
+  cue after save restoration and no leaked nodes/background playback.
+- Run `npm run verify` and source plus shipped preview flows. Confirm packaged
+  assets load without external requests, licenses/attribution ship, and saves,
+  engine conservation and private cards remain unchanged. Electron remains a
+  separately disclosed check. These gates stay open until recorded evidence
+  exists; adding this plan does not claim any implementation or audio approval.
 
 ## E — profile, regress and ship the same verified view
 
@@ -510,3 +699,47 @@ Final E1 check passes55tests/build/SDK/preview checks. Actual UI negative contro
 `04-58-59-194Z` starts profiling then immediately changes to Wide room: the raw
 export says camera-changed with zero measured frames, not successful performance
 evidence. Other guarded abort reasons are not independently browser-recorded.
+
+### E2: isolate pipeline cost before changing the picture
+
+E1's retained paired profiles show a pixel-area effect but poor absolute timing.
+Extend the existing probe with a separate five-window ablation: balanced baseline,
+bloom disabled, shadows disabled, direct antialiased renderer, repeated balanced
+baseline. Keep camera, pose, pixel budget and geometry fixed. Each gets4s warmup
+and6s samples; raw mode/count/buffer evidence, not an FPS assertion, is the artifact.
+These diagnostic omissions are NOT candidate art decisions. Review measured cost
+first, then isolate the production pipeline in `rendering/` if a simpler route
+preserves matte cards, warm practicals, stable fine edges and depth in actual views.
+Room is the only pipeline consumer; rules/interactions must never import it.
+Protect output color/tone mapping, resize, disposal and paused/hidden behavior;
+compare source and shipped gameplay after any adoption. Do not lower geometry
+detail or remove the one shadow owner merely to hit a synthetic static score.
+
+First ablation `05-03-34-188Z` invalidates a simple winner: balanced baseline
+p50 drifts16.7→82.6ms. Do not choose direct rendering from these samples. Preserve
+the warm picture and instead remove a demonstrably redundant allocation: the
+canvas is multisampled even though only a fullscreen already-resolved composer
+image reaches it. Capture identical fixed-pose PNGs before/after disabling canvas
+MSAA while retaining the actual scene target's4xMSAA. Pixel comparison and actual
+context/target settings verify that boundary independently of unstable FPS.
+Isolate the unchanged post chain in `rendering/PostProcessing.ts`; one owner must
+resize/dispose its targets and passes. Add a benchmark drift assessment so a
+completed run with moving baselines cannot silently be called a fair comparison.
+
+The first fixed PNG pair differs only around two opponents' arms/glasses:
+the old diagnostic froze time but inherited stateful sip scheduling. Do NOT
+accept its small average pixel difference as pipeline equivalence. Canonical
+comparisons must sample the real rig's existing reduced-motion/rest behavior at
+time12, independent of prior sip history, on both canvas-context configurations.
+Retain the failed pair as an explicit diagnostic negative control. This corrects
+test substrate, not the still-open opponent ownership design. Expanded QA buttons
+also covered the lobby CTA; move that opt-in panel above gameplay controls.
+
+E2 checkpoint: preserve the real rejected five-window profile and invalid PNG
+pair in the manifest. Browser connection interruptions prevented a fresh
+canonical pair and updated source/shipped interaction verification. Therefore
+canvas-MSAA removal is DEV-only via `&resolved-canvas-aa`; ordinary and shipped
+play retain the established canvas setting. The extracted post chain keeps HDR,
+bloom and scene4xMSAA. 59 tests/build/SDK/exact-byte preview passed before the
+subsequent persistent-board slice; run full verification again before commit.
+No new performance or visual-equivalence acceptance is claimed.

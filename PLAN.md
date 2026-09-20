@@ -15,7 +15,7 @@ The live website now fills the viewport with compact contextual betting controls
 
 The user approved the research-led rebuild on September 19. Keep characters self-authored and procedural: anatomical landmarks and tapered volumes first, fine block surface second. Rebuild articulated hands with separate card, cigar, glass, push and resting poses; establish grip contacts and exclusive prop ownership before arm motion. Prove one hand and one seated character before expanding the cast. Add purposeful public-event gaze, private card handling, varied opponent drinks and a player Old Fashioned. Improve materials and motivated bar lighting without making cards luminous. Preserve the fullscreen minimal HUD and engine-owned chip ledger. Verify interruption/pause, private textures, chair/table clearance, animation continuity, source and production previews. No downloaded models or automatic merge.
 
-The initial repository is private. All chips are free practice currency. There are no external assets, network calls, accounts, purchases or requested host permissions. Rules use TDA betting/settlement conventions where applicable; physical casino procedures are represented by legal UI actions.
+The initial repository is private. All chips are free practice currency. There are no runtime network calls, accounts, purchases or requested host permissions. The September 20 audio addition permits licensed web-sourced fire/chip recordings bundled locally with provenance and attribution; procedural characters/props remain self-authored. Rules use TDA betting/settlement conventions where applicable; physical casino procedures are represented by legal UI actions.
 
 Keep the rationale near the implementation. The engine owns chip amounts and legal actions; rendering never moves money. Storage failure must be visible and must not silently replace saved progress.
 
@@ -50,3 +50,16 @@ reducing measured buffer area about32%; repeated median frame improvements are
 real but insufficient. Poor active frame delivery remains an open gate, not a
 60Hz claim. Continue with controlled shadow/material/postprocessing isolation,
 then close ownership and anatomical presentation; do not endlessly lower detail.
+
+September 20 scope addition: D4 in the staged decomposition now explicitly
+requires complete NPC drink-transition recordings and ownership fixes, a
+spatially verified block fireplace, natural fire crackle and tactile chip audio.
+Follow recording → catalog/contracts → isolated implementation → integration
+and listening evidence. Preserve existing mute, add separate ambience/effects
+gains, bound voice/resource cost, bundle only redistribution-cleared assets and
+verify shipped offline loading. This is planned work, not completed audio/art.
+The user's follow-up also requires actual cigar mouth-end/lip alignment (not
+only a near-camera hand pose), proper rim-to-mouth drinking, and a gradual,
+optional cosmetic intoxication effect from completed alcoholic sips. D4 now
+specifies contact/orientation evidence, single sip-event ownership, bounded
+readable effects, reduced-motion/off controls and unchanged poker rules.
