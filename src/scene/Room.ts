@@ -14,10 +14,10 @@ import { ChristmasTavern } from './Christmas'
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import { createTableSurface, dealerPosition, TABLE } from './Table'
 import { SceneCapture, transform } from './diagnostics/SceneCapture'
-import { PLAYER_LAYOUT } from './environment/layout'
+import { CHAIR_BLOCKS, PLAYER_LAYOUT, SEATS, seatYaw } from './environment/layout'
 
-export const SEATS: [number, number][] = [[0, 1.7], [-1.82, -.39], [-1.10, -1.03], [0, -1.25], [1.10, -1.03], [1.82, -.39]]
-type Block = { color: string; position: [number, number, number]; size: [number, number, number] }
+import { createRoomPlan, type RoomBlock } from './environment/RoomPlan'
+import { createTavernLighting, TAVERN_EXPOSURE } from './environment/Lighting'
 
 /** Everything is authored in metres, from a seated human's eye line. The first
  * room was orthographic with toy proportions: that erased physical presence.
@@ -63,7 +63,8 @@ export class PokerRoom {
   private measuredFrames = 0
   private measuredCpu = 0
   private capture: SceneCapture | null = null
-  private roomBlocks: Block[] = []
+  private roomBlocks: RoomBlock[] = []
+  private diagnosticWide = false
 
   private leisureKey = ''
   constructor(private container: HTMLElement, private onFailure: () => void, private onLayout: () => void = () => {},
@@ -76,7 +77,7 @@ export class PokerRoom {
     }
     this.renderer.setPixelRatio(Math.min(1.25, window.devicePixelRatio || 1))
     this.renderer.setClearColor('#090a0c'); this.renderer.outputColorSpace = THREE.SRGBColorSpace
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.12
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = TAVERN_EXPOSURE
     this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
     this.renderer.domElement.setAttribute('aria-label', 'Seated first-person view of a dimly lit poker table, detailed voxel opponents, and an amber-lit bar')
     this.renderer.domElement.setAttribute('role', 'img'); container.append(this.renderer.domElement)
@@ -84,34 +85,19 @@ export class PokerRoom {
     container.parentElement?.addEventListener('pointermove', this.look)
     container.parentElement?.addEventListener('pointerleave', this.centerLook)
     this.scene.fog = new THREE.FogExp2('#0a0b10', .048)
-    this.scene.add(new THREE.HemisphereLight('#b8c4d0', '#443024', .65))
-    // Broad warm key illuminates eyes/hands from the player's side. Dim cool
-    // backlight separates dark jackets from the room. Only one light shadows.
-    const key = new THREE.SpotLight('#ffdeb7', 17, 12, .91, .78, 1.6)
-    key.position.set(-.65, 3.05, 1.2); key.target.position.set(0, .82, -.30)
-    key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -.00008; key.shadow.normalBias = .013
-    this.scene.add(key, key.target)
-    // Broad warm fill gives skin/clothing a readable gradient. Three's area
-    // lights do not cast shadows, so the existing spot remains the shadow owner.
     RectAreaLightUniformsLib.init()
-    const fill = new THREE.RectAreaLight('#ffe3c4', 2.2, 4, 2)
-    fill.position.set(0, 2.15, 2.9); fill.lookAt(0, 1.15, -.4); this.scene.add(fill)
-    for (const [color, power, x, y, z] of [['#e6bd91', 4, 1.8, 1.9, 1.4], ['#728dca', 9, -2.7, 2.3, -2.5], ['#ef9e4b', 7, .3, 1.9, -3.3]] as const) {
-      const light = new THREE.PointLight(color, power, 8, 1.5); light.position.set(x, y, z); this.scene.add(light)
-    }
+    this.scene.add(createTavernLighting())
     this.buildRoom()
     this.christmas = new ChristmasTavern(); this.scene.add(this.christmas.root)
     const skinMaterial = humanMaterial(); this.materials.set('humans', skinMaterial)
     for (let seat = 1; seat < 6; seat++) {
       const human = buildHuman(seat, this.geometry, skinMaterial); const [x, z] = SEATS[seat]
-      human.root.position.set(x, 0, z); human.root.rotation.y = Math.atan2(-x * .8, .65 - z)
+      human.root.position.set(x, 0, z); human.root.rotation.y = seatYaw(x, z)
       this.people.push(human); this.scene.add(human.root)
       const chair = new THREE.Group(); chair.position.copy(human.root.position); chair.rotation.copy(human.root.rotation)
       // Chairs share their occupant's orientation, but not their animated rig.
       // The old globally aligned backs crossed side players' forearms.
-      this.box(chair, '#211d1a', 0, .57, -.04, .46, .10, .40)
-      this.box(chair, '#28231e', 0, 1.00, -.205, .44, .75, .065)
-      for (const dx of [-.18, .18]) this.box(chair, '#292824', dx, .29, -.04, .030, .56, .03)
+      CHAIR_BLOCKS.forEach(block => this.box(chair, block.color, ...block.position, ...block.size))
       this.scene.add(chair)
       // Both sides receive only the back texture, including in the inspector.
       human.cards.add(createHeldCardFan(() => this.cardTexture(null)).fan)
@@ -139,9 +125,10 @@ export class PokerRoom {
         poseSampleHz: 15, camera: transform(this.camera), hero: this.hero.diagnosticPose(),
         christmasBounds: new THREE.Box3().setFromObject(this.christmas.root).min.toArray().concat(new THREE.Box3().setFromObject(this.christmas.root).max.toArray()),
         treeBounds: this.christmas.treeBounds.min.toArray().concat(this.christmas.treeBounds.max.toArray()),
+        decorBounds: [...this.christmas.decorBounds].map(([name, bounds]) => ({ name, bounds: bounds.min.toArray().concat(bounds.max.toArray()) })),
         roomBlocks: this.roomBlocks,
         table: { feltY: TABLE.feltY }, exposure: this.renderer.toneMappingExposure,
-      }))
+      }), wide => { this.diagnosticWide = wide; this.pausedRendered = false })
     }
     document.addEventListener('visibilitychange', this.visibility)
     this.observer = new ResizeObserver(() => this.resize()); this.observer.observe(container); this.resize(); this.frame()
@@ -173,52 +160,14 @@ export class PokerRoom {
     mesh.position.set(x, y, z); mesh.scale.set(sx, sy, sz); this.scene.add(mesh)
   }
   private buildRoom(): void {
-    const blocks: Block[] = this.roomBlocks
-    const b = (color: string, x: number, y: number, z: number, sx: number, sy: number, sz: number) => blocks.push({ color, position: [x, y, z], size: [sx, sy, sz] })
-    b('#151311', 0, -.06, -1, 12, .1, 13)
-    for (let row = 0; row < 28; row++) for (let col = 0; col < 25; col++)
-      b(['#322821', '#2b2421', '#352a25', '#292420'][(col * 7 + row * 3) % 4], (col - 12) * .39 + row % 2 * .19, row * .13 + .04, -5.3, .377, .117, .12)
-    b('#161716', -4.8, 1.8, -1.2, .12, 3.6, 8); b('#181614', 4.8, 1.8, -1.2, .12, 3.6, 8); b('#10100f', 0, 3.6, -1.2, 10, .12, 9)
-    for (let x = -4; x <= 4; x++) b('#221d18', x, 3.40, -1.1, .12, .23, 8)
-    // Dark back-bar mirror, brass uprights and individually labelled bottles
-    // supply scale/depth. Their highlights stay subordinate to faces and felt.
-    b('#14181a', 0, 1.93, -5.15, 4.50, 2.5, .08)
-    for (const x of [-2.3, -.76, .76, 2.3]) b('#705333', x, 1.87, -5.00, .035, 2.3, .10)
-    for (const y of [1.13, 1.80, 2.48]) {
-      b('#4a3526', 0, y, -4.89, 4.65, .055, .47); this.glow('#f2b269', 0, y - .032, -4.95, 4.3, .012, .03)
-      for (let i = 0; i < 20; i++) {
-        const x = -2.10 + i * .22, h = .22 + i % 4 * .038, color = ['#574125', '#253e30', '#65452a', '#334132', '#604029'][i % 5]
-        b(color, x, y + h / 2 + .032, -4.87, .078, h, .078); b(color, x, y + h + .06, -4.87, .039, .076, .039)
-        b('#a49673', x, y + h + .106, -4.87, .043, .018, .043); b(i % 3 ? '#9c8863' : '#3c332a', x, y + h * .47, -4.825, .063, h * .34, .003)
-      }
-    }
-    b('#201712', 0, .55, -3.82, 5.4, 1.1, .68)
-    for (let x = -2.5; x < 2.6; x += .39) { b('#34241c', x, .54, -3.46, .35, .91, .027); b('#6b5032', x, .91, -3.44, .30, .016, .016) }
-    b('#392e26', 0, 1.12, -3.76, 5.7, .10, .92); b('#8b673d', 0, .16, -3.18, 5.3, .035, .035)
-    for (const x of [-1.7, -.55, .65, 1.8]) {
-      b('#171818', x, .36, -2.98, .036, .69, .036); b('#2b201c', x, .72, -2.98, .36, .09, .36); b('#27221d', x, .045, -2.98, .34, .06, .34)
-    }
-    b('#151719', -3.55, 2.01, -5.17, 1.35, 2.15, .15)
-    for (let x = 0; x < 3; x++) for (let y = 0; y < 3; y++) {
-      b('#26303d', -3.96 + x * .41, 1.34 + y * .65, -5.05, .37, .60, .05)
-    }
-    // Mullions stand in front of the bounded outdoor particles. This preserves
-    // window depth rather than letting a snow overlay pass across the timber.
-    for (const x of [-4.17, -3.755, -3.345, -2.93]) b('#28241f', x, 1.99, -4.99, .034, 1.96, .04)
-    for (const y of [1.025, 1.665, 2.315, 2.965]) b('#28241f', -3.55, y, -4.99, 1.28, .034, .04)
-    for (const x of [-3, 3]) {
-      b('#705232', x, 2.25, -5.04, .07, .36, .13); b('#a47d46', x, 2.30, -4.89, .26, .22, .19)
-      this.glow('#ffce8d', x, 2.16, -4.90, .17, .035, .12)
-      const light = new THREE.PointLight('#eaaa65', 2, 2.5, 1.5); light.position.set(x, 2.14, -4.60); this.scene.add(light)
-    }
-    this.sign('THE RIVER', 3.55, 2.33, -5.08, 1.85, .42); this.sign('PRIVATE CARD ROOM', 3.55, 1.98, -5.07, 1.85, .18, true)
+    const plan = createRoomPlan(), blocks = this.roomBlocks = plan.blocks
+    plan.glows.forEach(args => this.glow(...args))
+    plan.signs.forEach(args => this.sign(...args))
+    plan.lights.forEach(([color, power, x, y, z]) => {
+      const light = new THREE.PointLight(color, power, 2.5, 1.5)
+      light.position.set(x, y, z); this.scene.add(light)
+    })
     this.scene.add(createTableSurface())
-    b('#211a16', 0, .65, 0, 3.0, .20, 1.7); b('#181615', 0, .32, 0, 1.6, .6, .65)
-    for (const x of [-1.08, 1.08]) {
-      b('#5a4936', x, 3.12, -.06, .012, .90, .012)
-      for (let row = 0; row < 9; row++) b('#51412d', x, 2.76 - row * .014, -.06, .18 + row * .040, .015, .15 + row * .027)
-      this.glow('#ffdca1', x, 2.637, -.06, .42, .008, .29, 5)
-    }
     const mesh = new THREE.InstancedMesh(this.geometry, new THREE.MeshStandardMaterial({ roughness: .83 }), blocks.length), dummy = new THREE.Object3D()
     blocks.forEach((block, i) => { dummy.position.set(...block.position); dummy.scale.set(...block.size); dummy.updateMatrix(); mesh.setMatrixAt(i, dummy.matrix); mesh.setColorAt(i, new THREE.Color(block.color)) })
     mesh.castShadow = true; mesh.receiveShadow = true; this.scene.add(mesh); this.feltMark()
@@ -343,6 +292,12 @@ export class PokerRoom {
     this.camera.position.set(this.orbit * .12 * (1 - peek), THREE.MathUtils.lerp(PLAYER_LAYOUT.eye[1], 1.95, peek), THREE.MathUtils.lerp(PLAYER_LAYOUT.eye[2], 1.05, peek))
     this.camera.lookAt(THREE.MathUtils.lerp(this.orbit * .30 + this.gaze.x * .11, .14, peek), THREE.MathUtils.lerp(1.03 - this.gaze.y * .055, .793, peek), THREE.MathUtils.lerp(-.6, .30, peek))
     this.camera.fov = THREE.MathUtils.lerp(70, 55, peek); this.camera.updateProjectionMatrix()
+    // Dev-only inspection exposes complete furniture/decor placement. It moves
+    // only the camera, never actors or props; production gameplay stays seated.
+    if (this.diagnosticWide) {
+      this.camera.position.set(3.8, 2.7, 2.8); this.camera.lookAt(0, 1.35, -3.15)
+      this.camera.fov = 75; this.camera.updateProjectionMatrix()
+    }
     // The director returns held props before allowing the lean. Body/prop poses
     // stay world-space; the camera never translates the arm or re-parents glass.
     this.cardField.setInspection(peek > .45)

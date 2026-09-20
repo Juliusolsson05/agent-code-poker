@@ -3,8 +3,9 @@
 Status: Stage B baseline captured; C/D1 hero ownership/connected reach implemented
 and replayed through actual production bones. Fresh source recording confirms
 bounded reach and safe interrupted return. D2 block props and safe ordering are
-implemented/browser-checked; grip art and C/D3 environment remain open, as do
-final quality/performance gates.
+implemented/browser-checked; D3 decor clearances and warm-room candidate are
+verified against production geometry and seated/wide browser views. Grip and
+character art, transition ownership and final quality/performance remain open.
 Scope: issue #1, `feat/voxel-poker`. Anatomy/Christmas art remains provisional,
 not an accepted visual baseline. No automatic merge.
 
@@ -379,3 +380,66 @@ their honest provenance; production screenshots were inspected in CUA only.
 Electron host remains unverified. Next gates: grip/ownership transition sweeps,
 card-hand/character silhouette, then Christmas clearance/light and controlled
 performance profiling (do not carry this poor uncontrolled timing as baseline).
+
+### C/D3 next slice: room contracts before atmosphere
+
+D2's held-contact checkpoint is verified but its transition/anatomy gates stay
+open. The independent recorded tree/bar defect can now progress through C/D3:
+first reproduce the seven recorded overlaps, then extract the actual room's
+block/fixture placement data into a DOM-free environment plan. Test authored
+tree/present bounds against those same production blocks and oriented chair
+envelopes, preserving the old location as a negative control. Move the complete
+tree, gifts and its practical illumination together into a measured clear bay;
+do not move furniture just to make a tree assertion pass. Then review warm,
+motivated lighting in the seated and wide views, without extra shadow maps or
+per-bulb lights. Compare actual images; geometry assertions do not approve
+coziness or performance. Preserve source/production smoke/drink/poker checks.
+
+### D3 clearance and warm-room checkpoint
+
+`RoomPlan.ts` now supplies the actual furniture/architecture blocks, practical
+fixture placements and signs. Its extraction is checked against every recorded
+baseline block, so no furniture was moved to make a tree test green. The old
+tree still reproduces seven bar-envelope overlaps as a negative control. The
+complete tree and gifts now occupy the bay between the 2.85m counter edge and
+4.74m wall face, at 84% scale, with a tested 12cm margin. Shared oriented chair
+placements are included in clearance checks. Garland/wreath envelopes exposed
+additional bottle/mirror/beam risks; both now have tested 2cm room clearance.
+Conservative box overlap is not a claim that every enclosed triangle intersects.
+
+`Lighting.ts` centralizes the warm key, reduced frontal/hemisphere fill, amber
+bar bounce and restrained window-blue fill. The tree bounce moved outside the
+foliage: its former near-zero-distance light produced the recorded white hotspot.
+Small steady bulbs remain instanced emissive meshes; there are at most eight
+lights and exactly one shadow owner. Wreath sprigs/berries and a tied bow break
+its smooth ring silhouette without per-leaf draw calls. These are visual changes,
+not a measured frame-rate optimization. Snow remains 84 soft points in the
+window, a reused buffer, capped at 24Hz; reduced-motion buffer stability and long
+time aperture bounds are tested independently of game interaction preferences.
+
+The opt-in recorder now provides Wide room / Seated view controls. These move
+only the inspection camera; the installed game remains first-person. Actual
+source recording `2026-09-20T04-36-26-293Z` retains 196 frames, 87 poses, all three
+decor envelopes, wide/seated PNGs, sip/pause/return/inspection/cigar and call70.
+A separate raw-bounds integration check confirms the browser used the same room
+plan and collision-free decor. A before-lighting PNG retains the tree hotspot;
+it is a different animation instant, not a pixel-aligned golden comparison.
+The two final canvas exports were opened and inspected, as well as browser UI
+views. Warm practicals read clearly and paper stays matte; character shape is
+still visibly provisional. No obvious trim flashing was observed during the
+inspection/return camera motion, not a general all-camera flicker guarantee.
+
+`npm run verify` passes 50 tests, TypeScript/build, two SDK packaging checks and
+exact-byte production-preview HTTP integration. Source reload preserves hand1
+preflop stack1930, pot568 after call70 and subsequent bot actions. Production
+independently verifies the warm room, held cards/cigar, paused sip, inspection
+return, call20 and reload preserving hand1 preflop stack1980, pot90. No console
+warnings/errors observed in either; QA left paused. Electron host remains
+separately unverified and host fullscreen deferred.
+
+This short mixed-camera session reports frame p50/p95 40.3/79.1ms, CPU submission
+5.7/9.2ms. Those are NOT comparable to the prior busy-desktop grip trace or proof
+of 60Hz. Next work starts with a controlled warm, same-camera performance
+recording and bottleneck isolation, preserving these visual results. After that,
+close gesture transition/ownership and hand/card/character silhouette gates;
+do not reinterpret the environment checkpoint as overall game completion.

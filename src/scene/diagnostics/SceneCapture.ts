@@ -18,7 +18,8 @@ export class SceneCapture {
   private imageRequested = false
   private lastPose = -Infinity
   private lastStatus = 0
-  constructor(private renderer: THREE.WebGLRenderer, private getTime: () => number, private metadata: () => TraceValue) {
+  constructor(private renderer: THREE.WebGLRenderer, private getTime: () => number, private metadata: () => TraceValue,
+    setView?: (wide: boolean) => void) {
     this.panel.setAttribute('aria-label', 'Experience recording')
     this.panel.style.cssText = 'position:absolute;left:12px;bottom:104px;z-index:60;background:#111c22ee;border:1px solid #68766c;padding:8px;display:flex;gap:8px;align-items:center;font:12px monospace;color:#e5e6dc'
     const button = (label: string, run: () => void) => {
@@ -36,6 +37,10 @@ export class SceneCapture {
       this.download(new Blob([JSON.stringify(this.recorder.export(), null, 2)], { type: 'application/json' }), `poker-evidence-${this.id || 'empty'}.json`); this.updateStatus()
     })
     button('Capture view', () => { this.imageRequested = true; this.event('image-request', null) })
+    if (setView) {
+      button('Wide room', () => { setView(true); this.event('diagnostic-view', { wide: true }) })
+      button('Seated view', () => { setView(false); this.event('diagnostic-view', { wide: false }) })
+    }
     this.panel.append(this.status); renderer.domElement.parentElement!.append(this.panel); this.updateStatus()
     window.addEventListener('error', this.error)
     document.addEventListener('visibilitychange', this.visibility)

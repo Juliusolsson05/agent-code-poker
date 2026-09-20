@@ -35,6 +35,8 @@ live gameplay. `npx tsx testing/audit-grip.ts` runs an offline calibration aid;
 the stronger triangle-envelope tests, not its sampled fit, guard runtime grips.
 Confirm downloaded evidence exists before leaving a session: browsers may
 block subsequent automatic downloads. A missing export is not retained proof.
+The recorder's **Wide room** / **Seated view** controls inspect actual furniture
+and decor placement without moving actors or changing the normal player camera.
 
 The current failing baseline and provenance live in `testing/fixtures/experience/`;
 these are not approved visual goldens. The staged plan is

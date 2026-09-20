@@ -36,3 +36,10 @@ clamping without stretching arms. Exact-time four-view inspection, real source
 trace and shipped-preview checks preserve this progress. This does not close
 the broader anatomy/transition, Christmas layout/lighting or performance gates;
 continue from the detailed decomposition's surface-contact checkpoint.
+
+D3 now uses a shared production room plan, tests the original seven tree/bar
+overlaps, and verifies positive clearance for tree/gifts, garland and wreath.
+Warm-room source/production views and a wide diagnostic capture are retained.
+50 tests and packaging/preview checks pass. Next prioritize controlled runtime
+profiling; current mixed-camera timings are not a performance acceptance. Hand
+silhouette, gesture transitions and opponent ownership remain open in D1/D2.

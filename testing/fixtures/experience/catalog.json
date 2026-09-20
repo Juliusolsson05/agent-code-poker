@@ -55,7 +55,8 @@
       "frequency": { "observedLayouts": 1 },
       "evidence": "Actual pre-batching tree AABB [2.235315,-0.002,-4.375988,4.084685,2.45,-2.524012] intersects recorded bar body, panels, counter and foot rail. Seven block-envelope overlaps. No side/back-wall overlap in this recorded camera/layout; user's broader wall report remains an additional clearance requirement.",
       "expected": "Tree including branches/ornaments/presents has positive furniture/wall clearance, verified against production geometry. AABBs are conservative, not proof that every overlapping envelope is a triangle intersection.",
-      "status": "open"
+      "status": "production-clearance-and-browser-views-verified",
+      "candidate": "2026-09-20T04-36-26-293Z records the actual corrected room/decor bounds and seated/wide images. Shared RoomPlan preserves every baseline furniture block; the full tree/presents occupy the clear right bay at 84% scale with >12cm clearance. Garland and wreath also clear all room blocks with >2cm margins. Separate actual-browser-bounds regression ensures the renderer uses the tested plan. Warm lighting and sparse snow were visually checked; controlled performance stays open."
     },
     {
       "id": "facial-hair-flat-slab",
@@ -84,5 +85,5 @@
       "status": "open"
     }
   ],
-  "notYetRecorded": ["reduced-motion interaction", "visibility interruption mid-sip", "browser frame skip across ownership boundaries (synthetic sparse replay only)", "fresh cozy-lighting acceptance", "all five opponent grips and faces"]
+  "notYetRecorded": ["reduced-motion interaction", "visibility interruption mid-sip", "browser frame skip across ownership boundaries (synthetic sparse replay only)", "controlled same-view performance comparison", "all five opponent grip/face closeups (cast contacts tested separately)"]
 }

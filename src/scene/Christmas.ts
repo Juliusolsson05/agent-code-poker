@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { CHRISTMAS_LAYOUT } from './environment/layout'
 
 /** Cozy interior / hostile winter exterior. Snow is confined to the window's
  * aperture in world space rather than overlaid over the whole image; it cannot
@@ -7,6 +8,7 @@ import * as THREE from 'three'
 export class ChristmasTavern {
   readonly root = new THREE.Group()
   readonly treeBounds = new THREE.Box3()
+  readonly decorBounds = new Map<string, THREE.Box3>()
   private snow: THREE.Points
   private snowSeeds: { x: number; y: number; speed: number; drift: number }[] = []
   private snowTexture: THREE.CanvasTexture
@@ -14,10 +16,11 @@ export class ChristmasTavern {
   constructor() {
     this.root.name = 'christmas-tavern'
     const green = new THREE.MeshStandardMaterial({ color: '#163a2d', roughness: .98 })
-    const warm = new THREE.MeshStandardMaterial({ color: '#ffdf9b', emissive: '#ffc678', emissiveIntensity: 4.5, roughness: .5 })
+    const warm = new THREE.MeshStandardMaterial({ color: '#ffce8d', emissive: '#ffb55d', emissiveIntensity: 2.8, roughness: .7 })
     const gold = new THREE.MeshStandardMaterial({ color: '#c79949', metalness: .65, roughness: .34 })
     const red = new THREE.MeshStandardMaterial({ color: '#822d30', metalness: .12, roughness: .36 })
-    const tree = new THREE.Group(); tree.position.set(3.16, 0, -3.45); this.root.add(tree)
+    const tree = new THREE.Group(); tree.name = 'christmas-tree'
+    tree.position.set(...CHRISTMAS_LAYOUT.tree); tree.scale.setScalar(CHRISTMAS_LAYOUT.scale); this.root.add(tree)
     const stand = new THREE.Mesh(new THREE.CylinderGeometry(.24, .31, .22, 12), new THREE.MeshStandardMaterial({ color: '#49352a', roughness: .9 }))
     stand.position.y = .11; tree.add(stand)
     // Layered boughs carry varied silhouettes instead of one perfect toy cone.
@@ -53,7 +56,11 @@ export class ChristmasTavern {
     star.closePath()
     const topper = new THREE.Mesh(new THREE.ExtrudeGeometry(star, { depth: .025, bevelEnabled: false }), gold)
     topper.position.y = 2.30; tree.add(topper)
-    const glow = new THREE.PointLight('#ffc17b', 4, 4, 2); glow.position.set(2.8, 1.4, -2.9); this.root.add(glow)
+    // Approximate the distributed string-light bounce from outside the foliage.
+    // A point inside a branch produced a white-hot patch (inverse-square near
+    // zero distance), not the soft accumulated light of a hundred tiny bulbs.
+    const glow = new THREE.PointLight('#ffb45c', 2.4, 3.2, 2); glow.name = 'tree-string-bounce'
+    glow.position.set(0, 1.6, 1.2); tree.add(glow)
     for (const [x, z, width, height, color] of [[-.33, .37, .34, .22, '#713035'], [.17, .36, .28, .34, '#b49a62'], [.40, .17, .24, .17, '#314b3d']] as const) {
       const gift = new THREE.Mesh(new THREE.BoxGeometry(width, height, width * .8), new THREE.MeshStandardMaterial({ color, roughness: .8 }))
       gift.position.set(x, height / 2, z); tree.add(gift)
@@ -62,16 +69,33 @@ export class ChristmasTavern {
     // A draped evergreen garland frames the bar, keeping decoration away from
     // faces, board cards and nameplates. Warm bulbs are steady, not blinking.
     const sprigGeometry = new THREE.BoxGeometry(.12, .085, .09)
+    const garland = new THREE.Group(); garland.name = 'bar-garland'; garland.position.z = CHRISTMAS_LAYOUT.garlandDepth; this.root.add(garland)
     for (let i = 0; i < 90; i++) {
       const x = -2.35 + i / 89 * 4.7, y = 2.88 - Math.abs(Math.sin(i / 89 * Math.PI * 3)) * .18
       const sprig = new THREE.Mesh(sprigGeometry, green)
-      sprig.position.set(x, y, -4.79); sprig.rotation.z = Math.sin(i * 1.7) * .4; this.root.add(sprig)
-      if (i % 3 === 0) { const bulb = new THREE.Mesh(bulbGeometry, warm); bulb.position.set(x, y - .035, -4.73); this.root.add(bulb) }
-      if (i % 15 === 0) { const ball = new THREE.Mesh(ornamentGeometry, red); ball.position.set(x, y - .09, -4.74); this.root.add(ball) }
+      sprig.position.set(x, y, 0); sprig.rotation.z = Math.sin(i * 1.7) * .4; garland.add(sprig)
+      if (i % 3 === 0) { const bulb = new THREE.Mesh(bulbGeometry, warm); bulb.position.set(x, y - .035, .06); garland.add(bulb) }
+      if (i % 15 === 0) { const ball = new THREE.Mesh(ornamentGeometry, red); ball.position.set(x, y - .09, .05); garland.add(ball) }
     }
+    const wreathGroup = new THREE.Group(); wreathGroup.name = 'bar-wreath'; wreathGroup.position.set(...CHRISTMAS_LAYOUT.wreath); this.root.add(wreathGroup)
     const wreath = new THREE.Mesh(new THREE.TorusGeometry(.25, .065, 8, 28), green)
-    wreath.position.set(0, 3.0, -5.06); this.root.add(wreath)
-    const bow = new THREE.Mesh(new THREE.BoxGeometry(.16, .065, .06), red); bow.position.set(0, 2.74, -4.99); this.root.add(bow)
+    wreathGroup.add(wreath)
+    // Short crossed sprigs break the smooth lifebuoy silhouette while sharing
+    // one geometry/material batch. They stay inside the tested mounting bounds.
+    const wreathSprig = new THREE.BoxGeometry(.065, .035, .055)
+    for (let i = 0; i < 64; i++) {
+      const a = i / 64 * Math.PI * 2, leaf = new THREE.Mesh(wreathSprig, green)
+      leaf.position.set(Math.cos(a) * .245, Math.sin(a) * .245, .05)
+      leaf.rotation.z = a + (i % 2 ? .6 : -.6); wreathGroup.add(leaf)
+      if (i % 8 === 0) { const berry = new THREE.Mesh(bulbGeometry, red); berry.position.copy(leaf.position); berry.position.z = .09; wreathGroup.add(berry) }
+    }
+    const bow = new THREE.Mesh(new THREE.BoxGeometry(.035, .045, .045), red); bow.position.set(0, -.26, .09); wreathGroup.add(bow)
+    for (const side of [-1, 1]) {
+      const loop = new THREE.Mesh(new THREE.BoxGeometry(.065, .05, .035), red)
+      loop.position.set(side * .044, -.255, .08); loop.rotation.z = side * .32; wreathGroup.add(loop)
+      const tail = new THREE.Mesh(new THREE.BoxGeometry(.025, .10, .022), red)
+      tail.position.set(side * .024, -.317, .073); tail.rotation.z = side * -.18; wreathGroup.add(tail)
+    }
     const canvas = document.createElement('canvas'); canvas.width = canvas.height = 32
     const g = canvas.getContext('2d')!, gradient = g.createRadialGradient(16, 16, 0, 16, 16, 16)
     gradient.addColorStop(0, '#ffffff'); gradient.addColorStop(.5, '#ffffffbb'); gradient.addColorStop(1, '#ffffff00')
@@ -86,6 +110,7 @@ export class ChristmasTavern {
     }
     const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     this.snow = new THREE.Points(geometry, new THREE.PointsMaterial({ color: '#aabccb', size: .010, map: this.snowTexture, transparent: true, opacity: .40, depthWrite: false }))
+    this.snow.name = 'window-snow'
     this.snow.frustumCulled = false; this.root.add(this.snow)
     // Hundreds of decorative bulbs must not mean hundreds of draw calls. Bake
     // static transforms into instances after authoring the tree/garland groups.
@@ -94,6 +119,7 @@ export class ChristmasTavern {
     // out of the group. Diagnostics must measure the actual production tree,
     // not a guessed cone or a group missing its batched ornaments.
     this.treeBounds.setFromObject(tree)
+    for (const group of [tree, garland, wreathGroup]) this.decorBounds.set(group.name, new THREE.Box3().setFromObject(group))
     const batches = new Map<string, THREE.Mesh[]>()
     this.root.traverse(o => {
       if (!(o instanceof THREE.Mesh) || o instanceof THREE.InstancedMesh || Array.isArray(o.material)) return

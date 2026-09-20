@@ -15,3 +15,24 @@ export const PLAYER_LAYOUT = {
   cigar: [.105, TABLE.feltY + ASHTRAY.cigarRestY, .83] as [number, number, number],
   rest: [.205, 1.13, 1.07] as [number, number, number],
 } as const
+
+export const SEATS: [number, number][] = [[0, 1.7], [-1.82, -.39], [-1.10, -1.03], [0, -1.25], [1.10, -1.03], [1.82, -.39]]
+export const seatYaw = (x: number, z: number): number => Math.atan2(-x * .8, .65 - z)
+export const CHAIR_BLOCKS: { color: string; position: [number, number, number]; size: [number, number, number] }[] = [
+  { color: '#211d1a', position: [0, .57, -.04], size: [.46, .10, .40] },
+  { color: '#28231e', position: [0, 1.00, -.205], size: [.44, .75, .065] },
+  ...[-.18, .18].map(x => ({ color: '#292824', position: [x, .29, -.04] as [number, number, number], size: [.030, .56, .03] as [number, number, number] })),
+]
+
+/** A clear bay between the bar's x=2.85 counter edge and x=4.74 wall face.
+ * The full authored tree envelope (including gifts and ornaments) is 1.85m
+ * wide. At 84% it leaves >16cm on both sides, rather than hiding intersections
+ * behind the counter. Its light is tree-local so moving decor cannot leave an
+ * unrelated bright patch at the old location. Floor contact is intentional;
+ * every other furniture/wall envelope needs positive clearance. */
+export const CHRISTMAS_LAYOUT = {
+  tree: [3.795, 0, -3.55] as [number, number, number], scale: .84, clearance: .12,
+  // Garland hangs in front of the bottles, not through their front faces. The
+  // wreath stays below the lowest beam face at y=3.285 and ahead of the mirror.
+  garlandDepth: -4.68, wreath: [0, 2.94, -4.63] as [number, number, number],
+} as const

@@ -35,6 +35,19 @@
   ],
   "candidateSessions": [
     {
+      "file": "poker-evidence-2026-09-20T04-36-26-293Z.json.gz",
+      "rawSha256": "8c7229b76d1834efca9b59718989e6fee048a555b8d24124311e4ac027444089",
+      "provenance": "Actual Chrome source QA after room-plan extraction, measured decor clearances and warm-light pass: wide/seated diagnostic camera, paused drink, inspection return, cigar and call70. Raw download compressed losslessly.",
+      "frameCount": 196,
+      "poseCount": 87,
+      "frameMsP50": 40.3,
+      "frameMsP95": 79.1,
+      "cpuSubmissionMsP50": 5.7,
+      "cpuSubmissionMsP95": 9.2,
+      "limitations": "Short instrumented mixed-camera/motion session, not a controlled performance comparison. Wide view is an explicit dev-only camera, not a replacement player perspective. Geometry bounds and snow-budget tests do not establish 60Hz or final character-art quality.",
+      "images": ["poker-evidence-2026-09-20T04-36-26-293Z-14.616.png", "poker-evidence-2026-09-20T04-36-26-293Z-15.305.png"]
+    },
+    {
       "file": "poker-evidence-2026-09-20T04-23-47-481Z.json.gz",
       "rawSha256": "d77ee646e3f063b16e99efeeede6cf04459213108405deec30a2ceb0550d7b2c",
       "provenance": "Actual Chrome source QA /dev/?qa=grip-surface&stats&record after shared surface-fitted grips: restored hand, drink, pause/resume mid-sip, inspection return and cigar pickup. Untouched downloaded JSON compressed losslessly.",
@@ -106,6 +119,7 @@
     }
   ],
   "rigImages": [
+    { "file": "christmas-before-lighting.png", "url": "/dev/?qa=christmas-clearance&stats&record", "subject": "Seated room before lighting pass", "candidate": "Actual browser canvas export 2026-09-20T04-32-10-582Z at 9.961s, after tree placement but before illumination/decor mounting corrections. Raw trace not retained. Different animated frame; not a pixel-aligned golden pair." },
     { "file": "contact-player-glass.png", "url": "/dev/?studio&seat=1", "subject": "Player drink grip", "action": "drink", "seconds": 2.6, "candidate": "Actual production hand and glass together; opposing thumb and outside finger wrap. Isolated sleeve; geometry clearance independently tested. Not overall anatomy approval." },
     { "file": "contact-player-cigar.png", "url": "/dev/?studio&seat=1", "subject": "Player cigar", "action": "idle", "seconds": 0, "candidate": "Surface-fitted index/middle pinch and less curled ring/little fingers. Finger silhouette remains angular." },
     { "file": "contact-opponent-sip.png", "url": "/dev/?studio&seat=1", "subject": "Opponent whole rig", "action": "drink", "seconds": 2.6, "candidate": "Complete attached arm, near-side glass contact and rim at animated mouth; all five seats separately tested at 81 held-phase samples." },
