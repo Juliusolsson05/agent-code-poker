@@ -41,6 +41,14 @@ app's full `GameState` or cast a redacted view back into one.
 
 ### Experimental 3D LAN website
 
+The normal browser lobby now has **Play with friends · LAN**, opening a separate
+Host/Join setup page while keeping the solo tab. This is navigation, not a server
+launcher: explicitly start the standalone host, then paste its printed URL.
+Names/codes are entered on that host, never forwarded in URLs. The link is
+website-only and hidden in the installed extension. The LAN client's temporary
+presentation has been rejected by the user: original poker UI parity is required
+before release, not a separate redesign.
+
 `npm run build` compiles both the extension and `lan-dist/`. `npm run lan`
 starts the separate, persistent3D multiplayer candidate at
 `http://127.0.0.1:5192/`. It does not modify solo saves.

@@ -2,6 +2,21 @@
 
 ## Active direction — full multiplayer first (restarted goal loop)
 
+USER CORRECTION: preserve the original poker UI. The standalone client's
+separate header/labels/summary/card strip is rejected, not accepted multiplayer
+presentation. Next work is shared original presentation fed by local/remote
+adapters, not a CSS imitation or more separate UI. LAN adds admission and session
+controls; it must not redesign the main room. Keep existing privacy boundaries
+and never fabricate a GameState to reuse the local controller.
+
+Entry checkpoint: actual source CUA keyboard navigation, host/join guidance,
+invalid-host rejection and local QA host creation reached a real3D room. Shipped
+lobby screenshot shows the same entry. Direct second-client opening was browser
+blocked; no workaround. Unsubmitted hand advance observed: not a controlled
+gameplay success. Session26 notes retain limits. Full verify149 tests/builds/
+SDK/preview pass; installed extension remains offline. UI parity, actual paired
+browser gameplay/recovery and all broader acceptance gates remain open.
+
 Immediate user-visible gap (#3): normal source/shipped browser lobby has no LAN
 entry, and the existing5192 process still serves the old diagnostic HTML. Do
 not replace that potentially active memory-only host. B15 records these actual

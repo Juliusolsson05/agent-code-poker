@@ -266,3 +266,4 @@ h2 { font-family: Georgia, serif; font-size: 33px; font-weight: 400; letter-spac
 /* At narrower widths the centered betting buttons use the same horizontal
  * space. Keep the board on the right but lift it above the decision row. */
 @media (max-width: 1000px) { .community-board { bottom: 125px; } .drink-menu { max-height: calc(100% - 350px); } }
+.website-multiplayer { display: none; }

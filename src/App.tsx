@@ -347,6 +347,11 @@ export function App({ api }: { api: PokerApi }) {
       {lobby && <div className="lobby">
         <div className="lobby-copy"><div className="eyebrow"><span /> A PRIVATE TABLE. A LONG NIGHT.</div><h1>The River Club.</h1><p>Pull up a chair. Leave the world outside.</p>
           <button className="primary enter-button" onClick={enter} disabled={loading || saving || sceneFailed || loadFailed}>{loading ? 'Preparing your seat…' : s ? 'Return to your table' : 'Take a seat'} <span>↗</span></button>
+          {/* The website enables this inert navigation slot with its own CSS.
+              Installed SDK views stay offline and hidden: no host capability,
+              environment sniffing or server code is smuggled into context.api.
+              A separate tab preserves the solo save and pauses it on blur. */}
+          <a className="website-multiplayer" href="/dev/multiplayer.html" target="_blank" rel="noopener noreferrer">Play with friends · LAN ↗</a>
           <div className="lobby-details"><span>NO-LIMIT TEXAS HOLD’EM</span><span>2,000 CHIPS TO START</span><span>YOURS TO PLAY. NOTHING TO PAY.</span></div>
         </div>
         <div className="lobby-bottom"><span>EST. BETWEEN COMMITS</span><span>Procedural world · Local opponents · Saved on this device</span></div>

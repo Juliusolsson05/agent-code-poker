@@ -1,5 +1,27 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## User correction: original UI, multiplayer underneath — B16–E16
+
+The standalone LAN client renders a different header, plain-text hand/board,
+summary block and label styling. User rejects this visible redesign. Reusing
+PokerRoom alone was insufficient: the original App presentation is the target,
+with only lobby/session additions. The ordinary poker UI was not replaced;
+the separate network page duplicated and diverged from it. Do not approve that
+temporary client by treating connection tests as UX acceptance.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B16 | Original vs LAN presentation inventory | Actual original shipped screenshot, LAN DOM, App JSX and client HTML/CSS | Identify missing elements rather than styling the wrong UI | Session26 plus explicit user rejection |
+| C16 | Shared presentation contract with local/remote adapters | Only own/public cards, authority-seat callbacks, no fake GameState/deck | Local engine ownership cannot leak through component reuse | Existing TableView/RoomProjection and legal-action contracts |
+| D16 | Shared original header, room overlays, board, bankroll/status, controls and panels | Both controllers render the same components/styles; network state replaces only data/action owner | No parallel UI to drift again; no broad redesign | Preserve original layout, typography and placement |
+| E16 | Matched source/shipped/LAN visual and keyboard checks | Actual CUA views, action/inspection/pause/restore and two-client admission | Tests and class names alone cannot establish visual parity | User's original UI is reference, not current LAN approximation |
+
+LAN-only connection/roster/invite/bank/host controls belong in an additive panel,
+not a replacement summary bar. Public hand history must be projected safely if
+needed; never send private history/deck to recreate solo UI. Existing future
+keyboard improvements remain in scope, but do not use them to justify unrelated
+style changes. Fix architecture before a cosmetic patch; animations stay paused.
+
 ## Discoverable website multiplayer — B15–E15 (issue #3)
 
 A: user reports no LAN settings in their browser lobby. Read-only inspection

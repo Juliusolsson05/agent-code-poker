@@ -1,0 +1,22 @@
+{
+  "source": "manual notes from actual CUA and HTTP observations; not raw trace, screenshot golden or Wi-Fi evidence",
+  "sourcePreview": {
+    "url": "http://127.0.0.1:5191/dev/?qa=entry-26",
+    "observed": ["Play with friends link visible in original lobby", "keyboard Enter opens separate website setup tab", "Host and Join guidance selectable", "public example.com destination rejected with inline error and focused URL field", "explicit local URL submitted through form reached current 3D host admission page"]
+  },
+  "shippedPreview": {
+    "url": "http://127.0.0.1:5191/dev/?production&qa=entry-26prod",
+    "observed": ["Play with friends link visible below Take a seat", "rendered lobby screenshot inspected in CUA"],
+    "notVerified": ["fresh wager/inspection/reload sequence for this slice"]
+  },
+  "lan": {
+    "url": "http://127.0.0.1:5193/",
+    "observed": ["port had no listener before starting owned persistent QA host", "credentialless state returned410 before QA admission", "Create table accepted QA Host", "actual 3D room and five NPC labels rendered with ready stacks2000", "table menu displayed invite, durable host notice and disabled in-hand bank controls"],
+    "uncontrolled": ["subsequent observation showed hand1 although this tool sequence had not submitted Deal; do not attribute that transition to this controlled test"],
+    "blocked": ["opening second direct QA browser tab returned ERR_BLOCKED_BY_CLIENT; no protections changed or workaround attempted"],
+    "activeOldHost5192": "untouched; actual HTTP still served Connection test HTML",
+    "limitations": ["No second-player browser join or bank transaction verified", "Not a full controlled gameplay/recovery test", "QA host retained rather than ended after unexplained table transition"]
+  },
+  "userFeedback": "Standalone LAN game UI differs materially from the original; rejected. Restore shared original presentation, do not treat working admission as visual acceptance.",
+  "limitations": ["No FPS, listening, graphics-quality, separate-device LAN or Electron verification"]
+}
