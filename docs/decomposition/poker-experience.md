@@ -3,8 +3,8 @@
 ## Release scope and priority — continuation17
 
 The user confirms the whole agreed list is the remaining production scope and
-asks to start with biggest-impact items, specifically the dealer because it
-changes the layout. Priority: dealer/seating, LAN/player identity and relative
+asks to start with biggest-impact items. The latest correction removes the
+human dealer entirely. Priority: LAN/player identity and relative
 seats, fictional bank/rebuys, finish keyboard controls, drinking/exterior glass
 contact and actual-sip-only intoxication, then audio/snow/remaining visual and
 performance acceptance. This supersedes the previous keyboard-first ordering;
@@ -19,27 +19,30 @@ paused. No automatic merge, public relay, real money or host-repo edits.
     mullions and confined aperture, and measure larger-sprite overdraw rather
     than claiming unchanged performance from unchanged point count.
 
-### Dealer station: resolve the occupied center before the seventh character
+### Rejected experiment — human dealer removed from scope
 
-A: recorded room/seat transforms and current shared SEATS put seat3 at[0,-1.25],
-exactly where the dealer is requested. CardField already launches deals from
-[0,.96,-.84] but no person occupies that origin. D: a distinct non-playing
-dealer at center, five opponent presentation stations around the table, intact
-six-seat rules/privacy, no chair/body/prop/table intersections.
+The user explicitly canceled the dealer after seeing the live candidate:
+**the dealer did not work well.** It crowded the middle and stranded/clipped a
+guest at the left edge. The source capture at07-11-28-202Z and the user's
+screenshot are rejection evidence, not approved visual goldens. Geometric
+clearance tests had passed the first candidate but did not establish good
+composition; the tighter attempt also failed station/contact contracts.
 
-| Stage | Produces | Verified by | Why separate | Reality check |
-|---|---|---|---|---|
-| B/C5 station | Recorded seat/room baseline + isolated dealer-table layout | Original center conflict reproduced; oriented chair/body/prop envelope checks against actual room/table geometry | Adding a seventh ordinary NPC duplicates a playing seat and its cards/drink | Existing actual03-21 room bounds,05-52 public actions,07-03 seated capture |
-| D5 station | Dedicated dealer presenter with shared authored character geometry, no playing-seat capabilities; Room sole compositor | No drink/cards/bankroll/bot state; center stance, deterministic public-event attention, bounded resources | Dealer presentation must not become another ledger/card owner | Verified station plan; public engine event sequence |
-| E5 station | Source/production seated+wide dealer captures and motion/resource samples | Seven humans but only six playing seats; correct labels/chips/cards after redistribution; fireplace sightline | Geometry math cannot approve composition or frame cost | Fresh CUA isolated table; missing views stay open |
+Remove the presenter, dealer-specific seat/cup positions, static deck and its
+experimental departure origin, and experiment-only tests. This is cancellation
+of the feature, not weakening failing tests to approve it. Restore Room, Human
+and Cards to the committed pre-experiment implementation. Keep all existing
+poker/button/card-flight behavior and the six playing seats. Do not reintroduce
+a dealer, plan dealer collection, or count dealer acceptance as a release gate.
+All older dealer requests in the historical log below are superseded. D5 now
+retains only mouse-look; hand-animation work remains paused.
 
-Station layout must be shared by Room, CardField, ChipField and world labels;
-never move only a mesh and strand its chips/cards. Preserve engine seat IDs and
-player first-person anchors. Build dealer from the existing self-authored human
-substrate with an explicit non-player role, not a hidden drink/card-playing NPC.
-No hand-art iteration. Unknowns: five-opponent asymmetric spacing with a center
-dealer, rail/prop clearance, fireplace occlusion, chair spacing, and incremental
-rig cost. First verify layout before any default switch or character addition.
+Removal verification: the three experimental source edits revert byte-for-byte
+to the committed implementation; production bundles are unchanged after rebuild.
+`npm run verify` passes92 tests, TypeScript/build,2 SDK contracts and the exact-
+byte production HTTP check. Attempting to reattach the isolated source CUA tab
+timed out; no fresh visual or production-browser acceptance is claimed for this
+removal. Existing visual/performance gates remain open.
 
 ## Latest addition — NPCs grip glass interiors
 
@@ -124,7 +127,7 @@ Use fictional bank chips/debt only; hand-animation work stays paused. No host
 repo edits, public cloud service or merge authorization. Current next order:
 finish authored hearth/spatial audio, keyboard-first betting, then LAN/identity/
 seat projection/bank with real multi-client and privacy evidence, while closing
-dealer, deliberate-look and drinking/intoxication gates. Preserve completed
+deliberate-look and drinking/intoxication gates. Preserve completed
 folded-card/print work and disclose visual/performance/host limitations honestly.
 
 ## New UI backlog — keyboard-first betting redesign
@@ -200,8 +203,8 @@ services merely because this backlog is recorded. Hands remain paused.
     cloud account or Internet relay requested. Transport, code-to-host discovery,
     browser/extension runtime support and host lifecycle need staged design.
 17. **Always six playing seats:** humans replace NPC occupants; bots fill all
-    remaining seats. No extra seventh player. A dedicated dealer is a separate
-    non-playing character, not a betting seat. Define full-lobby rejection,
+    remaining seats. No extra seventh player or human dealer. Define
+    full-lobby rejection,
     disconnect/reconnect and safe bot takeover before implementation.
 18. **Name entry:** enter a display name when entering the lobby; show the right
     name on that player's seat for everyone. Treat names as untrusted plain text,
@@ -244,14 +247,14 @@ services merely because this backlog is recorded. Hands remain paused.
   reconnect and rebuys. Actual LAN/browser/host evidence is distinct from mocks.
 
 These are additive future stages after the current confirmed list; they do not
-erase fireplace/audio, dealer, mouse-look, folded-card, lettering or drinking/
+erase fireplace/audio, mouse-look, folded-card, lettering or drinking/
 actual-sip-only intoxication requirements. No multiplayer/bank work is complete.
 
 ## D4 fireplace geometry checkpoint — continuation 15
 
 **Latest user correction supersedes both placements below:** enlarge the hearth
-and offset it between the dealer and another person. Candidate is now 2.21m
-wide, centered at back-wall x=1.4 (right of future dealer); shared bay bounds
+and offset it between the center and right-center guests. Candidate is now 2.21m
+wide, centered at back-wall x=1.4 (right of center); shared bay bounds
 drive both masonry placement and bar clipping. The actual native-CUA centered
 preview showed the central opponent hiding the fire, confirming why mere
 collision clearance is insufficient. No hand animation changes.
@@ -268,11 +271,11 @@ not reach production: extension connection failed, and native QA was interrupted
 when focus returned to the user's ordinary game. Do not operate that tab. The
 earlier centered source view and hand entry were observed in CUA only, not
 exported as new golden files. No proof of actual drag, latest offset visibility,
-audio quality, seamless loop or FPS improvement. Continue those gates, dealer,
+audio quality, seamless loop or FPS improvement. Continue those gates,
 drinking/intoxication and chip audio; do not resume paused hand-animation work.
 
 **User correction:** the hearth must be centered on the main back wall behind
-the future dealer, not in the side bay. Supersedes the placement below. Split
+the center guest, not in the side bay. Supersedes the placement below. Split
 the back bar/counter/shelves around a 1.64m central bay; preserve the original
 recorded plan as a negative control showing the intersections a simple move
 would create. Test the derived production plan and unchanged outer furniture,
@@ -308,7 +311,7 @@ as evidence/history, not permission to resume their omitted work:
 1. Stop hand-animation work; focus on the other features.
 2. Folded NPC cards land face-down on the table and remain visible.
 3. Fix low-resolution chip lettering.
-4. Add a dedicated human dealer opposite the player, in the center.
+4. Canceled: human dealer did not work well; removed from plan and game.
 5. Deliberate mouse-look, with performance efficiency.
 10. Intoxication only after actually drinking, never ordering/selecting.
 11. Proper player/NPC drinking mechanics without resuming hand-animation work.
@@ -334,7 +337,7 @@ The September 20 scope addition below makes NPC/player drinking, cigar-to-lip
 contact, an optional intoxication filter, a fireplace and high-quality fire/chip
 audio explicit unfinished acceptance gates.
 Latest feedback also reopens overall hand naturalness and requests a dedicated
-center dealer, deliberate mouse-look and readable chip/table lettering (D5/D6).
+deliberate mouse-look and readable chip/table lettering (D5/D6); dealer canceled.
 Scope: issue #1, `feat/voxel-poker`. Anatomy/Christmas art remains provisional,
 not an accepted visual baseline. No automatic merge.
 
@@ -1104,69 +1107,19 @@ readability. Verify existing glass/cigar triangle clearance, closed deformation
 and card nonpenetration unchanged. A thumb-tip side-of-palm test protects this
 specific pose error, but only actual images can approve the overall silhouette.
 
-### D5 — natural hands, a center dealer and seated mouse-look
+### D5 — seated mouse-look (dealer canceled; hand art paused)
 
-**A / evidence:** the user reports that the revised hand still looks unnatural.
-The thumb-side correction is a provisional contact fix, NOT anatomy approval.
-Preserve the original user screenshot and revised production-rig image.
-`Room.look` normalizes cursor position, then uses .11m/.055m look-target offsets
-with frame-dependent .045 lerp: parallax, not deliberate looking. `SEATS[3]`
-already occupies the opposite center at [0,-1.25]; a new dealer there would
-overlap an opponent. Room's existing `dealer` is a button, not a human.
+The user canceled the human dealer because the live seating/layout did not work
+well. The rejected experiment is recorded at the top of this document; it has
+no remaining implementation or acceptance tasks. Existing hand art remains
+provisional and paused. Preserve the poker dealer button and engine seat IDs.
 
-**D / destination:** a relaxed, proportional hand supports the cigar without a
-hooked central thumb, rigid extended fingers or wrist distortion. Other grips
-remain functional. A distinct fine-block human dealer sits opposite the player
-in the middle, with purposeful dealing/collecting gestures. Five opponents stay
-players; the dealer has no bankroll, hole cards or turn. Deliberate mouse-look
-lets the player explore the tavern and comfortably return to cards/controls.
-
-#### D5-B — capture the actual substrate
-
-- **Produces:** raw source input/camera traces and seated/four-view images under
-  `testing/fixtures/experience/`: cigar rest/puff/return, card/drink grips, center
-  seating, and cursor movement over scene versus controls. Extend the bounded
-  recorder with drag/focus/inspection events before replacing camera input.
-- **Verified by:** retained exports with times, viewport and provenance; inputs
-  correlate to visible poses and camera matrices. The latest verbal complaint
-  is user evidence, not a new screenshot or measured joint angle.
-- **Why separate:** another thumb offset cannot establish anatomy; moving seats
-  before capture erases the existing framing and collision baseline.
-- **Reality check:** user screenshot, revised production rig, actual center
-  opponent and real mouse/UI sessions. Mark missing observations unrecorded.
-
-#### D5-C — catalog and isolate the contracts
-
-- **Produces:** catalog cases for anatomical grip posture, dealer-station
-  clearance/public events and camera input arbitration. Evaluate finger cascade,
-  palm/knuckle proportions and side-emerging thumb with the whole wrist visible.
-  Extend shared room layout; redistribute opponent presentation positions while
-  preserving engine seat IDs and the rotating dealer button.
-- **Verified by:** recorded cases replay against contact/clearance contracts;
-  station envelopes fit table/chairs/people/furniture. Menu, pause and focus loss
-  outrank look input; inspection and mouth contact have explicit transitions.
-  Negative controls catch center overlap, duplicate cards and stuck dragging.
-- **Why separate:** rules own dealing, interactions own held props, camera owns
-  looking. Mixing them produces duplicate cards or arms chasing the camera.
-- **Reality check:** D5-B recordings and existing public hand traces. Unexercised
-  edge cases are labeled synthetic probes, not claimed recorded behavior.
-
-#### D5-D — implement behind explicit boundaries
-
-- **Produces:** revised production hand evaluated in existing inspection tooling;
-  `scene/dealer/` public-event pose sampler with one dealer-presenter consumer;
-  `scene/camera/` deterministic camera arbitration with Room as sole consumer.
-  Engine/bots/storage import neither subsystem; hands/props never read raw mouse
-  input. Room composes outputs rather than becoming a second gesture owner.
-- **Verified by:** tests written from the recorded failures before replacement;
-  retain closed skin topology, triangle contacts and bounded shoulder/wrist
-  reach. Dealer consumes sanitized public events and the existing card/chip
-  presentation timeline, never independently deals, awards chips or gates legal
-  actions. Pause, reload and skipped frames cannot repeat transfers.
-- **Why separate:** adding an ordinary drinking/card-holding NPC is not a dealer;
-  patching camera offsets into each prop and label breaks shared coordinates.
-- **Reality check:** implement one cataloged case at a time, then inspect actual
-  presenter output; mathematical endpoint tests do not approve hand naturalness.
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B | Source input/camera traces, seated/inspection images | Retained exports correlate actual inputs and camera matrices | Parallax is not deliberate looking | Actual CUA scene versus UI controls, pause and focus loss |
+| C | Input arbitration contracts | Menu/pause/focus outrank drag; inspection returns safely | Camera is the single view owner; props must not independently chase cursor input | Recorded camera/inspection cases; novel probes labeled synthetic |
+| D | Isolated scene/camera controller consumed only by Room | Deterministic bounded elapsed-time motion, no engine/storage dependency | Shared coordinates prevent detached props and stranded labels | Existing source opt-in implementation; real drag still unverified |
+| E | Actual source and shipped input/motion/restore evidence | Comfortable look/recenter, no private faces, stable public board and safe controls | Controller math cannot approve visual comfort | Fresh CUA drag, UI-focus, inspection, sip/puff, pause/reload and timing captures |
 
 Mouse-look default proposal: hold left mouse and drag on unobstructed scene
 background, not controls or clickable props; retain bounded yaw/pitch on release
@@ -1179,25 +1132,9 @@ suspend look until return. Do not pretend a body-fixed mouth follows a turned
 head. Inspection saves/restores look intent through the single camera owner.
 Head-following contacts would require separately verified neck/reach contracts.
 
-#### D5-E — verify integrated play and cost
-
-- **Produces:** actual source AND shipped QA traces/images/motion inspection of
-  grips, dealer actions, look extremes, menus, inspection, sip/puff, pause/focus
-  loss and reload. Matched frame/resource profiles bracket the added character.
-- **Verified by:** convincing full-hand silhouette and connected wrist without
-  prop penetration; a centered distinct dealer without furniture/seat overlap.
-  Look extremes cannot expose private card faces. World labels follow anchors
-  or hide offscreen; the bottom-right public board stays readable/fixed. Controls
-  do not steer the view; recenter/return does not jump. Run full verification.
-- **Why separate:** rig stills cannot establish camera comfort; a seventh human
-  can materially worsen the already-open active performance gate.
-- **Reality check:** recorded real play plus paired fixed-scene profiles, clearly
-  distinguished from studio stills and synthetic safety tests.
-
-**Unknowns:** final natural hand silhouette/proportions; center dealer/table bay
-and five-opponent spacing; comfortable sensitivity/limits; dealer timing during
-fast all-ins and restore; newly visible private-card sightlines; incremental
-geometry/shadow cost. Documentation does not solve these. D1–D4/E remain open.
+Unknowns: comfortable limits/sensitivity, newly visible private-card sightlines,
+and measured motion/render cost. Keep the candidate gated until actual browser
+acceptance; do not use synthetic input tests as a substitute.
 
 ### D6 — readable chip and table lettering
 
@@ -1239,7 +1176,7 @@ sampling before spending more fullscreen pixels. No lettering fix is claimed.
 The user explicitly stopped hand-animation work after D5/D6 were planned.
 Preserve the current tested contact/thumb checkpoint as provisional. Do not
 iterate hand art, poses or gesture animation further without a new request.
-Continue table behavior, dealer, mouse-look, lettering, room ambience, snow,
+Continue table behavior, mouse-look, lettering, room ambience, snow,
 fireplace, audio and other non-hand work. D5 hand acceptance remains open/deferred,
 not silently passed; necessary future camera/prop integration must not disguise
 another hand-animation project.
@@ -1252,7 +1189,7 @@ face-down flight from a guessed height and marks it `disappear:true` at .68s.
 It is disappearance, not evidence of an actual below-felt vertex. Preserve this
 distinction and inspect the real flight before changing the presentation.
 **D:** folded cards land face-down above the felt, stay visible in a coherent
-discard area, and are only cleared by a visible dealer collection or next-hand
+discard area, and are only cleared by next-hand
 reset. Never reveal folded faces, resurrect held cards or change the ledger.
 
 - **Produces (record/catalog):** actual public fold transitions from retained
@@ -1274,7 +1211,7 @@ older flight for that mesh. Folded backs settle in a layered, felt-safe discard
 area and survive later state projections and pause; reload restores settled
 backs without re-dealing. New hands dispose them once. Add recorded regression
 tests plus labeled synthetic timing/restore probes before implementation.
-Dealer collection later consumes this same lifecycle; no second set of cards.
+Human-dealer collection is canceled; the next hand clears this same set of cards.
 Integration gates: source/shipped visible fold landing/retention, no below-felt
 corners or coplanar overlapping discards, no private texture request, unchanged
 engine/save state and bounded mesh counts across hands. This does not authorize
@@ -1329,7 +1266,7 @@ pixel-aligned golden. Actual metadata confirms capped8x filtering and doubled
 source artwork. Frame p50/p95 34.1/110.2ms and CPU5.2/9.4ms are instrumented mixed
 workload observations, NOT performance improvement. No fresh console export,
 Electron verification or hand-motion acceptance. Keep existing quality and
-performance gates open; center dealer/mouse-look/fireplace/audio remain next.
+Performance gates open; mouse-look/fireplace/audio remain. Human dealer canceled.
 
 Source restoration recovery: fresh isolated tab321804218 loaded the same QA save
 after the debugger failure. Return to table restores hand1/flop K♥3♦9♥,

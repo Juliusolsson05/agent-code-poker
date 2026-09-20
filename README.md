@@ -23,8 +23,10 @@ or need an inspection toggle. Narrow layouts lift it above the betting row.
 ## Boundaries
 
 Folded cards settle face-down on the felt and remain until the next hand.
-Restoring a save restores those discards without replaying a throw. Dealer
-collection is planned separately; the engine still owns every chip balance.
+Restoring a save restores those discards without replaying a throw; the next
+hand clears them. The human-dealer experiment was rejected because its seating
+layout did not work well and has been removed. The poker button and dealing
+rules remain unchanged; the engine still owns every chip balance.
 
 This is an evolving visual/gameplay implementation, not a finished realism benchmark. WebGL2 is required. The camera is desktop seated perspective, not headset/WebXR support. There is no multiplayer, real money, remote service or downloaded runtime asset. Blinds stay at 10/20 with a moving button. Bots sample equity and have different risk profiles; they are not a solver or a claim of professional-level play.
 
@@ -42,7 +44,7 @@ until real browser keyboard/focus/layout checks pass; ordinary play is unchanged
 
 Fireplace candidate is visible on the ordinary source `/dev/` page. For isolated
 recording use `/dev/?qa=fireplace&record&stats&look`. This enlarged
-back-wall hearth is offset between the future dealer and right-center guest;
+back-wall hearth is offset between the center and right-center guests;
 the shorter left bar is authored beside it with complete shelf ends. The hearth
 has mantel greenery, stockings and layered block flames, pending final visual/performance acceptance.
 It includes the Creator Assets CC0 fire recording, starts after a gesture and

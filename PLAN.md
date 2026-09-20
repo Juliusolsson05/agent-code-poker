@@ -1,8 +1,17 @@
 # Agent Code Poker
 
+**Scope correction — dealer removed (September 20):** the user rejected the
+human-dealer experiment: it did not work well and made the seating awkward,
+with clustered center figures and an isolated/clipped edge guest. Remove the
+dealer from the game, plan and goal; do not redesign or reintroduce it. Its
+uncommitted presenter, seat redistribution, deck integration and experiment-only
+tests have been removed, restoring the established symmetric five-opponent
+layout. The poker dealer button, dealing rules and existing card flights remain.
+Older dealer requests below are superseded history, not pending release work.
+
 Current release priority (user correction, continuation17): the full agreed list
 is the remaining production scope. Start with highest-impact structural work:
-dealer/seating → LAN/identity/seat projection → fictional bank/rebuys → keyboard
+LAN/identity/seat projection → fictional bank/rebuys → keyboard
 betting acceptance → drinking/exterior grip and actual-sip-only intoxication →
 audio, visible snow and remaining visual/performance acceptance. Hand-animation
 art stays paused; no merge or host-repo changes. Larger visible window snow is
@@ -53,13 +62,13 @@ New backlog addition (planning only): LAN host/join by lobby code; exactly six
 playing seats with humans replacing NPCs and NPCs filling the remainder; display
 name entry; self-authored player character models; per-client presentation that
 always places the local human at the existing first-person seat; fictional-chip
-bank rebuys with tracked fictional debt. Dealer remains separate from six seats.
+bank rebuys with tracked fictional debt. No dedicated human dealer.
 See the top of `docs/decomposition/poker-experience.md` for numbered requirements,
 privacy/accounting contracts and unresolved rules. Current runtime stays local;
 this request does not yet start networking or resume hand-animation work.
 
 Latest user scope overrides the broad goal-loop text: stop hand-animation work;
-retain folded backs on felt; readable chip lettering; center human dealer;
+retain folded backs on felt; readable chip lettering; no human dealer;
 efficient deliberate mouse-look; actual-drink-only intoxication; proper player/
 NPC drinking mechanics without hand-animation iteration; fireplace; licensed
 natural fire audio and realistic chip audio; autonomous staged implementation.
@@ -67,7 +76,7 @@ The exact numbered list is at the top of `docs/decomposition/poker-experience.md
 Preserve other existing features, but do not re-add omitted wishlist items.
 
 Latest fireplace direction: larger and offset on the main back wall between the
-future dealer and another player, not centered behind a torso or on a side wall.
+center and right-center players, not centered behind a torso or on a side wall.
 The source-only `&fireplace` candidate widens it to2.21m atx1.4 with a matching
 bar opening. Creator Assets' YouTube fire loop is downloaded from its official
 CC0 endpoint and wired locally with pause/mute/focus gates. Initial native-CUA
@@ -139,9 +148,9 @@ specifies contact/orientation evidence, single sip-event ownership, bounded
 readable effects, reduced-motion/off controls and unchanged poker rules.
 
 Latest user feedback reopens whole-hand naturalness despite the provisional
-thumb correction. D5 stages a dedicated center dealer and intentional bounded
+thumb correction. D5 retains intentional bounded
 mouse-look; D6 investigates blurry chip/table lettering. Keep five opponents
-and engine seat/button semantics; replan the occupied center presentation seat.
+and engine seat/button semantics; keep the established seating layout.
 Record current hands, seating, mouse/UI behavior and lettering, then catalog
 contracts before implementation. No camera-driven detached props or private
 card leaks. These additions are planned, not shipped; actual source/production
@@ -151,12 +160,13 @@ User priority override: STOP hand-animation iteration now. Preserve the current
 tested checkpoint as provisional; do not continue D2/D5 hand art unless asked.
 Proceed with the other requested work. D7 records/fixes folded NPC cards that
 vanish instead of remaining face-down on the felt, and connects their eventual
-collection to the planned dealer presentation without changing poker rules.
+clearing to the next hand without changing poker rules. Human-dealer collection
+is canceled with the rejected dealer feature.
 
 Continuation9 table checkpoint: folded backs now remain above felt, with single
 flight ownership, restored settled discards and reduced-motion coverage. Chip
 cap/felt artwork is2x with bounded anisotropic sampling and shared textures.
 Actual source trace/PNGs and source/shipped action-inspection-restoration checks
 are retained;71 tests/build/SDK/exact-byte preview pass. Hand work stays paused.
-Dealer collection, center dealer, mouse-look, fireplace/audio, warmer glow,
+Mouse-look, fireplace/audio, warmer glow,
 noticeable snow and measured active-play performance remain open in D4-D7/E.
