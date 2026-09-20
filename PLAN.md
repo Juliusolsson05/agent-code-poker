@@ -2,6 +2,20 @@
 
 ## Active direction — full multiplayer first (restarted goal loop)
 
+Shared-UI implementation checkpoint (B16–D16): original PokerChrome components
+now serve solo and LAN controllers, using original room/board/seat/action styles.
+The per-viewer DTO stays the network boundary; no fake GameState or hidden-card
+sentinels were introduced. One product profile selects the fireplace and matching
+shelf layout in source/shipped/LAN. LAN owns gesture-gated spatial PokerAudio;
+its HTTP CSP permits only embedded data media, retaining same-origin networking.
+Full verify151 tests, TypeScript, both builds, SDK and exact-byte preview pass.
+Actual source AND shipped CUA call20/inspection/pause/reload restore hand1/stack1980/pot100;
+fireplace visible, captured warning/error logs empty. Session28 records evidence
+and limits. Running LAN hosts were not restarted. Actual matched LAN visuals,
+paired play, listening, FPS and Electron remain unverified. LAN help/history
+and complete panel behavior still need parity work; this is not final acceptance.
+No dependencies or lockfile changes. Host/SDK expansion still awaits authority.
+
 NEW REQUIRED END STATE: Host LAN game must work INSIDE the installed Agent Code
 extension, without a terminal command. The standalone-only restriction is no
 longer the desired product; CLI hosting remains a development adapter, not the
@@ -12,9 +26,9 @@ direction: permission-gated host-managed LAN transport/lifecycle, existing
 extension runtime as poker authority, same original view for solo/LAN, no shell
 execution or sandbox escape. Do not add imaginary SDK permissions or APIs.
 
-Fireplace regression cause confirmed: Room gates fireplace AND shelf-aware
-layout on import.meta.env.DEV; the LAN build is production and excludes both.
-App also gates fire audio on DEV; LAN client has no audio owner. UI convergence
+Original fireplace regression cause: Room gated fireplace AND shelf-aware
+layout on import.meta.env.DEV; the LAN build is production and excluded both.
+App also gated fire audio on DEV; LAN client lacked an audio owner. UI convergence
 must include one explicit room/audio feature configuration for source, shipped
 and LAN, with fresh browser evidence—not merely copy current LAN CSS.
 

@@ -9,6 +9,7 @@ import { CardField } from './Cards'
 import { createHeldCardFan } from './CardGrip'
 import { ChristmasTavern } from './Christmas'
 import { Fireplace } from './environment/Fireplace'
+import { TAVERN_FEATURES } from './environment/features'
 import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import { createTableSurface, dealerPosition, TABLE } from './Table'
 import { SceneCapture, transform } from './diagnostics/SceneCapture'
@@ -34,10 +35,7 @@ export class PokerRoom {
   // Keep this integration explicitly opt-in until real source/shipped checks
   // pass; a synthetic controller test is not permission to change live play.
   readonly experimentalLook = import.meta.env.DEV && new URLSearchParams(location.search).has('look')
-  // The user reviews the ordinary live /dev/ page, not a private QA URL.
-  // Show this requested candidate there while keeping release acceptance
-  // separate. Gate production only; a hidden query flag made it invisible.
-  private readonly experimentalFireplace = import.meta.env.DEV
+  private readonly experimentalFireplace = TAVERN_FEATURES.fireplace
   private seatedLook = new SeatedLook()
   private lookPlaying = false
   private lookBlocked = false
@@ -127,9 +125,9 @@ export class PokerRoom {
     this.scene.add(createTavernLighting())
     this.buildRoom()
     this.christmas = new ChristmasTavern(); this.scene.add(this.christmas.root)
-    // Clearance/resource tests cannot approve composition or fire motion.
-    // Live development exposes the candidate for user review; the shipped
-    // room stays separate until browser/listening acceptance is retained.
+    // The same profile selects shelf clearance and the hearth in every build.
+    // Visual/performance approval remains a separate evidence gate, not a DEV
+    // flag that secretly serves a different room to multiplayer clients.
     if (this.experimentalFireplace) {
       this.fireplace = new Fireplace(); this.scene.add(this.fireplace.root)
     }

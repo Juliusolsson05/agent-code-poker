@@ -162,7 +162,10 @@ export async function startLanHost(options: Options = {}) {
     response.setHeader('Cache-Control', 'no-store')
     response.setHeader('X-Content-Type-Options', 'nosniff')
     response.setHeader('Referrer-Policy', 'no-referrer')
-    response.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+    // The licensed fireplace recording is embedded in the compiled client as a
+    // data URL. Allow only that media scheme, not arbitrary remote audio or a
+    // broader connect-src exception; all poker traffic stays same-origin.
+    response.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; media-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
     void (async () => {
       const peer = request.socket.remoteAddress?.replace(/^::ffff:/, '')
       if (!isLoopback(peer) && (!peer || !privateV4(peer))) fail(403, 'Private-network peers only.')

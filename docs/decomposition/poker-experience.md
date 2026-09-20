@@ -26,16 +26,40 @@ firewall changes, dynamically granted unknown capability or Node in the view.
 | D17 | Host implementation plus extension adapter | Same pure ledger and commit-before-ACK/privacy invariants across website/runtime | Keep poker UI and authority independent of transport | No unsupported manifest fields or pretend launcher |
 | E17 | Packaged Agent Code Host/Join and guest acceptance | Actual Electron install, start/resume/end, two viewers, no terminal, crash/revocation | Browser/HTTP checks cannot verify SDK lifecycle | Explicit release requirement, not optional follow-up |
 
-Related environment mismatch: Room.experimentalFireplace and App fire audio
-depend on import.meta.env.DEV, so shipped/LAN builds omit the fireplace and
-shelf-aware layout. LAN client also never creates PokerAudio. B16 shared-view
+Original environment mismatch: Room.experimentalFireplace and App fire audio
+depended on import.meta.env.DEV, so shipped/LAN builds omitted the fireplace and
+shelf-aware layout. LAN client also lacked PokerAudio. B16 shared-view
 integration must use a single deliberate scene/audio profile, preserving the
 current festive room rather than blessing an old production appearance. This
 diagnosis is source evidence, not a claim that new graphics have been verified.
 
 ## User correction: original UI, multiplayer underneath — B16–E16
 
-The standalone LAN client renders a different header, plain-text hand/board,
+D16 checkpoint: `src/components/PokerChrome.tsx` owns original header, table
+info, seat contents, pot and board/stack/status readout. App and LAN controllers
+consume it with display-only inputs; no private engine snapshot crosses this
+boundary. LAN's replacement theme/summary was removed in favor of original
+styles and website viewport adapter. Admission and session controls remain
+additive. `environment/features.ts` deliberately enables the same hearth and
+shelf plan everywhere; source-only diagnostics stay separate. LAN adds the
+existing spatial audio owner, with gesture/focus/pause/mute gates and no sound
+for a complete-hand bank transfer. Only embedded media is added to HTTP CSP.
+
+Verification: full verify151 tests/builds/SDK/exact-byte checks pass. New shared
+component tests are synthetic HostTable/SSR and static wiring checks, NOT real
+network or graphics fixtures. The preserved HTTP asset check initially failed
+on its missing Multiplayer poker room label; the accessible label was restored,
+not the test weakened. Session28 records actual source/shipped observations.
+Shipped screenshot confirms the offset hearth and original room controls;
+source and shipped call20/inspection/pause/reload retain hand1/stack1980/pot100, no captured browser
+warnings/errors. Screenshots were inspected in CUA, not retained as pixel goldens.
+E16 remains open: no fresh LAN render after this build, no paired browser play,
+no listening/FPS/Wi-Fi/Electron claims. Existing active hosts were preserved.
+LAN help/history, fullscreen placement and full panel behavior remain to compare.
+Embedded licensed audio makes shipped view3.29MB and LAN client2.94MB uncompressed;
+this records build size, not rendering performance. Hand art remains untouched.
+
+The originally observed standalone LAN client rendered a different header, plain-text hand/board,
 summary block and label styling. User rejects this visible redesign. Reusing
 PokerRoom alone was insufficient: the original App presentation is the target,
 with only lobby/session additions. The ordinary poker UI was not replaced;

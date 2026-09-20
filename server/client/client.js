@@ -6,6 +6,16 @@ import { SeatRecovery } from './SeatRecovery'
 import { ResponseOrder, ObsoleteResponse } from './ResponseOrder'
 import { LeisureControls, leisureShortcut } from './LeisureControls'
 import { BankControls } from './BankControls'
+import { PokerHeader, TableInfo, SeatContents, PotContents, TableReadout } from '../../src/components/PokerChrome'
+import { evaluate } from '../../src/engine/cards'
+import { CHARACTERS, STREETS } from '../../src/engine/game'
+import { PokerAudio } from '../../src/audio'
+import fireplaceRecording from '../../src/assets/audio/fireplace-creator-assets.mp3?inline'
+import { FIREPLACE_LAYOUT } from '../../src/scene/environment/layout'
+import { TAVERN_FEATURES } from '../../src/scene/environment/features'
+import '../../src/styles.css'
+import '../../dev/preview.css'
+import './style.css'
 const el = id => document.getElementById(id)
 const recovery = new SeatRecovery(() => sessionStorage, () => localStorage)
 const responses = new ResponseOrder()
@@ -16,6 +26,18 @@ let drinkMenuOpen = false, wagerOpen = false, leisure = { kind: 'old-fashioned',
 const labels = new Map(), bettingRef = createRef(), bettingRoot = createRoot(el('actions'))
 const leisureRoot = createRoot(el('leisure'))
 const bankRoot = createRoot(el('bank'))
+const headerRoot=createRoot(el('header')),hudRoot=createRoot(el('hud')),potRoot=createRoot(el('pot')),infoRoot=createRoot(el('table-info'))
+const audio=new PokerAudio(TAVERN_FEATURES.fireplace?fireplaceRecording:undefined,
+  [FIREPLACE_LAYOUT.position[0],.4,FIREPLACE_LAYOUT.position[2]+.05])
+let muted=false,lastSoundView=null,sceneViewer=null,focused=document.hasFocus()
+const soundActive=()=>audio.setAmbienceActive(!!state && !state.paused && !connectionLost && !ended && !menuOpen && !document.hidden && focused)
+el('app').addEventListener('pointerdown',()=>audio.unlock())
+el('app').addEventListener('keydown',event=>{if(!event.repeat)audio.unlock()})
+document.addEventListener('visibilitychange',()=>{soundActive();if(!document.hidden)render()})
+document.addEventListener('fullscreenchange',()=>render())
+window.addEventListener('blur',()=>{focused=false;soundActive()})
+window.addEventListener('focus',()=>{focused=true;soundActive()})
+window.addEventListener('pagehide',()=>audio.dispose(),{once:true})
 const focusTable = () => el('app').focus()
 const syncLookBlocked = () => room?.setLookBlocked(wagerOpen || menuOpen || drinkMenuOpen)
 const onWagerOpen = open => { wagerOpen=open;syncLookBlocked();renderLeisure() }
@@ -67,7 +89,7 @@ async function api(path, body) {
   if (data.view) {
     if (!responses.accept(request, data)) throw new ObsoleteResponse()
     const newGeneration = state && data.generation !== state.generation
-    if (newGeneration) { controlsRevision++; authorityRevision=-1; inspected=false;room?.setInspection(false) }
+    if (newGeneration) { controlsRevision++; authorityRevision=-1;lastSoundView=null; inspected=false;room?.setInspection(false) }
     state = data; connectionLost = false; render()
   } else if (!response.ok && !responses.failureCurrent(request)) {
     throw new ObsoleteResponse()
@@ -76,7 +98,6 @@ async function api(path, body) {
   if (!response.ok) throw new Error(data.error || data.receipt?.code || 'Request rejected.')
   return data
 }
-const card = value => `${({11:'J',12:'Q',13:'K',14:'A'})[value%13+2] || value%13+2}${['♣','♦','♥','♠'][Math.floor(value/13)]}`
 function leisureContext() {
   return { available: leisure.available, menuOpen: drinkMenuOpen,
     blocked: !state || !room || renderFailed || pending || connectionLost || ended ||
@@ -104,31 +125,48 @@ function drinkMenu(open) {
   drinkMenuOpen=open;controlsRevision++;syncLookBlocked();render()
   if(!open)focusTable()
 }
+function ensureRoom(viewer,neutral=false) {
+  const identity=neutral?-1:viewer
+  if(room && sceneViewer!==identity) {
+    room.dispose();room=null;for(const label of labels.values())label.root.unmount();labels.clear();el('labels').replaceChildren()
+  }
+  if(room || renderFailed || document.hidden)return
+  const failed=()=>{renderFailed=true;el('error').textContent='3D rendering unavailable. Reload this tab to reconnect without losing your seat.'}
+  try {
+    // The lobby is an undealt room, not a manufactured engine snapshot. Entering
+    // a real seat replaces that neutral rig exactly once so avatar identities
+    // follow authority even for non-host viewers. Hidden tabs allocate no GPU.
+    room=new PokerRoom(el('scene'),failed,undefined,value=>{leisure=value;renderLeisure()},viewer)
+    sceneViewer=identity
+    for(let seat=1;seat<6;seat++) {
+      const node=document.createElement('div');node.className='seat';el('labels').append(node)
+      labels.set(seat,{node,root:createRoot(node)});room.bindWorldLabel(seat,node)
+    }
+    room.bindWorldLabel(-1,el('pot'));room.onAudioListener=matrix=>audio.setListenerMatrix(matrix)
+  } catch { failed() }
+}
 function render() {
   el('entry').hidden = !!state; el('table').hidden = !state
   el('inspect').hidden = el('details').hidden = !state
+  headerRoot.render(createElement(PokerHeader,{onLobby:()=>{if(state)menu(true)}},
+    createElement('button',{'aria-label':muted?'Unmute sound':'Mute sound',title:'Sound (M)',onClick:()=>{muted=!muted;audio.setMuted(muted);if(!muted)audio.unlock();render()}},muted?'♪̸':'♪'),
+    state&&createElement('button',{'aria-label':'Settings',title:'Table settings',onClick:()=>menu(true)},'⚙'),
+    state?.isHost&&createElement('button',{'aria-label':state.paused?'Resume table':'Pause table',disabled:pending,onClick:()=>run(()=>api('/api/pause',{paused:!state.paused}))},state.paused?'▶':'Ⅱ'),
+    document.fullscreenEnabled&&createElement('button',{'aria-label':document.fullscreenElement?'Exit fullscreen':'Enter fullscreen',onClick:()=>{void (document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()).catch(()=>{el('error').textContent='Fullscreen unavailable. The game still fills the browser.'})}},'⤢')))
+  el('app').classList.toggle('inspecting',inspected)
+  soundActive()
   el('create').disabled = pending || !!token; el('join').disabled = pending || !!token
   if (!state) {
-    room?.dispose(); room=null; labels.clear(); el('labels').replaceChildren(); bettingRoot.render(null)
+    ensureRoom(0,true);room?.setPlaying(false);bettingRoot.render(null);lastSoundView=null
+    hudRoot.render(null);potRoot.render(null);infoRoot.render(null);el('actions').hidden=el('deal-actions').hidden=true
     inspected=false;menuOpen=false;drinkMenuOpen=false;wagerOpen=false;leisure={kind:'old-fashioned',available:false}
     connectionLost=false;authorityRevision=-1;el('menu').hidden=true;leisureRoot.render(null);bankRoot.render(null);showSaved(); return
   }
   const v = state.view, own = v.players[v.self.seat]
   if(v.revision !== authorityRevision) { authorityRevision=v.revision; controlsRevision++ }
-  if (!room && !renderFailed) {
-    const failed=()=>{renderFailed=true;el('error').textContent='3D rendering unavailable. Reload this tab to reconnect without losing your seat.'}
-    // A GPU failure is not a lost admission response. Preserve the credential
-    // and do not repeatedly allocate another renderer on every heartbeat.
-    try {
-      room = new PokerRoom(el('scene'), failed, undefined, value=>{leisure=value;renderLeisure()}, v.self.seat)
-      for(let seat=1;seat<6;seat++) {
-        const label=document.createElement('div');label.className='seat-label';el('labels').append(label)
-        labels.set(seat,label);room.bindWorldLabel(seat,label)
-      }
-    } catch { failed() }
-  }
+  ensureRoom(v.self.seat)
   room?.updateRemote(v,v.self.seat);room?.setPlaying(v.phase!=='ready' && !v.self.waiting)
-  room?.setPaused(state.paused || connectionLost || ended)
+  room?.setPaused(state.paused || connectionLost || ended || menuOpen)
   // Closing a menu must not resume a queued leisure request after an authority
   // interruption. The existing Room clock/owner handles held prop continuity.
   if(state.paused || connectionLost || ended || menuOpen || v.self.waiting) drinkMenuOpen=false
@@ -136,26 +174,43 @@ function render() {
   for(const p of v.players) if(p.displaySeat!==0) {
     const label=labels.get(p.displaySeat)
     if(!label)continue
-    label.textContent=`${p.name} · ${p.kind==='human'?'Player':'NPC'}\n${p.stack.toLocaleString()} · ${v.actor===p.seat?'Your turn':p.action || 'Ready'}`
-    label.classList.toggle('active',v.actor===p.seat)
+    label.node.classList.toggle('active',v.actor===p.seat);label.node.classList.toggle('folded',p.folded)
+    label.node.classList.toggle('out',p.stack===0 && !p.committed);label.node.style.setProperty('--seat-color',CHARACTERS[p.seat].color)
+    label.root.render(createElement(SeatContents,{name:p.name,dealer:v.dealer===p.seat,blind:v.smallBlindSeat===p.seat?'SB':v.bigBlindSeat===p.seat?'BB':'',
+      stack:p.stack,action:v.actor===p.seat?(p.kind==='human'?'DECIDING':'THINKING'):p.action||CHARACTERS[p.seat].title,
+      visibleCards:p.cards.kind==='visible'?p.cards.values:[]}))
   }
   el('labels').hidden=inspected
-  el('heading').textContent = `${own.name} · Seat ${v.self.seat+1}`
   el('connection').textContent = connectionLost || ended ? 'Connection interrupted — wagering disabled' : !state.hostConnected ? 'Host disconnected — table suspended' : state.paused ? 'Table paused' : v.self.waiting ? 'Seat reserved — joining next hand' : v.actor===v.self.seat ? 'Your move' : 'Connected · LAN'
   el('invite').textContent = state.code ? `Lobby code: ${state.code.slice(0,5)}-${state.code.slice(5)}` : 'Six playing seats · empty seats are NPCs'
   el('host-storage').textContent = state.durable ? 'Host saves this table privately. A host restart pauses play until the host resumes.' : 'Disposable host: stopping its process ends this table.'
   const phase=v.phase==='betting'?['Pre-flop','Flop','Turn','River'][v.street]:v.phase==='ready'?'Waiting for host':v.phase==='complete'?'Hand complete':v.phase==='showdown'?'Showdown':'Dealing'
   const winners=v.phase==='complete'?v.results.filter(r=>r.won>0).map(r=>`${v.players[r.seat].name} wins ${r.won}`).join(' · '):''
-  el('phase').textContent = `Hand ${v.handNumber} · ${phase} · Pot ${v.pot} · Your stack ${own.stack}${winners?' · '+winners:''}`
-  const caption=document.createElement('small');caption.textContent='THE BOARD'
-  el('board').replaceChildren(caption,...Array.from({length:5},(_,i)=>{const c=document.createElement('span');c.className='board-card';c.textContent=i<v.board.length?card(v.board[i]):'·';return c}))
-  el('hand').textContent = `Your cards: ${own.cards.kind === 'visible' ? own.cards.values.map(card).join(' ') : 'not dealt to you yet'}`
+  const ownCards=own.cards.kind==='visible'?own.cards.values:[],finished=v.phase==='complete',turn=v.phase==='betting'&&v.actor===v.self.seat
+  const hand=ownCards.length===2&&v.board.length>=3?evaluate([...ownCards,...v.board]).name:'Practice chips'
+  const status=connectionLost||ended?'Connection interrupted':state.paused?'Table paused':v.self.waiting?'Your seat is reserved.':finished?winners:turn?'Your move.':v.actor!==null?`${v.players[v.actor].name} is thinking…`:phase
+  infoRoot.render(createElement(TableInfo,{handNumber:v.handNumber,smallBlind:v.smallBlind,bigBlind:v.bigBlind}))
+  potRoot.render(createElement(PotContents,{finished,amount:finished?v.awards.reduce((n,a)=>n+a.amount,0):v.pot,sidePots:v.awards.length-1}))
+  hudRoot.render(createElement(TableReadout,{board:v.board,street:STREETS[v.street],ownCards,stack:own.stack,
+    position:`${v.dealer===own.seat?' · DEALER':''}${v.smallBlindSeat===own.seat?' · SB':''}${v.bigBlindSeat===own.seat?' · BB':''}`,
+    handLabel:own.folded?'Folded':hand,status,detail:pending?'Sending…':v.self.waiting?'Joining at the next hand':own.action,
+    winningCards:finished?v.results.find(r=>r.seat===own.seat&&r.won>0)?.hand?.cards??[]:[],withActions:turn||finished||v.phase==='ready'}))
+  // Polls and reconnect snapshots are not new chip sounds. Prime once, then
+  // emit only for a later game revision while connected; no audio ledger.
+  if(lastSoundView && v.gameRevision>lastSoundView.revision && !state.paused&&!connectionLost&&focused&&!document.hidden) {
+    if(v.handNumber!==lastSoundView.hand || v.board.length!==lastSoundView.board)audio.play('card')
+    else if(finished&&!lastSoundView.finished)audio.play('win')
+    else if(turn&&!lastSoundView.turn)audio.play('turn')
+    else if(!finished)audio.play('chip')
+    // A complete-hand bank transfer is NOT another poker win.
+  }
+  lastSoundView={revision:v.gameRevision,hand:v.handNumber,board:v.board.length,finished,turn}
   // Names are untrusted text. Never use innerHTML for a roster, including a
   // developer-only lobby: it holds the same bearer token as the eventual game.
   el('players').replaceChildren(...[...v.players].sort((a,b)=>a.displaySeat-b.displaySeat).map(p => {
     const li = document.createElement('li'); li.textContent = `${p.name} · ${p.kind}${p.pendingName ? ' · next: '+p.pendingName : ''} · ${p.stack} chips · ${p.action || 'waiting'}${v.actor===p.seat ? ' · to act' : ''}`; return li
   }))
-  el('start').hidden = !state.isHost || !['ready','complete'].includes(v.phase); el('pause').hidden = !state.isHost
+  el('deal-actions').hidden = !state.isHost || !['ready','complete'].includes(v.phase) || state.paused || menuOpen; el('pause').hidden = !state.isHost
   el('start').disabled = pending || state.paused || connectionLost || ended
   el('pause').disabled = pending; el('pause').textContent = state.paused ? 'Resume table' : 'Pause table'
   el('leave').disabled = pending
@@ -163,10 +218,12 @@ function render() {
   bankRoot.render(createElement(BankControls,{offer:v.self.bank,revision:v.revision,
     blocked:pending || state.paused || connectionLost || ended || !menuOpen,onConfirm:bankTransfer}))
   const canAct = !pending && !state.paused && !connectionLost && !ended && !menuOpen && !drinkMenuOpen && !v.self.waiting && v.actor === v.self.seat && v.phase === 'betting'
+  el('actions').hidden=!turn || state.paused || menuOpen || connectionLost || ended
   bettingRoot.render(createElement(BettingControls,{ref:bettingRef, revision:controlsRevision, blocked:!canAct,
     legal:v.legal,pot:v.pot,currentBet:v.currentBet,ownBet:own.bet,bigBlind:v.bigBlind,onAction:wager,
     onOpenChange:onWagerOpen,focusTable}))
   el('inspect').disabled=state.paused || v.self.waiting || connectionLost || ended || menuOpen
+  el('inspect').setAttribute('aria-pressed',String(inspected));el('inspect').firstChild.nodeValue=inspected?'Look up ':'Cards & chips '
 }
 async function run(work) {
   if (pending) return
@@ -233,12 +290,14 @@ el('inspect').onclick=()=>{inspect(!inspected);focusTable()}
 el('app').addEventListener('keydown',event=>{
   const target=event.target.closest('input,select,textarea,[contenteditable=true]')?'editing':event.target.closest('button,a')?'control':'table'
   if(!state || target==='editing' || event.altKey || event.ctrlKey || event.metaKey || event.isComposing)return
+  if(event.key.toLowerCase()==='m'&&!event.repeat){event.preventDefault();muted=!muted;audio.setMuted(muted);if(!muted)audio.unlock();render();return}
   if(event.key==='Escape' && drinkMenuOpen){event.preventDefault();event.stopPropagation();drinkMenu(false);return}
   if(event.key==='Escape' && menuOpen){event.preventDefault();menu(false);return}
   const leisureAction=leisureShortcut(event,target,leisureContext())
   if(leisureAction){event.preventDefault();requestLeisure(leisureAction);return}
   if(bettingRef.current?.handleKey({key:event.key,repeat:event.repeat,shiftKey:event.shiftKey,altKey:event.altKey,ctrlKey:event.ctrlKey,metaKey:event.metaKey,nativeEvent:event,
     preventDefault:()=>event.preventDefault(),stopPropagation:()=>event.stopPropagation()},target))return
+  if(event.key==='Escape'&&!event.repeat&&!pending){event.preventDefault();if(state.isHost)void run(()=>api('/api/pause',{paused:!state.paused}));else menu(true);return}
   if(event.key===' ' && target==='table' && !menuOpen && !drinkMenuOpen && !connectionLost && !ended && !state.paused && !state.view.self.waiting){event.preventDefault();inspect(true)}
 })
 el('app').addEventListener('keyup',event=>{if(event.key===' '){inspect(false)}})

@@ -45,9 +45,10 @@ The normal browser lobby now has **Play with friends · LAN**, opening a separat
 Host/Join setup page while keeping the solo tab. This is navigation, not a server
 launcher: explicitly start the standalone host, then paste its printed URL.
 Names/codes are entered on that host, never forwarded in URLs. The link is
-website-only and hidden in the installed extension. The LAN client's temporary
-presentation has been rejected by the user: original poker UI parity is required
-before release, not a separate redesign.
+website-only and hidden in the installed extension. The rejected standalone LAN
+theme is being replaced by shared original header, seat labels, pot, board and
+stack/status components and the original styles. Full live LAN UI parity remains
+an acceptance gate; this is not permission for a separate redesign.
 
 `npm run build` compiles both the extension and `lan-dist/`. `npm run lan`
 starts the separate, persistent3D multiplayer candidate at
@@ -92,8 +93,11 @@ command stream as wagers. Old host checkpoints migrate with zero debt and
 unchanged chips. Solo bank integration and live multi-client bank acceptance
 remain open; passing HTTP tests is not browser verification.
 Actual recovery/two-browser3D acceptance and separate-device
-LAN acceptance remain open. The installed extension has no
-network-hosting API and does not load this standalone server.
+LAN acceptance remain open. Starting a LAN game INSIDE the installed extension,
+without a terminal, is now required for release. The current SDK has no
+network-hosting API and does not load this standalone server. The proposed
+permission-gated Agent Code transport requires separately authorized host/SDK
+work; terminal hosting is a development adapter, not the final experience.
 
 The CLI stores its private checkpoint in ignored `.poker-lan/` on local disk.
 It contains private cards and credentials: never share, serve, export or commit
@@ -123,7 +127,8 @@ Enter/Space retain their meanings. No chips move until confirmation or F/C.
 Pause/menu/revision changes discard the draft. This remains source-only opt-in
 until real browser keyboard/focus/layout checks pass; ordinary play is unchanged.
 
-Fireplace candidate is visible on the ordinary source `/dev/` page. For isolated
+The fireplace now uses one shared feature profile in source, shipped and LAN
+builds; production no longer silently restores the old shelf layout. For isolated
 recording use `/dev/?qa=fireplace&record&stats&look`. This enlarged
 back-wall hearth is offset between the center and right-center guests;
 the shorter left bar is authored beside it with complete shelf ends. The hearth
@@ -132,7 +137,10 @@ It includes the Creator Assets CC0 fire recording, starts after a gesture and
 stops for pause/mute/hidden views. A quiet HRTF source follows the hearth's world
 position and actual camera orientation, including look/inspection; no flat
 duplicate playback. See `src/assets/audio/README.md` for provenance.
-Listening and browser acceptance remain open. Production remains unchanged.
+Source and shipped browser checks confirm the visible fireplace and retained
+original controls, action/inspection/pause/restore. LAN live visual parity,
+listening quality and measured performance acceptance remain open. The bundled
+recording increases the production bundle; this is not a performance sign-off.
 
 Mouse-look candidate: add `&look` to a source QA URL. Left-drag the scene,
 press **R** or the header's **Recenter view** button to face forward, and use

@@ -3,14 +3,14 @@ import type { PokerApi } from './api'
 import { PokerAudio } from './audio'
 import fireplaceRecording from './assets/audio/fireplace-creator-assets.mp3?inline'
 import { FIREPLACE_LAYOUT } from './scene/environment/layout'
+import { TAVERN_FEATURES } from './scene/environment/features'
 import { evaluate } from './engine/cards'
 import { chooseAction, observe } from './engine/bots'
 import { CHARACTERS, PokerGame, STREETS, type Action, type GameState, type Legal } from './engine/game'
 import { PokerRoom } from './scene/Room'
 import { DRINKS, type DrinkKind } from './scene/props/specs'
 import { DrinkMenu } from './components/DrinkMenu'
-import { PlayingCard } from './components/PlayingCard'
-import { CommunityBoard } from './components/CommunityBoard'
+import { PokerHeader, TableInfo, SeatContents, PotContents, TableReadout } from './components/PokerChrome'
 import { BettingControls, type BettingHandle } from './components/BettingControls'
 
 const SAVE_KEY = 'poker.table.v1'
@@ -56,7 +56,7 @@ export function App({ api }: { api: PokerApi }) {
 
   useEffect(() => {
     alive.current = true
-    audio.current = new PokerAudio(import.meta.env.DEV ? fireplaceRecording : undefined,
+    audio.current = new PokerAudio(TAVERN_FEATURES.fireplace ? fireplaceRecording : undefined,
       [FIREPLACE_LAYOUT.position[0], .4, FIREPLACE_LAYOUT.position[2] + .05])
     let current = true
     void api.storage.get<Save>(SAVE_KEY).then(saved => {
@@ -302,23 +302,19 @@ export function App({ api }: { api: PokerApi }) {
         if (key === 'c') { event.preventDefault(); perform({ type: legal.check ? 'check' : 'call' }) }
       }
     }}>
-    <header className="header">
-      <button className="brand" onClick={() => { setLobby(true); setPaused(true) }} aria-label="Back to poker lobby"><span className="brand-mark">♠</span><span>AGENT CODE <b>POKER</b></span></button>
-      <span className="header-location"><i /> THE RIVER CLUB <em> / </em> NO-LIMIT HOLD’EM</span>
-      <div className="header-tools">
+    <PokerHeader onLobby={() => { setLobby(true); setPaused(true) }}>
         <button onClick={toggleMute} disabled={loading || saving || loadFailed} aria-label={muted ? 'Unmute sound' : 'Mute sound'} title="Sound (M)">{muted ? '♪̸' : '♪'}</button>
         <button onClick={() => openPanel('rules')} aria-label="How to play" title="How to play">?</button>
         <button onClick={() => openPanel('settings')} aria-label="Settings" title="Settings">⚙</button>
         {!lobby && scene.current?.experimentalLook && <button aria-label="Recenter view" title="Drag the room to look · Recenter (R)" disabled={paused || !!panel || inspecting} onClick={() => { scene.current?.recenterLook(); root.current?.focus({ preventScroll: true }) }}>⌖</button>}
         {!lobby && <button onClick={() => setPaused(value => !value)} aria-label={paused ? 'Resume table' : 'Pause table'} title="Pause (Esc)">{paused ? '▶' : 'Ⅱ'}</button>}
-      </div>
-    </header>
+    </PokerHeader>
 
     <section className="room" aria-label="Poker room">
       <div className="scene" ref={stage} />
       <div className="room-vignette" />
       {!lobby && s && <>
-        <div className="table-info"><span className="live-dot" /> TABLE 01 <span>·</span> HAND {String(s.handNumber).padStart(3, '0')} <span>·</span> BLINDS 10 / 20</div>
+        <TableInfo handNumber={s.handNumber} smallBlind={s.smallBlind} bigBlind={s.bigBlind} />
         <div className="room-top-right">
           <button onClick={() => { setDrinkMenu(false); setInspecting(value => !value); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed} aria-pressed={inspecting} title="Hold Space to inspect cards and chips">{inspecting ? 'Look up' : 'Cards & chips'} <kbd>Space</kbd></button>
           <button onClick={() => scene.current?.smokeCigar()} disabled={paused || !!panel || !!error || sceneFailed || inspecting || !leisure.available} title="Smoke cigar (S)">Cigar <kbd>S</kbd></button>
@@ -334,14 +330,11 @@ export function App({ api }: { api: PokerApi }) {
           const position = scene.current?.projectSeat(i) ?? { x: 50, y: 50 }
           return <div key={i} ref={element => scene.current?.bindWorldLabel(i, element)} className={`seat ${s.actor === i ? 'active' : ''} ${p.folded ? 'folded' : ''} ${p.stack === 0 && !p.committed ? 'out' : ''}`}
             style={{ left: `${position.x}%`, top: `${position.y}%`, '--seat-color': CHARACTERS[i].color } as CSSProperties}>
-            <div className="seat-name"><span className="seat-dot" />{CHARACTERS[i].name}{s.dealer === i && <b className="dealer-badge" title="Dealer button">D</b>}{s.smallBlindSeat === i && <small>SB</small>}{s.bigBlindSeat === i && <small>BB</small>}</div>
-            <strong>{chips(p.stack)}</strong><span className="seat-action">{s.actor === i ? i === 0 ? 'YOUR TURN' : 'THINKING' : p.action || CHARACTERS[i].title}</span>
-            {showOpponents && i > 0 && !p.folded && <div className="opponent-cards">{p.hole.map(c => <PlayingCard card={c} key={c} small />)}</div>}
+            <SeatContents name={CHARACTERS[i].name} dealer={s.dealer===i} blind={s.smallBlindSeat===i?'SB':s.bigBlindSeat===i?'BB':''}
+              stack={p.stack} action={s.actor===i?'THINKING':p.action||CHARACTERS[i].title} visibleCards={showOpponents&&!p.folded?p.hole:[]} />
           </div>
         })}
-        <div className="pot-label" ref={element => scene.current?.bindWorldLabel(-1, element)}><span>{finished ? 'POT AWARDED' : 'IN THE POT'}</span><strong>◈ {chips(finished ? awarded : pot)}</strong>
-          {s.awards.length > 1 && <small>{s.awards.length - 1} side pot{s.awards.length > 2 ? 's' : ''}</small>}
-        </div>
+        <div className="pot-label" ref={element => scene.current?.bindWorldLabel(-1, element)}><PotContents finished={finished} amount={finished?awarded:pot} sidePots={s.awards.length-1} /></div>
         <div className="room-caption"><span>THE RIVER CLUB</span><i>Make yourself comfortable.</i></div>
       </>}
       {lobby && <div className="lobby">
@@ -361,10 +354,10 @@ export function App({ api }: { api: PokerApi }) {
     </section>
 
     {!lobby && s ? <>
-      <CommunityBoard board={s.board} street={STREETS[s.street]} winningCards={winningCards} />
-      <div className="bankroll-tag"><span>YOUR STACK{s.dealer === 0 ? ' · DEALER' : ''}{s.smallBlindSeat === 0 ? ' · SB' : ''}{s.bigBlindSeat === 0 ? ' · BB' : ''}</span><strong>{chips(ours?.stack ?? 0)}</strong><small>{ours?.folded ? 'Folded' : bestHand?.name ?? 'Practice chips'}</small></div>
-      <div className="sr-only" aria-label="Your hand">{ours?.hole.map(c => <PlayingCard card={c} key={c} />)}</div>
-      <div className={`table-whisper ${turn || finished ? 'with-actions' : ''}`} role="status" aria-live="polite"><strong>{status}</strong><small>{saving ? 'Saving…' : paused ? 'Paused' : finished ? `Net ${ours!.stack - ours!.startStack >= 0 ? '+' : ''}${chips(ours!.stack - ours!.startStack)}` : s.log.at(-1)}</small></div>
+      <TableReadout board={s.board} street={STREETS[s.street]} winningCards={winningCards} ownCards={ours?.hole??[]} stack={ours?.stack??0}
+        position={`${s.dealer===0?' · DEALER':''}${s.smallBlindSeat===0?' · SB':''}${s.bigBlindSeat===0?' · BB':''}`}
+        handLabel={ours?.folded?'Folded':bestHand?.name??'Practice chips'} status={status} withActions={turn||finished}
+        detail={saving?'Saving…':paused?'Paused':finished?`Net ${ours!.stack-ours!.startStack>=0?'+':''}${chips(ours!.stack-ours!.startStack)}`:s.log.at(-1)} />
       {(turn || finished) && !paused && !panel && !error && <section className="quick-actions" aria-label="Poker actions">
         {finished ? <button className="primary" disabled={saving || sceneFailed} onClick={champion || busted ? () => setConfirmNew(true) : nextHand}>{champion || busted ? 'New table' : 'Deal next hand'} <span>→</span></button> : keyboardBetting ? <BettingControls ref={betting} revision={s.revision} blocked={blocked} legal={legal}
           pot={pot} currentBet={s.currentBet} ownBet={ours?.bet ?? 0} bigBlind={s.bigBlind} onAction={perform}
