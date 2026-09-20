@@ -7,6 +7,19 @@ pickup and snow; next implementation slice is public-event chip audio and
 independent ambience/effects levels. Keep actual listening and performance
 acceptance separate. Do not restart or replace a running LAN host for this work.
 
+### Public-event audio and independent levels — staged before implementation
+
+Retained05-52-49 public-game events include three folds, two calls and two
+checks. Current solo NPC callback emits chip for all seven; LAN revision
+fallback similarly confuses non-wagers with chips. Audio must observe explicit
+public state, never private cards, and advance its baseline silently through
+pause/mute/restore. B23–E23 below catalogs that raw trace before tests, isolates
+cue classification behind PokerAudio, then adds bounded authored percussive
+chip buffers and independent session-only ambience/effects levels. Preserve
+the licensed localized fireplace and original settings/table-menu layout.
+No live host restart. Real source/shipped listening, motion and performance
+remain separate acceptance gates; synthetic waveforms cannot approve timbre.
+
 ### Visible, bounded window snow — implementation checkpoint
 
 Implemented WindowSnow with one Christmas consumer, original84seeds/24Hz clock,

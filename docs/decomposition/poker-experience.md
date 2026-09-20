@@ -2,6 +2,40 @@
 
 ## Latest user priority — gameplay after accepted LAN appearance
 
+### B23–E23 public-event audio and independent levels
+
+A: PokerAudio's existing gesture-gated effects and licensed FireAmbience;
+raw poker-evidence-2026-09-20T05-52-49-020Z.json.gz contains nine public-game
+frames. After the priming frame: three Fold transitions, two Call500 transitions,
+a street reset, then two Checks. Solo's bot callback and LAN's revision fallback
+incorrectly treat non-wagers as chips. D: only actual public chip movement emits
+chip foley; silent refresh/restore/reconnect, independent bounded ambience and
+effects controls, no extra poker state owner or UI redesign.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B23 | Raw public-action catalog above | Replay original trace in order, no sanitizing/reordering | Revision changes are not necessarily wagers | Actual retained05-52-49 browser recording; audio calls audited in source, not listened |
+| C23 | Public transition regression tests | Recorded folds/checks never classify as chips; calls do; additional labeled synthetic duplicate/pause/bank probes | Fix event ownership before judging sound | Raw trace has no revision/board count; ordinal revisions in tests are explicitly synthetic |
+| D23 | audio/events owner and bounded chip foley, PokerAudio-only consumers | Isolation, cached PCM/voice cap, mute/dispose and independent gain tests | App/LAN may project public fields but may not choose competing cues | Existing real projections and Web Audio lifecycle; generated waveform probes are synthetic |
+| E23 | Source/shipped settings/action/audio evidence | Actual wager/check/fold, quiet fire, mute/pause/reload, no stale burst | Waveform math cannot approve realism or loudness | CUA only; listening and device performance remain open until observed |
+
+Only PokerAudio imports cue reconciliation and foley; engine, scene, App and
+server must not import their internals. Callers explicitly project hand, phase,
+actor, board count and public seat/stack/bet/fold/action fields. First observation
+and skipped revision gaps prime silently: polling cannot reconstruct missed
+actions faithfully. Reset baseline on room generation/reconnect/new solo table.
+No card/deck fields retained. Keep hand completion separate from bank changes.
+Existing new-table deal gesture may cue once; remove per-action competing calls.
+
+Chip foley is self-authored procedural impact audio, not an unlicensed recording
+or a realism claim. Cache a few short mono variants once per audio context;
+bound concurrent voices and release every node. Controls use Off/Quiet/Normal
+native selects, session-local; Normal retains existing .045 fire/.18 effects
+maximum. Global mute wins; changing levels never unlocks autoplay. Unknowns:
+real device timbre, mix fatigue, source/shipped/LAN browser parity and aggregate
+GPU/audio cost. Preserve these gates even if all isolated tests pass. User waived
+plan approval pause; this written slice is committed before implementation.
+
 ### B22–E22 visible window snow without density growth
 
 Checkpoint: tests fail at old.995buffer-pixel diameter, then pass candidate
