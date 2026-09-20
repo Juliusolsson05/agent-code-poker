@@ -46,6 +46,48 @@ removal. Existing visual/performance gates remain open.
 
 ## Continuation18 — LAN authority and private-view boundary first
 
+### Continuation19 transport slice — explicit standalone website host
+
+A: verified HostTable owns six-seat authority and redacted SessionView; the
+installed extension SDK exposes no network listener. D: an explicitly launched
+Node host serves a same-origin connection-test lobby and bounded JSON API. Host
+creates a table/name and shares a code; other clients enter names/code and see
+their own cards only. This is a diagnostic integration surface, not a second
+final game UI. Keep `/dev/`, solo saves, extension bundles and host repo intact.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B10 | Catalog of existing authority plus bounded public-only HTTP/client observations | No tokens/codes/private cards in diagnostics; missing LAN events labeled unrecorded | Prior solo recordings cannot prove sockets/authentication | D9 actual public wager replay; pinned SDK; new connection-test capture |
+| C10 | HTTP admission/auth/lifecycle integration contracts | Real loopback clients, forged origins/hosts, oversized/malformed requests, full seats and retries | Rendering cannot be the authority or privacy filter | Scripted actual HTTP, explicitly not real Wi-Fi or user traffic |
+| D10 | `server/` HTTP owner and `server/client/` disposable connection-test UI | Same-origin/token checks, bounded body/rate/socket cost, one HostTable consumer, pause/lease/shutdown | No raw engine snapshots or filesystem/dev-server exposure | C10, then actual CUA host/join/reload |
+| E10 | Retained browser diagnostics + two-client observations | Code join, distinct identities/private views, legal actions, host pause/loss and reconnect | Two in-process objects do not verify browser behavior | CUA-created isolated loopback tabs; real separate-device LAN still open |
+
+Use the built-in Node HTTP server (no custom WebSocket framing or dependency)
+and serialized500ms client polling; actions remain revision/sequence guarded.
+Serve only an exact static file allowlist, not the repo or Vite dev server.
+Default bind is loopback. `--lan` is an explicit opt-in private-network launch;
+never change firewall/router rules. LAN users first open the printed host URL,
+then enter the lobby code. Code-only discovery without a host address is not
+implemented; do not imply that a browser can discover arbitrary LAN servers.
+Restrict Host/Origin to exact advertised local IP origins, no wildcard CORS,
+no tokens in URLs/cookies/logs. Host creation is loopback-only; joining requires
+a random code; per-client random bearer tokens bind subsequent requests.
+Creation/join retries use a client-held high-entropy nonce to avoid duplicate
+seats after a lost response. Bound requests4KiB, rates, connections and timeouts.
+
+Connection-test sessions are memory-only and clearly labeled disposable: host
+process exit ends them; never silently mint a replacement on connection error.
+Browser reload resumes its token from tab-scoped sessionStorage. After15s without
+heartbeat, disconnected guests are bot-controlled; host absence suspends all
+advancement until reconnect. Host pause also blocks human wagers. Explicit
+leave revokes credentials; the HostTable boundary rule still controls seat reuse.
+No real money/bank integration yet. HTTP is unencrypted: trusted private LAN
+only, not public hosting or a claim of security against network eavesdroppers.
+Authentication, browser behavior and durable hosting acceptance stay separate.
+Reference: Node's official HTTP/crypto documentation for server timeouts,
+connection cleanup and random credential generation; installed Node22+ remains
+the supported baseline, not new APIs specific to the current latest release.
+
 C9/D9 checkpoint: HostTable and the explicit view projection now exist, with
 eleven tests. Nine actual public-game records replay unchanged for all six
 viewer seats. New admission, hidden-card noninterference, stale/duplicate input,

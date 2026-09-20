@@ -25,6 +25,14 @@ retained real public wager trace; clearly label new network scenarios synthetic.
 Real discovery, transport, two-client browser play and rendering remain later
 gates. The full local GameState must never be serialized to a LAN client.
 
+Continuation19 adds the standalone website HTTP boundary and a clearly labeled
+connection-test lobby, not the final 3D client. Same-origin code/token admission,
+six-seat ownership, bounded requests and host pause/disconnect are verified with
+real loopback clients before CUA host/join checks. Default loopback; explicit LAN
+launch only. Memory-only test sessions are separate from existing solo saves.
+Address-free discovery, durable hosting, 3D client projection and bank remain
+open. See B10–E10 for constraints; no extension sandbox bypass.
+
 Latest user addition: NPC drinking grips appear to grab the glass from its
 inside. Track exterior-only vessel contact explicitly: palm/fingers wrap the
 outer surface, thumb opposes, no hand crosses the wall or hollow interior during
