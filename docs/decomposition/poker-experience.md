@@ -2,6 +2,20 @@
 
 ## Durable multiplayer recovery — B12–E12
 
+E12 client slice contract: keep the current credential tab-scoped, with an
+explicit, explained opt-in to remember a seat in this browser. A fresh tab lists
+saved names but never automatically claims one; Resume is a deliberate action
+with a close-the-old-tab warning. Use one storage entry per seat to avoid two
+tabs overwriting a shared credential array. Forget removes only the selected
+local key; leaving revokes host ownership before local cleanup. Storage denial
+must not strand an admitted player behind an exception. Preserve the admission
+nonce before sending so a lost response can be retried after reload. Credentials
+never become option values, URLs or diagnostics. `SeatRecovery` is isolated under
+server/client and consumed only by client.js; it has no network/engine/renderer
+imports. Existing HTTP admission/retry and CUA reload evidence are the substrate;
+new storage-denial/closed-tab/cross-tab probes are labeled synthetic until a real
+CUA session is captured. Tests precede implementation. Normal CLI stays gated.
+
 A: `HostTable` owns private state and last accepted command, but `server/http.ts`
 loses all of it on close. Client credentials live only in sessionStorage.
 D: restarting the explicit host preserves one authoritative six-seat ledger;
