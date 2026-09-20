@@ -163,12 +163,12 @@ original controls, action/inspection/pause/restore. LAN live visual parity,
 listening quality and measured performance acceptance remain open. The bundled
 recording increases the production bundle; this is not a performance sign-off.
 
-Mouse-look candidate: add `&look` to a source QA URL. Left-drag the scene,
+Mouse-look: left-drag the scene in normal source or shipped play,
 press **R** or the header's **Recenter view** button to face forward, and use
 Settings → Mouse-look to turn it off for this session. Inspection temporarily
 centers the view; drinks/cigar wait for centering. Menus and pause cancel a
-pending request. This is **development-only pending real drag/comfort checks**;
-ordinary source play and the shipped bundle retain the verified camera.
+pending request. Hovering never steers the view, and betting controls do not
+capture camera drags. This changes no poker rules or hand/prop poses.
 
 `/dev/?qa=my-check&stats&record` isolates a QA save and enables a bounded local
 trace recorder. Record evidence, exercise the real controls, capture views, then

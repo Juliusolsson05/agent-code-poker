@@ -3,8 +3,47 @@ import assert from 'node:assert/strict'
 import { readFileSync, readdirSync } from 'node:fs'
 import { gunzipSync } from 'node:zlib'
 import { SeatedLook, LOOK_LIMITS } from '../src/scene/camera/SeatedLook'
+import { TAVERN_FEATURES } from '../src/scene/environment/features'
+import { createHash } from 'node:crypto'
 
 const actual = JSON.parse(gunzipSync(readFileSync(new URL('../testing/fixtures/experience/poker-evidence-2026-09-20T05-52-49-020Z.json.gz', import.meta.url))).toString())
+
+test('actual browser drag deltas reproduce retained intent and delayed centered sip',()=>{
+  const bytes=gunzipSync(readFileSync(new URL('../testing/fixtures/experience/poker-evidence-2026-09-20T10-29-18-052Z.json.gz',import.meta.url)))
+  assert.equal(createHash('sha256').update(bytes).digest('hex'),'ebf07b9adbaf84beeeaedf8c0b130b0a40354403212634c63361281d4480e57f')
+  const trace=JSON.parse(bytes.toString()),entries=trace.entries
+  const starts=entries.filter((e:any)=>e.kind==='look-begin')
+  assert.deepEqual(starts.map((e:any)=>e.data.accepted),[true,true,false])
+  for(const begin of starts.filter((e:any)=>e.data.accepted)) {
+    const look=new SeatedLook();look.setContext({playing:true})
+    look.begin(begin.data.id,begin.data.x,begin.data.y,true)
+    const end=entries.find((e:any)=>e.wallMs>begin.wallMs&&e.kind==='look-input'&&e.data.type==='pointerup')
+    const moves=entries.filter((e:any)=>e.kind==='look-move'&&e.wallMs>begin.wallMs&&e.wallMs<end.wallMs)
+    assert.equal(moves.length,8)
+    for(const e of moves)look.move(e.data.id,e.data.x,e.data.y,e.data.height,e.data.buttons)
+    look.end(begin.data.id);look.sample(2)
+    const pose=entries.find((e:any)=>e.kind==='pose'&&e.wallMs>end.wallMs+1000)
+    assert.deepEqual(look.diagnostic().intent,pose.data.look.intent)
+    assert.ok(Math.abs(look.sample(0).yaw-pose.data.look.view.yaw)<.0001)
+  }
+  const request=entries.find((e:any)=>e.kind==='drink'),start=entries.find((e:any)=>e.kind==='look-leisure-start')
+  assert.equal(request.data.queued,true);assert.equal(start.data.accepted,true)
+  assert.ok(start.visualSeconds-request.visualSeconds>.3)
+  const sipping=entries.filter((e:any)=>e.kind==='pose'&&e.data.hero.action==='drink')
+  assert.ok(sipping.length>20)
+  assert.ok(sipping.every((e:any)=>Math.abs(e.data.look.view.yaw)<.003&&Math.abs(e.data.look.view.pitch)<.003))
+  // This raw baseline has a known diagnostic timestamp reversal; preserve it
+  // verbatim, and require later normal-path recordings to be monotonic instead.
+  const reversed=entries.filter((e:any,i:number)=>i&&e.wallMs<entries[i-1].wallMs)
+  assert.equal(reversed.length,1);assert.equal(reversed[0].kind,'frame')
+})
+
+test('normal source and shipped mouse-look use the same product capability',()=>{
+  assert.equal(TAVERN_FEATURES.mouseLook,true)
+  const room=readFileSync(new URL('../src/scene/Room.ts',import.meta.url),'utf8')
+  assert.match(room,/readonly experimentalLook = TAVERN_FEATURES.mouseLook/)
+  assert.doesNotMatch(room,/has\(['"]look['"]\)/)
+})
 
 test('retained real camera baseline is parallax, not evidence of deliberate drag input', () => {
   const poses = actual.entries.filter((e: any) => e.kind === 'pose' && e.data.inspectionBlend < .001)

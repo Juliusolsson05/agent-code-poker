@@ -1,0 +1,18 @@
+{
+  "kind": "actual opt-in CUA baseline and explicit normal-path verification gap",
+  "date": "2026-09-20",
+  "candidate": "normal mouse-look after plan eb7f49d",
+  "actualBaseline": [
+    "qa=look-32b&look&record: two accepted canvas drags, eight pointer moves each, retained yaw on release, one rejected drag with betting tray open. Raw10-29-18 and two unmodified canvas PNGs retained.",
+    "Turned drink request at18.9468 visual seconds starts after centering at19.408. Inspection temporarily centers; release restores intent; explicit recenter then call48/pause leaves hand1 stack1952 pot126.",
+    "Fixed HUD stays in place while visible labels follow players. Observed opponent cards remain backs at both recorded angles. Shoulder cap exposed at left limit remains provisional art, not approved anatomy.",
+    "Exactly one look-leisure-start/frame timestamp reversal is preserved in the raw baseline; corrected diagnostics emit the start after frame sampling, without changing when contact dispatch runs. Captured baseline warnings/errors were empty."
+  ],
+  "automated": "Exact raw SHA256 and pointer-delta replay match recorded camera intent; synthetic interruption, bounds, reduced motion, centering and input ownership checks pass. Full npm run verify:165 tests, production/LAN builds,2SDK checks and1exact-byte preview check passed.",
+  "open": [
+    "Fresh normal-source QA navigation displayed only fullscreen shell, then browser frame-tree/focus commands timed out; normal shipped tab creation also timed out. Neither is a passing gameplay check.",
+    "Need actual normal source/shipped drag, Off/recenter, inspection/contact, pause/reload and fresh monotonic raw trace after logging correction.",
+    "LAN adapter now exposes local Off/recenter because shared Room supports looking in all builds. Existing running LAN hosts were not restarted; no new LAN browser acceptance.",
+    "No controlled performance, listening, reduced-motion device or Electron acceptance. No hand/arm geometry changes."
+  ]
+}

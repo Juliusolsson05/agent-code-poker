@@ -66,6 +66,15 @@
   ],
   "timingNegativeControls": [
     {
+      "file": "poker-evidence-2026-09-20T10-29-18-052Z.json.gz",
+      "rawSha256": "ebf07b9adbaf84beeeaedf8c0b130b0a40354403212634c63361281d4480e57f",
+      "provenance": "Actual opt-in source CUA: two accepted primary canvas drags, retained angles, turned drink request dispatched after centering, inspection, recenter and rejected drag with betting tray open. Call48 then pause.",
+      "frameCount": 3289,
+      "poseCount": 833,
+      "images": ["poker-evidence-2026-09-20T10-29-18-052Z-18.649.png", "poker-evidence-2026-09-20T10-29-18-052Z-51.215.png"],
+      "limitations": "One actual look-leisure-start/frame timestamp reversal retained unchanged. Real delta replay protects behavior, not performance or final shoulder/hand art approval. Canvas images omit fixed DOM HUD."
+    },
+    {
       "file": "poker-evidence-2026-09-20T10-19-46-200Z.json.gz",
       "rawSha256": "b62901f4f2f39766f685a45a3352f1b0f22ff4c19ccfc7cfad5dd59d881747ee",
       "provenance": "Actual source CUA: wine order then sip, water order then sip, effect Off, legal call20, inspection and pause. Wine receipt at19.6298s opacity.015, water at31.9434s opacity.013153 (decay only). No receipt on ordering.",

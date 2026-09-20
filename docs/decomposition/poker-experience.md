@@ -4,6 +4,14 @@
 
 ### B20–E20 normal mouse-look integration
 
+Checkpoint: B20/C20 retained raw evidence plus exact-delta replay pass; D20
+shared profile, source/shipped build and both solo/LAN recenter-Off adapters are
+implemented. Full verify165 tests plus builds, SDK and exact-byte preview pass.
+E20 remains open: fresh normal source/shipped CUA tabs timed out, before usable
+gameplay verification. Earlier actual opt-in motion is not normal/shipped proof.
+No live host restart, new FPS claim or final shoulder/hand approval. Session32
+records this boundary; resume fresh monotonic trace and normal UI regression.
+
 Actual opt-in10-29-18 recording replaces the previously missing drag evidence.
 Two accepted drags, one rejected while sizing, retained yaw, both inspection
 commands, explicit recenter and queued sip start are recorded, with two canvas

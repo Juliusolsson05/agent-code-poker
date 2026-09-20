@@ -44,10 +44,12 @@ export class PokerRoom {
     if(opacity===this.tintOpacity)return
     this.tintOpacity=opacity;this.drinkTint.style.opacity=opacity
   }
-  // Fresh drag/comfort evidence is unavailable while CUA is disconnected.
-  // Keep this integration explicitly opt-in until real source/shipped checks
-  // pass; a synthetic controller test is not permission to change live play.
-  readonly experimentalLook = import.meta.env.DEV && new URLSearchParams(location.search).has('look')
+  // Actual canvas-drag evidence now covers retained intent, inspection and
+  // centered contact dispatch. Keep one product capability across all builds:
+  // a DEV gate previously made the shipped room silently differ from preview.
+  // The legacy property name stays for the two UI adapters; props remain world
+  // owned and never follow the camera to disguise a bad contact pose.
+  readonly experimentalLook = TAVERN_FEATURES.mouseLook
   private readonly experimentalFireplace = TAVERN_FEATURES.fireplace
   private seatedLook = new SeatedLook()
   private lookPlaying = false
@@ -444,10 +446,9 @@ export class PokerRoom {
     if (this.experimentalLook) this.syncLook()
     const look = this.experimentalLook ? this.seatedLook.sample(dt) : null
     const contact = this.experimentalLook ? this.seatedLook.takeContact() : null
+    let contactAccepted = false
     if (contact) {
-      const kind = contact
-      const accepted = kind === 'smoke' ? this.hero.smokeCigar() : this.hero.sipDrink()
-      this.capture?.event('look-leisure-start', { kind, accepted })
+      contactAccepted = contact === 'smoke' ? this.hero.smokeCigar() : this.hero.sipDrink()
     }
     if (this.probeMode) this.gaze.set(0, 0)
     else this.gaze.lerp(this.reduced.matches ? new THREE.Vector2() : this.pointer, .045)
@@ -519,6 +520,10 @@ export class PokerRoom {
     // the receipt after that frame, preserving actual clocks without sorting
     // or rewriting raw evidence. The visual completion time remains identical.
     if(sip)this.capture?.event('completed-player-sip',{...sip,opacity:sipOpacity})
+    // The real turned-sip baseline exposed the same ordering issue for queued
+    // contact starts. Dispatch stays before render; only diagnostics wait until
+    // the frame-start sample has been written. Never sort captured evidence.
+    if(contact)this.capture?.event('look-leisure-start',{kind:contact,accepted:contactAccepted})
     if (this.stats) {
       this.measuredFrames++; this.measuredCpu += performance.now() - wallTime
       if (wallTime - this.measuredAt > 1000) {

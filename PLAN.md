@@ -4,6 +4,17 @@
 
 ### Active slice: normal seated mouse-look
 
+Implementation checkpoint: shared mouse-look profile now builds for source,
+shipped and LAN. Recorded pointer replay passes; full verify165 tests/builds/
+SDK/preview passes. Both UI adapters expose recenter and session-local Off;
+existing menu/betting blocking stays in place. Queued contact diagnostics now
+follow frame diagnostics without changing dispatch timing. No hand art changed.
+Fresh normal source/shipped CUA attempts timed out at the browser connection:
+E20 remains OPEN, including fresh monotonic trace, Off, motion and restoration.
+Do not equate earlier opt-in evidence or HTTP preview with that missing gate.
+Running hosts were not restarted. Continue E20 when browser control recovers,
+then NPC exterior grip/visible snow/atmosphere and measured performance.
+
 Actual opt-in CUA10-29-18 now records two accepted canvas drags, retained yaw,
 inspection, explicit recenter, a turned drink request starting only after center,
 and rejected canvas drag with the betting tray open. Source call48/pause leaves

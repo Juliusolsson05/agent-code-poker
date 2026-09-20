@@ -29,7 +29,7 @@ const bankRoot = createRoot(el('bank'))
 const headerRoot=createRoot(el('header')),hudRoot=createRoot(el('hud')),potRoot=createRoot(el('pot')),infoRoot=createRoot(el('table-info'))
 const audio=new PokerAudio(TAVERN_FEATURES.fireplace?fireplaceRecording:undefined,
   [FIREPLACE_LAYOUT.position[0],.4,FIREPLACE_LAYOUT.position[2]+.05])
-let muted=false,lastSoundView=null,sceneViewer=null,focused=document.hasFocus()
+let muted=false,lastSoundView=null,sceneViewer=null,focused=document.hasFocus(),lookEnabled=true
 const soundActive=()=>audio.setAmbienceActive(!!state && !state.paused && !connectionLost && !ended && !menuOpen && !document.hidden && focused)
 el('app').addEventListener('pointerdown',()=>audio.unlock())
 el('app').addEventListener('keydown',event=>{if(!event.repeat)audio.unlock()})
@@ -137,6 +137,9 @@ function ensureRoom(viewer,neutral=false) {
     // a real seat replaces that neutral rig exactly once so avatar identities
     // follow authority even for non-host viewers. Hidden tabs allocate no GPU.
     room=new PokerRoom(el('scene'),failed,undefined,value=>{leisure=value;renderLeisure()},viewer)
+    // Viewer changes rebuild the room, but should not undo this browser's
+    // comfort preference. It stays local: camera settings are never host state.
+    room.setLookEnabled(lookEnabled)
     sceneViewer=identity
     for(let seat=1;seat<6;seat++) {
       const node=document.createElement('div');node.className='seat';el('labels').append(node)
@@ -151,6 +154,7 @@ function render() {
   headerRoot.render(createElement(PokerHeader,{onLobby:()=>{if(state)menu(true)}},
     createElement('button',{'aria-label':muted?'Unmute sound':'Mute sound',title:'Sound (M)',onClick:()=>{muted=!muted;audio.setMuted(muted);if(!muted)audio.unlock();render()}},muted?'♪̸':'♪'),
     state&&createElement('button',{'aria-label':'Settings',title:'Table settings',onClick:()=>menu(true)},'⚙'),
+    state&&createElement('button',{'aria-label':'Recenter view',title:'Drag the room to look · Recenter (R)',disabled:leisureContext().blocked || drinkMenuOpen,onClick:()=>{room?.recenterLook();focusTable()}},'⌖'),
     state?.isHost&&createElement('button',{'aria-label':state.paused?'Resume table':'Pause table',disabled:pending,onClick:()=>run(()=>api('/api/pause',{paused:!state.paused}))},state.paused?'▶':'Ⅱ'),
     document.fullscreenEnabled&&createElement('button',{'aria-label':document.fullscreenElement?'Exit fullscreen':'Enter fullscreen',onClick:()=>{void (document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()).catch(()=>{el('error').textContent='Fullscreen unavailable. The game still fills the browser.'})}},'⤢')))
   el('app').classList.toggle('inspecting',inspected)
@@ -285,6 +289,11 @@ function bankTransfer(action,revision) {
 }
 function menu(open) {menuOpen=open;el('menu').hidden=!open;syncLookBlocked();render();if(!open)focusTable()}
 el('details').onclick=()=>menu(!menuOpen);el('close-menu').onclick=()=>menu(false)
+el('look-enabled').onclick=()=>{
+  lookEnabled=!lookEnabled;room?.setLookEnabled(lookEnabled)
+  el('look-enabled').setAttribute('aria-pressed',String(lookEnabled))
+  el('look-enabled').textContent=lookEnabled?'On':'Off'
+}
 function inspect(active) {if(active)drinkMenuOpen=false;inspected=active;room?.setInspection(active);el('labels').hidden=active;syncLookBlocked();render()}
 el('inspect').onclick=()=>{inspect(!inspected);focusTable()}
 el('app').addEventListener('keydown',event=>{
@@ -293,6 +302,9 @@ el('app').addEventListener('keydown',event=>{
   if(event.key.toLowerCase()==='m'&&!event.repeat){event.preventDefault();muted=!muted;audio.setMuted(muted);if(!muted)audio.unlock();render();return}
   if(event.key==='Escape' && drinkMenuOpen){event.preventDefault();event.stopPropagation();drinkMenu(false);return}
   if(event.key==='Escape' && menuOpen){event.preventDefault();menu(false);return}
+  // A sizing tray owns keys while open. R must not steal native input focus,
+  // bypass inspection/contact arbitration, or mutate a shared poker revision.
+  if(event.key.toLowerCase()==='r' && target==='table' && !event.repeat && !leisureContext().blocked && !drinkMenuOpen){event.preventDefault();room?.recenterLook();return}
   const leisureAction=leisureShortcut(event,target,leisureContext())
   if(leisureAction){event.preventDefault();requestLeisure(leisureAction);return}
   if(bettingRef.current?.handleKey({key:event.key,repeat:event.repeat,shiftKey:event.shiftKey,altKey:event.altKey,ctrlKey:event.ctrlKey,metaKey:event.metaKey,nativeEvent:event,
