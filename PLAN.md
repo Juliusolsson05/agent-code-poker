@@ -2,6 +2,18 @@
 
 ## Active direction — finish the non-LAN gameplay list
 
+### Narrow controls — record before layout correction
+
+Actual CUA711x800 viewport: public board(x464–699,y578–675) overlaps open
+wager tray(x185–526,y482–715); top tools overlap hand/blind metadata. B25–E25
+retains DOM measurements before adjusting only shared responsive CSS. Give
+metadata/tools separate top bands and board/wager separate vertical space at
+compact widths; retain desktop composition, all five public cards and keyboard
+focus. No new state owner or hand/scene edits. Check real source/shipped geometry,
+keyboard cancel/confirm, menu reachability and restore; no synthetic CSS/FPS proof.
+NPC seat1 studio0.5/0.8/2.6/5.4s shows exterior approach/held/release and connected
+arm; held2.6 PNG retained. Motion still stiff: final animation polish stays last.
+
 Current queue: close-up NPC motion/contact review, controlled render performance
 and listening/mix acceptance after the public-event audio checkpoint. Actual
 normal source/shipped mouse-look, visible desktop snow, audio controls and

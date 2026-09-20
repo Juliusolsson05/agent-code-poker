@@ -2,6 +2,27 @@
 
 ## Latest user priority — gameplay after accepted LAN appearance
 
+### B25–E25 narrow public-board and control separation
+
+A: actual source CUA711x800 DOM bounds and screenshot show board/tray and
+metadata/tools overlap; shared styles own these positions in solo/LAN. D: every
+public card and wager control is readable without overlap in compact windows,
+while desktop composition and keyboard semantics stay unchanged.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B25 | session37 actual DOM rectangle fixture and NPC held PNG | Original browser measurements/image; preserve before values | Screenshots reveal a missing compact layout contract | Actual CUA, not invented viewport geometry |
+| C25 | Layout acceptance audit against retained rectangles | Before fixture must report both overlap pairs; new browser observations must be disjoint/in bounds | A stylesheet string test cannot prove layout | DOM-rendered boxes, not CSS arithmetic |
+| D25 | Shared compact CSS bands | One CSS owner, no new React/engine state or scene positioning | Public board and betting are presentation, never ledger owners | Existing desktop HUD and real widths |
+| E25 | Source/shipped compact input/layout/restore evidence | Actual B/arrows/presets/Esc/Enter, readable board and accessible tools | DOM geometry complements visible/input behavior | CUA only; narrow acceptance is not mobile performance approval |
+
+At<=800px, separate metadata from horizontally scrollable table tools; focused
+buttons must remain reachable. Keep board right-aligned above an open wager tray.
+At<=600px, bound decision buttons to viewport and lift stack/status off their row.
+No animation/art edits. Unknowns: short-height extremes, OS text enlargement and
+reduced-motion device behavior; do not certify all responsive sizes from one.
+Skill's plan approval pause is waived; this is committed before CSS changes.
+
 ### B24–E24 canonical pipeline check and redundant canvas samples
 
 Checkpoint: B24/C24 retain exact PNG pair and raw baseline pass profile. Actual
