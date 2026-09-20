@@ -1,5 +1,7 @@
 import * as THREE from 'three'
 import { ExperienceRecorder, type TraceValue } from './Recorder'
+import { RenderProbe, type ProbeMode } from './RenderProbe'
+import { GpuTimer } from './GpuTimer'
 
 export function transform(object: THREE.Object3D): TraceValue {
   object.updateWorldMatrix(true, false)
@@ -18,8 +20,16 @@ export class SceneCapture {
   private imageRequested = false
   private lastPose = -Infinity
   private lastStatus = 0
+  private probe: RenderProbe | null = null
+  private probeMetadata: TraceValue = null
+  private probeEnvironments: TraceValue[] = []
+  private gpuTimer: GpuTimer | null
+  private probeFrames = 0
   constructor(private renderer: THREE.WebGLRenderer, private getTime: () => number, private metadata: () => TraceValue,
-    setView?: (wide: boolean) => void) {
+    setView?: (wide: boolean) => void, private setProbeMode?: (mode: ProbeMode | null) => boolean) {
+    // Three r169 requires WebGL2; its older type declaration retains a union.
+    this.gpuTimer = new URLSearchParams(location.search).has('gpu')
+      ? new GpuTimer(renderer.getContext() as WebGL2RenderingContext, (tag, ms) => { this.probe?.windows[tag]?.gpuMs.push(ms) }) : null
     this.panel.setAttribute('aria-label', 'Experience recording')
     this.panel.style.cssText = 'position:absolute;left:12px;bottom:104px;z-index:60;background:#111c22ee;border:1px solid #68766c;padding:8px;display:flex;gap:8px;align-items:center;font:12px monospace;color:#e5e6dc'
     const button = (label: string, run: () => void) => {
@@ -28,6 +38,7 @@ export class SceneCapture {
       b.addEventListener('click', run); this.panel.append(b)
     }
     button('Record evidence', () => {
+      this.finishProbe('recording-started')
       this.id = new Date().toISOString().replace(/[:.]/g, '-')
       this.recorder.start(performance.now(), { captureId: this.id, capturedAt: new Date().toISOString(), source: 'actual-browser-session', ...this.environment(), scene: this.metadata() })
       this.lastPose = -Infinity; this.event('capture-start', null); this.updateStatus()
@@ -36,23 +47,52 @@ export class SceneCapture {
       this.event('capture-stop', null); this.recorder.stop()
       this.download(new Blob([JSON.stringify(this.recorder.export(), null, 2)], { type: 'application/json' }), `poker-evidence-${this.id || 'empty'}.json`); this.updateStatus()
     })
-    button('Capture view', () => { this.imageRequested = true; this.event('image-request', null) })
+    button('Capture view', () => { this.finishProbe('image-requested'); this.imageRequested = true; this.event('image-request', null) })
     if (setView) {
-      button('Wide room', () => { setView(true); this.event('diagnostic-view', { wide: true }) })
-      button('Seated view', () => { setView(false); this.event('diagnostic-view', { wide: false }) })
+      button('Wide room', () => { this.finishProbe('camera-changed'); setView(true); this.event('diagnostic-view', { wide: true }) })
+      button('Seated view', () => { this.finishProbe('camera-changed'); setView(false); this.event('diagnostic-view', { wide: false }) })
     }
+    if (setProbeMode) button('Profile render cost', () => {
+      if (this.probe || this.recorder.active || !setProbeMode('legacy')) return
+      this.gpuTimer?.dispose(); this.probeFrames = 0
+      this.probe = new RenderProbe(performance.now()); this.probeMetadata = this.metadata()
+      this.probeEnvironments = [this.environment()]; this.updateStatus()
+    })
     this.panel.append(this.status); renderer.domElement.parentElement!.append(this.panel); this.updateStatus()
     window.addEventListener('error', this.error)
     document.addEventListener('visibilitychange', this.visibility)
+    window.addEventListener('resize', this.probeResize)
   }
   private environment(): Record<string, TraceValue> {
     const size = this.renderer.getDrawingBufferSize(new THREE.Vector2())
     return { viewport: [innerWidth, innerHeight], buffer: size.toArray(), dpr: devicePixelRatio, pixelRatio: this.renderer.getPixelRatio(), userAgent: navigator.userAgent, reducedMotion: matchMedia('(prefers-reduced-motion: reduce)').matches }
   }
   private error = (event: ErrorEvent) => this.event('error', { message: event.message, line: event.lineno })
-  private visibility = () => this.event('visibility', { hidden: document.hidden })
+  private visibility = () => { this.event('visibility', { hidden: document.hidden }); if (document.hidden) this.finishProbe('hidden') }
+  private probeResize = () => this.finishProbe('resized')
+  private finishProbe(reason: string): void {
+    if (!this.probe) return
+    const probe = this.probe; this.probe = null; this.setProbeMode?.(null)
+    this.download(new Blob([JSON.stringify({ version: 1, source: 'actual-browser-fixed-lobby', reason,
+      capturedAt: new Date().toISOString(), warmMs: probe.warmMs, sampleMs: probe.sampleMs,
+      protocol: 'Lobby, visual time 12, centered seated camera, unchanged geometry/lights/4x MSAA; no inputs during timed windows',
+      gpuTimerSupported: this.gpuTimer?.supported ?? null,
+      scene: this.probeMetadata, environments: this.probeEnvironments, windows: probe.windows }, null, 2)],
+    { type: 'application/json' }), `poker-profile-${new Date().toISOString().replace(/[:.]/g, '-')}.json`)
+    this.updateStatus()
+  }
   event(kind: string, data: TraceValue): void { this.recorder.record(performance.now(), this.getTime(), kind, data) }
+  cancelProbe(reason: string): void { this.finishProbe(reason) }
+  beforeRender(): void { this.gpuTimer?.begin(this.probe?.sampling(performance.now()) && this.probeFrames++ % 30 === 0 ? this.probe.index : null) }
+  afterRender(): void { this.gpuTimer?.end() }
   frame(wallMs: number, frameMs: number, cpuMs: number, pose: () => TraceValue): void {
+    if (this.probe) {
+      const info = this.renderer.info.render
+      if (this.probe.frame(wallMs, { frameMs, cpuMs, draws: info.calls, triangles: info.triangles })) {
+        if (this.probe.done) this.finishProbe('complete')
+        else { this.setProbeMode?.(this.probe.mode); this.probeEnvironments.push(this.environment()); this.updateStatus() }
+      }
+    }
     if (this.recorder.active) {
       const info = this.renderer.info
       this.recorder.record(wallMs, this.getTime(), 'frame', { frameMs, cpuMs, draws: info.render.calls, triangles: info.render.triangles, geometries: info.memory.geometries, textures: info.memory.textures })
@@ -72,10 +112,10 @@ export class SceneCapture {
     }
     if (wallMs - this.lastStatus > 1000) { this.lastStatus = wallMs; this.updateStatus() }
   }
-  private updateStatus(): void { this.status.textContent = `${this.recorder.active ? 'Recording' : this.recorder.truncated ? 'Limit reached' : 'Stopped'} · ${this.recorder.length} records` }
+  private updateStatus(): void { this.status.textContent = this.probe ? `Profile ${this.probe.index + 1}/4 · ${this.probe.mode} · keep this lobby visible` : `${this.recorder.active ? 'Recording' : this.recorder.truncated ? 'Limit reached' : 'Stopped'} · ${this.recorder.length} records` }
   private download(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = filename; a.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
-  dispose(): void { this.recorder.stop(); this.panel.remove(); window.removeEventListener('error', this.error); document.removeEventListener('visibilitychange', this.visibility) }
+  dispose(): void { this.gpuTimer?.dispose(); this.probe = null; this.recorder.stop(); this.panel.remove(); window.removeEventListener('error', this.error); window.removeEventListener('resize', this.probeResize); document.removeEventListener('visibilitychange', this.visibility) }
 }

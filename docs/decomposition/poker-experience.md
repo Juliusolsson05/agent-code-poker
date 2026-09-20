@@ -443,3 +443,70 @@ of 60Hz. Next work starts with a controlled warm, same-camera performance
 recording and bottleneck isolation, preserving these visual results. After that,
 close gesture transition/ownership and hand/card/character silhouette gates;
 do not reinterpret the environment checkpoint as overall game completion.
+
+### E1: repeatable render-cost measurement
+
+The warm lobby currently reports about 46 FPS with 3–4ms CPU submission. Record
+that real baseline before altering quality. This is not GPU timing. Add an
+opt-in, lobby-only fixed-pose A/B/A/B probe with warmup excluded from each timed
+window, identical camera/scene, and explicit viewport/buffer/quality metadata.
+Its artifact is a raw local JSON download; reject interrupted/hidden/resized
+runs rather than interpreting them as faster frames. Verify its timing contract
+independently with recorded frame intervals plus labeled synthetic boundaries.
+
+Then isolate render sizing in `rendering/RenderQuality.ts`, consumed only by
+Room. Compare the existing 1.25 DPR cap with a 2.5-million-pixel cap, retaining
+4x MSAA, materials, shadow resolution and geometry. Tests must use the actual
+recorded viewport, while browser images judge the loss of supersampling. Do not
+claim equivalent resolution or general gameplay 60Hz from a static lobby probe.
+Only adopt a candidate after repeated same-session results and visible card/hand
+inspection, then run active source/production and pause/restore checks. Engine,
+interactions and React must not import the sizing policy or diagnostic probe.
+
+E1 outcome: actual warm-lobby baseline `04-43-40-879Z` retains383 frames and
+102poses (frame p50/p95 21.5/30.3ms), before the fixed-scene protocol. Two raw
+profile exports (`04-46-33-937Z`, `04-50-10-044Z`) each hold four full windows,
+same2133×1104 CSS viewport, centered seated view, fixed visual time12,300draws
+and1,145,166triangles every sample. First non-GPU-query run frame medians:
+92.7→76.8ms,77.5→65.1ms. Second sparse-GPU-query run:82.7→66.2ms,75.8→63ms;
+p95:99.4→74.4ms,92.4→68.7ms. CPU submission medians6.3–6.5ms in that run.
+Strong baseline drift and the large difference from the earlier animated lobby
+show desktop/session conditions remain material. These are paired reductions,
+NOT general game FPS or a claim that the broader performance gate passed.
+
+The candidate caps scene pixels at2.5M (buffer2197×1137 versus2666×1380 here,
+about32% fewer pixels), preserving4xMSAA,2048shadow,lighting/materials/geometry.
+HTML controls remain native resolution. No adaptive resolution changes during a
+gesture. Sizing has one production consumer, Room. The pure probe retains raw
+intervals, excludes warmup and is independently replayed against real intervals;
+actual A/B counts/buffers and immutable raw hashes are checked. No CI FPS threshold
+is fabricated from these historical recordings.
+
+`&record` exposes the lobby-only probe, aborting hidden/resized/paused/entered-game
+runs rather than blessing contaminated windows. `&gpu` separately opts into
+sparse asynchronous EXT_disjoint_timer_query_webgl2 samples (one per30frames,
+at most8pending, no blocking wait; unsupported/disjoint results aren't invented).
+The real second run has15driver elapsed samples101.5–220.3ms, distinct from frame
+intervals and not exclusive shader cost. Unit tests cover driver lifecycle with
+a labeled fake, not invented GPU performance. Protocol follows Khronos:
+https://registry.khronos.org/webgl/extensions/EXT_disjoint_timer_query_webgl2/
+
+Source active trace `04-52-11-274Z` and three PNGs retain279frames/189poses,
+sip/pause/resume/inspection return/cigar/call20. Readable cards, warm lighting,
+hand edges and paper inspected; angular card fingers/character art remain open.
+Source reload returns hand1preflop,stack1980,pot110. Shipped preview independently
+checks the same interactions, call59 and reload returning hand1/stack1941;
+subsequent observed public pot336 includes Juno's raise178. No warnings/errors
+observed; production QA left paused. Electron host remains unverified.
+The active trace is still slow: frame p50/p95 70/149.9ms, CPU5.1/8.3ms, with
+camera/export/pause overhead. Do not hide this behind the paired percentage gain.
+
+Next: isolate shadows, postprocessing and material cost with the same probe,
+including a simpler render pipeline comparison, before trading away any more
+fine anatomy or antialiasing. A coherent render pipeline may matter more than
+another DPR tweak. D1/D2 ownership/transitions and hand/card/face work stay open.
+
+Final E1 check passes55tests/build/SDK/preview checks. Actual UI negative control
+`04-58-59-194Z` starts profiling then immediately changes to Wide room: the raw
+export says camera-changed with zero measured frames, not successful performance
+evidence. Other guarded abort reasons are not independently browser-recorded.

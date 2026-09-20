@@ -43,3 +43,10 @@ Warm-room source/production views and a wide diagnostic capture are retained.
 50 tests and packaging/preview checks pass. Next prioritize controlled runtime
 profiling; current mixed-camera timings are not a performance acceptance. Hand
 silhouette, gesture transitions and opponent ownership remain open in D1/D2.
+
+E1 now retains warm source baseline, two fixed-view A/B/A/B profiles and active
+source evidence. A 2.5M-pixel render cap retains geometry, shadows and4xMSAA,
+reducing measured buffer area about32%; repeated median frame improvements are
+real but insufficient. Poor active frame delivery remains an open gate, not a
+60Hz claim. Continue with controlled shadow/material/postprocessing isolation,
+then close ownership and anatomical presentation; do not endlessly lower detail.

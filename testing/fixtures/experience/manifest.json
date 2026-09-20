@@ -4,6 +4,29 @@
   "sourceParentCommit": "9709ef9",
   "sourceState": "Uncommitted anatomy/Christmas substrate plus opt-in recorder; preserved by the following evidence checkpoint commit",
   "privacy": "Public action labels and scene transforms only. No deck, hole-card identities, save objects or unrelated browser content in traces.",
+  "renderProfiles": [
+    {
+      "file": "poker-profile-2026-09-20T04-58-59-194Z.json.gz",
+      "rawSha256": "efe86ce3b50d4d0255391cf7197fc40e18deb5b956bda4b69446273fb0053f7f",
+      "expectedReason": "camera-changed",
+      "provenance": "Actual UI negative control: start profile, immediately select Wide room. Export marks camera-changed, one environment and zero timed samples; not a successful benchmark.",
+      "limitations": "This verifies camera interruption only. Other abort reasons have implementation guards, not separate retained browser exports."
+    },
+    {
+      "file": "poker-profile-2026-09-20T04-46-33-937Z.json.gz",
+      "rawSha256": "ddde2345ef90a9f85e5153e4b661e5caf8de5fd5d126e4190489d993fe8278c5",
+      "provenance": "Actual Chrome fixed-lobby A/B/A/B, E1 diagnostics on ffdb197, unmodified JSON download compressed losslessly. Same viewport2133x1104, pose time12, centered camera, 300draws/1145166triangles each measured frame. 2s warmup and8s sampling per window. No GPU queries in this run.",
+      "frameP50P95Ms": [[92.7,97.1],[76.8,85.7],[77.5,99.1],[65.1,91.6]],
+      "limitations": "Same-session controlled camera/workload, not an isolated desktop or gameplay benchmark. Strong drift between repeated baseline windows; quality differs only in buffer area2666x1380 versus2197x1137. Not 60Hz acceptance."
+    },
+    {
+      "file": "poker-profile-2026-09-20T04-50-10-044Z.json.gz",
+      "rawSha256": "44d5a2bc786854e1b4ecace80d19433f65540bc9f8d2eba47068bf7e690dd2a8",
+      "provenance": "Second actual Chrome fixed-lobby A/B/A/B after sparse asynchronous GPU queries were added. Same viewport/camera/pose and draw/triangle counts; raw download compressed losslessly. Extension available,15 GPU elapsed samples total.",
+      "frameP50P95Ms": [[82.7,99.4],[66.2,74.4],[75.8,92.4],[63,68.7]],
+      "limitations": "CPU submission medians6.3–6.5ms; sparse driver elapsed queries101.5–220.3ms are distinct from frame intervals and affected by shared GPU scheduling/instrumentation. Do not infer exclusive shader cost or promise FPS. Queries are now separately opt-in via &gpu."
+    }
+  ],
   "sessions": [
     {
       "file": "poker-evidence-2026-09-20T03-19-01-705Z.json.gz",
@@ -34,6 +57,26 @@
     }
   ],
   "candidateSessions": [
+    {
+      "file": "poker-evidence-2026-09-20T04-43-40-879Z.json.gz",
+      "rawSha256": "3f9d520171ff5b03f3a21618001db4a2d0ab384b81d204baeb81e75ffa50255b",
+      "provenance": "Actual warm Chrome lobby before E1 render budget implementation, parent ffdb197. Raw download losslessly compressed.",
+      "frameCount": 383, "poseCount": 102,
+      "frameMsP50": 21.5, "frameMsP95": 30.3,
+      "cpuSubmissionMsP50": 4.4, "cpuSubmissionMsP95": 6.3,
+      "limitations": "Uncontrolled animated lobby baseline, not comparable to later fixed-pose windows or active gameplay. Viewport2133x1104; buffer2666x1380.",
+      "images": []
+    },
+    {
+      "file": "poker-evidence-2026-09-20T04-52-11-274Z.json.gz",
+      "rawSha256": "ea3549642fccf5749ddc47ccd125ce4fe19cc41a22811e9760d624393f6198bc",
+      "provenance": "Actual source QA using 2.5M pixel budget: enter hand, sip/pause/resume/inspection return, cigar and call20. Raw download losslessly compressed.",
+      "frameCount": 279, "poseCount": 189,
+      "frameMsP50": 70, "frameMsP95": 149.9,
+      "cpuSubmissionMsP50": 5.1, "cpuSubmissionMsP95": 8.3,
+      "limitations": "Poor active frame delivery remains open. Includes pause, camera changes and screenshots; not a performance comparison. Buffer2197x1137. Images preserve provisional hands/characters, not visual acceptance.",
+      "images": ["poker-evidence-2026-09-20T04-52-11-274Z-16.430.png", "poker-evidence-2026-09-20T04-52-11-274Z-18.625.png", "poker-evidence-2026-09-20T04-52-11-274Z-27.999.png"]
+    },
     {
       "file": "poker-evidence-2026-09-20T04-36-26-293Z.json.gz",
       "rawSha256": "8c7229b76d1834efca9b59718989e6fee048a555b8d24124311e4ac027444089",

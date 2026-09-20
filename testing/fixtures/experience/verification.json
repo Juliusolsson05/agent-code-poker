@@ -1,10 +1,10 @@
 {
-  "checkpoint": "D3 production decor clearances and warm-room candidate; not finished-game acceptance",
+  "checkpoint": "E1 measured bounded render resolution; smooth-performance and finished-game acceptance remain open",
   "date": "2026-09-20",
   "automated": {
     "command": "npm run verify",
     "result": "passed",
-    "coverage": "Full verify passed 50 tests: actual room-plan identity, old tree-overlap negative control, real captured decor bounds, production mesh clearances/light/snow budgets plus existing rules/grips/props/replay tests. TypeScript/build, 2 SDK packaging checks and exact-byte HTTP preview integration also pass.",
+    "coverage": "Full verify passed 55 tests: recorded viewport sizing, real fixed-profile workload identity, probe window replay and labeled GPU-driver lifecycle checks added to rules/grips/props/environment coverage. TypeScript/build, 2 SDK packaging checks and exact-byte HTTP preview integration also pass.",
     "limitation": "Passing tests do not approve the recorded contact, anatomy, lighting or performance defects"
   },
   "sourceBrowser": {
@@ -59,5 +59,13 @@
     "visual": "Final seated/wide raw canvas PNGs and before-lighting reference retained. Tree/presents visibly separated from bar and wall; garland/wreath no longer buried in bottles/mirror/beam. Warm practical illumination and restrained snow; no obvious trim flash during observed lean/return, not an exhaustive camera guarantee. Character art remains provisional.",
     "measurement": "196 frames/87 poses. Frame p50/p95 40.3/79.1ms; CPU submission5.7/9.2ms. Short instrumented mixed-camera workload, not a controlled performance comparison."
   },
-  "remaining": ["controlled performance comparison and optimization", "opponent interaction ownership/interruption", "grip transition sweeps and card-hand silhouette", "character anatomy/face refinement", "reduced motion and visibility interaction checks (snow tested separately)", "fresh final source/production visual acceptance"]
+  "renderCheckpoint": {
+    "profiles": ["poker-profile-2026-09-20T04-46-33-937Z.json.gz", "poker-profile-2026-09-20T04-50-10-044Z.json.gz"],
+    "protocol": "Fixed lobby visual time12 and centered camera, A/B/A/B with2s warmup+8s samples per window. Same2133x1104 viewport,300draws/1145166triangles. Only buffer changes2666x1380→2197x1137; retained4xMSAA,geometry,2048shadow and lights.",
+    "measurement": "Second run median pairs82.7→66.2ms and75.8→63ms, p95 pairs99.4→74.4ms and92.4→68.7ms. CPU medians6.3–6.5ms. Strong desktop drift, not general gameplay FPS. Fifteen sparse driver GPU samples101.5–220.3ms; not exclusive shader execution cost.",
+    "source": "Recorded279frames/189poses and3PNGs; sip/pause/inspection/cigar/call20, reload hand1preflop stack1980 pot110. No warnings/errors. Active trace frame70/149.9ms p50/p95 remains poor, not comparable with fixed lobby.",
+    "production": "Shipped sip/pause/inspection/cigar/call59 and reload retaining hand1/stack1941; public pot336 observed after Juno raise178. No warnings/errors. Cards/hand edges inspected; QA paused, host unverified.",
+    "limitation": "About32% fewer render pixels is an explicit resolution tradeoff, not a free quality-equivalent optimization. Readable source/production views do not approve final anatomy. Smooth active performance is NOT achieved."
+  },
+  "remaining": ["shadow/material/postprocessing isolation and smooth active performance", "opponent interaction ownership/interruption", "grip transition sweeps and card-hand silhouette", "character anatomy/face refinement", "reduced motion and visibility interaction checks (snow tested separately)", "fresh final source/production visual acceptance"]
 }

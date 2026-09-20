@@ -18,6 +18,7 @@ import { CHAIR_BLOCKS, PLAYER_LAYOUT, SEATS, seatYaw } from './environment/layou
 
 import { createRoomPlan, type RoomBlock } from './environment/RoomPlan'
 import { createTavernLighting, TAVERN_EXPOSURE } from './environment/Lighting'
+import { renderPixelRatio, type RenderMode } from './rendering/RenderQuality'
 
 /** Everything is authored in metres, from a seated human's eye line. The first
  * room was orthographic with toy proportions: that erased physical presence.
@@ -65,6 +66,7 @@ export class PokerRoom {
   private capture: SceneCapture | null = null
   private roomBlocks: RoomBlock[] = []
   private diagnosticWide = false
+  private probeMode: RenderMode | null = null
 
   private leisureKey = ''
   constructor(private container: HTMLElement, private onFailure: () => void, private onLayout: () => void = () => {},
@@ -128,7 +130,12 @@ export class PokerRoom {
         decorBounds: [...this.christmas.decorBounds].map(([name, bounds]) => ({ name, bounds: bounds.min.toArray().concat(bounds.max.toArray()) })),
         roomBlocks: this.roomBlocks,
         table: { feltY: TABLE.feltY }, exposure: this.renderer.toneMappingExposure,
-      }), wide => { this.diagnosticWide = wide; this.pausedRendered = false })
+      }), wide => { this.diagnosticWide = wide; this.pausedRendered = false }, mode => {
+        // Timed comparison is deliberately lobby-only: freezing a live poker
+        // clock would let betting timers race the visual ownership director.
+        if (mode && this.state && this.state.handNumber > 0) return false
+        this.probeMode = mode; this.resize(); return true
+      })
     }
     document.addEventListener('visibilitychange', this.visibility)
     this.observer = new ResizeObserver(() => this.resize()); this.observer.observe(container); this.resize(); this.frame()
@@ -188,7 +195,7 @@ export class PokerRoom {
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: texture, color: small ? '#8d785c' : '#ffd49b', transparent: true, toneMapped: false }))
     mesh.position.set(x, y, z); this.scene.add(mesh)
   }
-  setOrbit(value: number): void { this.orbit = value; this.resize() }
+  setOrbit(value: number): void { this.capture?.cancelProbe('camera-changed'); this.orbit = value; this.resize() }
   setInspection(active: boolean): void { this.capture?.event('inspection', { active }); this.inspecting = active }
   projectSeat(seat: number): { x: number; y: number } {
     if (seat === 0) return { x: 12, y: 83 }
@@ -201,6 +208,8 @@ export class PokerRoom {
   private resize(): void {
     this.pausedRendered = false
     const width = this.container.clientWidth, height = Math.max(1, this.container.clientHeight)
+    const ratio = renderPixelRatio(width, height, window.devicePixelRatio, this.probeMode ?? undefined)
+    this.renderer.setPixelRatio(ratio); this.composer.setPixelRatio(ratio)
     this.camera.aspect = width / height; this.camera.position.set(this.orbit * .12, PLAYER_LAYOUT.eye[1], PLAYER_LAYOUT.eye[2]); this.camera.lookAt(this.orbit * .3, PLAYER_LAYOUT.look[1], PLAYER_LAYOUT.look[2])
     this.camera.updateProjectionMatrix(); this.camera.updateMatrixWorld(); this.renderer.setSize(width, height); this.composer.setSize(width, height)
     this.labelCamera.aspect = this.camera.aspect; this.labelCamera.position.copy(this.camera.position)
@@ -223,8 +232,8 @@ export class PokerRoom {
     }
     const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy(); this.textures.set(key, texture); return texture
   }
-  setPlaying(playing: boolean): void { this.capture?.event('playing', { playing }); this.hero.setActive(playing) }
-  setPaused(paused: boolean): void { this.capture?.event('pause', { paused }); this.paused = paused; this.pausedRendered = false }
+  setPlaying(playing: boolean): void { if (playing) this.capture?.cancelProbe('entered-game'); this.capture?.event('playing', { playing }); this.hero.setActive(playing) }
+  setPaused(paused: boolean): void { if (paused) this.capture?.cancelProbe('paused'); this.capture?.event('pause', { paused }); this.paused = paused; this.pausedRendered = false }
   private publishLeisure(): void {
     const value = { kind: this.hero.drinkKind, available: !this.paused && !this.inspecting && this.hero.leisureAvailable }
     const key = value.kind + ':' + value.available
@@ -279,8 +288,8 @@ export class PokerRoom {
     }
     const frameMs = wallTime - this.lastFrame
     const dt = this.paused ? 0 : Math.min(.1, frameMs / 1000); this.lastFrame = wallTime
-    this.visualTime += dt
-    const t = this.visualTime, now = t * 1000
+    if (!this.probeMode) this.visualTime += dt
+    const t = this.probeMode ? 12 : this.visualTime, now = t * 1000
     this.hero.setInspection(this.inspecting); this.hero.frame(t, this.reduced.matches)
     this.publishLeisure()
     // Inspection is a presentation-only lean, never a second gameplay mode.
@@ -288,13 +297,14 @@ export class PokerRoom {
     this.inspectionBlend = this.reduced.matches ? Number(this.hero.inspectionReady)
       : THREE.MathUtils.lerp(this.inspectionBlend, Number(this.hero.inspectionReady), 1 - Math.exp(-dt * 12))
     const peek = this.inspectionBlend
-    this.gaze.lerp(this.reduced.matches ? new THREE.Vector2() : this.pointer, .045)
+    if (this.probeMode) this.gaze.set(0, 0)
+    else this.gaze.lerp(this.reduced.matches ? new THREE.Vector2() : this.pointer, .045)
     this.camera.position.set(this.orbit * .12 * (1 - peek), THREE.MathUtils.lerp(PLAYER_LAYOUT.eye[1], 1.95, peek), THREE.MathUtils.lerp(PLAYER_LAYOUT.eye[2], 1.05, peek))
     this.camera.lookAt(THREE.MathUtils.lerp(this.orbit * .30 + this.gaze.x * .11, .14, peek), THREE.MathUtils.lerp(1.03 - this.gaze.y * .055, .793, peek), THREE.MathUtils.lerp(-.6, .30, peek))
     this.camera.fov = THREE.MathUtils.lerp(70, 55, peek); this.camera.updateProjectionMatrix()
     // Dev-only inspection exposes complete furniture/decor placement. It moves
     // only the camera, never actors or props; production gameplay stays seated.
-    if (this.diagnosticWide) {
+    if (this.diagnosticWide && !this.probeMode) {
       this.camera.position.set(3.8, 2.7, 2.8); this.camera.lookAt(0, 1.35, -3.15)
       this.camera.fov = 75; this.camera.updateProjectionMatrix()
     }
@@ -317,7 +327,7 @@ export class PokerRoom {
     this.christmas.frame(t, this.reduced.matches)
     this.chips.frame(now / 1000, this.reduced.matches); this.cardField.frame(now / 1000, this.reduced.matches)
     if (this.stats || this.capture) this.renderer.info.reset()
-    this.composer.render()
+    this.capture?.beforeRender(); this.composer.render(); this.capture?.afterRender()
     this.capture?.frame(wallTime, frameMs, performance.now() - wallTime, () => ({
       camera: transform(this.camera), hero: this.hero.diagnosticPose(), paused: this.paused, inspectionBlend: this.inspectionBlend,
       people: this.people.map(h => ({ seat: h.seat, root: transform(h.root), drink: transform(h.drink.root),

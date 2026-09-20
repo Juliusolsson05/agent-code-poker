@@ -34,4 +34,18 @@ test('recorded experience corpus remains verbatim, finite and free of private en
     for (const image of session.images) assert.ok(existsSync(new URL(image, base)))
   }
   for (const image of manifest.rigImages) assert.ok(existsSync(new URL(image.file, base)))
+  for (const profile of manifest.renderProfiles ?? []) {
+    const bytes = gunzipSync(readFileSync(new URL(profile.file, base)))
+    assert.equal(createHash('sha256').update(bytes).digest('hex'), profile.rawSha256)
+    const raw = JSON.parse(bytes.toString())
+    assert.equal(raw.source, 'actual-browser-fixed-lobby'); assert.equal(raw.reason, profile.expectedReason ?? 'complete')
+    assert.equal(raw.windows.length, 4)
+    if (raw.reason === 'complete') {
+      assert.equal(raw.environments.length, 4)
+      assert.ok(raw.windows.every((w: { samples: unknown[] }) => w.samples.length > 0))
+    } else {
+      assert.equal(raw.environments.length, 1)
+      assert.ok(raw.windows.every((w: { samples: unknown[] }) => w.samples.length === 0), 'immediate real camera interruption is not timing evidence')
+    }
+  }
 })

@@ -37,6 +37,13 @@ Confirm downloaded evidence exists before leaving a session: browsers may
 block subsequent automatic downloads. A missing export is not retained proof.
 The recorder's **Wide room** / **Seated view** controls inspect actual furniture
 and decor placement without moving actors or changing the normal player camera.
+In a fresh QA lobby, **Profile render cost** runs a 40-second fixed-view A/B/A/B
+comparison (2s warmup + 8s measurement per window) and downloads raw JSON. Keep
+the tab visible without changing its size or entering a hand. Add `&gpu` for
+optional sparse asynchronous GPU queries; these are separate from CPU submission
+and can perturb timing. Ordinary play caps the 3D buffer at 2.5M pixels while
+retaining 4x MSAA; HTML controls stay at native browser resolution. This limits
+fullscreen render cost but does not guarantee 60 FPS.
 
 The current failing baseline and provenance live in `testing/fixtures/experience/`;
 these are not approved visual goldens. The staged plan is

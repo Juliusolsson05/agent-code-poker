@@ -82,8 +82,9 @@
       "frequency": { "frames": 1122 },
       "evidence": "2133x1166 CSS viewport, 2666x1458 drawing buffer, DPR cap 1.25: frame p50 36ms/p95 56ms; CPU submission p50 6.9ms/p95 9.4ms. Screenshots and diagnostics add overhead; GPU time not measured.",
       "expected": "Measure comparable uninstrumented and instrumented warm runs, identify CPU/GPU/resource bottlenecks, preserve visual quality while approaching a stable 16.7ms frame budget on this machine.",
-      "status": "open"
+      "status": "bounded-resolution-improvement-measured; frame-budget-still-open",
+      "candidate": "E1 retains two fixed-pose A/B/A/B exports and a real active-play trace. Buffer area reduced about32% with unchanged geometry, shadows and4xMSAA. Second run median pairs82.7→66.2ms and75.8→63ms improve, but repeated baseline drift and poor active p50/p95 70/149.9ms preclude smooth-play acceptance. Next isolate shadow, material and postprocessing costs; do not remove conforming hand topology."
     }
   ],
-  "notYetRecorded": ["reduced-motion interaction", "visibility interruption mid-sip", "browser frame skip across ownership boundaries (synthetic sparse replay only)", "controlled same-view performance comparison", "all five opponent grip/face closeups (cast contacts tested separately)"]
+  "notYetRecorded": ["reduced-motion interaction", "visibility interruption mid-sip", "browser frame skip across ownership boundaries (synthetic sparse replay only)", "shadow/material/postprocessing ablation and smooth active-play performance", "all five opponent grip/face closeups (cast contacts tested separately)"]
 }
