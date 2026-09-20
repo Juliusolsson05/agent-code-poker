@@ -18,6 +18,13 @@ art stays paused; no merge or host-repo changes. Larger visible window snow is
 explicitly restored as an active requirement, not dropped by the earlier short
 list. Latest screenshot07-03-07-036Z-29.367 shows faint subpixel-looking flakes.
 
+Continuation18 begins LAN with the D9 authority/privacy boundary, not a listener:
+an explicit private-per-viewer DTO, six stable seats, queued mid-hand admission,
+host-only engine/bot ownership and stale/duplicate action protection. Replay the
+retained real public wager trace; clearly label new network scenarios synthetic.
+Real discovery, transport, two-client browser play and rendering remain later
+gates. The full local GameState must never be serialized to a LAN client.
+
 Latest user addition: NPC drinking grips appear to grab the glass from its
 inside. Track exterior-only vessel contact explicitly: palm/fingers wrap the
 outer surface, thumb opposes, no hand crosses the wall or hollow interior during

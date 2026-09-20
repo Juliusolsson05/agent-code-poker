@@ -46,6 +46,44 @@ removal. Existing visual/performance gates remain open.
 
 ## Latest addition — NPCs grip glass interiors
 
+### Continuation18 — LAN authority and private-view boundary first
+
+A: App currently owns PokerGame, saves full GameState and runs bots/timers; Room
+receives that complete state. That is a trusted local pipeline, NOT a network
+message. Existing actual05-52 public-action trace supplies a raise500, calls and
+folds; it intentionally has no deck/private cards or network admission events.
+D: one host owns the engine; exactly six stable seats, humans replace bots,
+each authenticated viewer receives only public data and their own private hand.
+No dealer. No local-save migration or listener in this first isolated slice.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| B9 | Existing raw public trace + LAN boundary catalog | Preserve raw hash/order, enumerate actual player/action/phase fields and missing cases | Local full-state rendering must not be mislabeled network-safe | Actual05-52 recorded table; App/GameState inspected; no real LAN recording yet |
+| C9 | Explicit client DTO and admission/action contracts in src/session | Test recorded public wager replay for each viewer before implementation; adversarial new scenarios labeled synthetic | Privacy cannot depend on hiding a received card mesh | Actual trace for ledger; injected synthetic hidden cards for noninterference tests |
+| D9 | HostTable, private viewer projection and stable seat mapping | Six seats, queued mid-hand joins, authenticated seat binding, stale/duplicate rejection, safe bot takeover, no mutable references or private deck keys | HostTable alone consumes projection; future transport consumes HostTable, never PokerGame snapshots | C9 replay + explicitly synthetic joins/disconnects; no LAN claim |
+| E9 | Real transport and multi-client browser integration | Two clients, names, bot substitution, self-relative views, reconnect/host loss and no hidden wire values | In-process tests cannot prove discovery, sockets, rendering or LAN security | Future CUA recordings + captured public protocol metadata; no credentials/private cards recorded |
+
+Safe default for this slice: reserve a free bot seat immediately but grant human
+control/private cards only at the next hand. A queued viewer sees no old NPC
+hand, including at completed showdown. Disconnected humans keep their reserved
+seat; a host bot may act until the same authenticated principal reconnects.
+Explicit leave releases to bots at the next boundary, never to another human
+mid-hand. Host authority and authentication are distinct: the future transport
+must mint unguessable credentials and resolve the principal, not trust a seat
+number sent by a client. Revision and per-principal sequence guards prevent
+late or duplicated packets from repeating a wager. No automatic retries of a
+different action under a previously used sequence number.
+
+Forbid engine/bots/scene/audio from importing session internals. A future single
+client adapter will map public seat IDs to display positions without constructing
+a fake authoritative GameState; no placeholder card values or remapped engine.
+Unknowns remain explicit: code-to-host discovery/browser reachability, transport
+authentication/limits/lifecycle, disconnect grace UX, durable session storage,
+names in structured action history, real relative-seat rendering, and LAN-host
+support in the extension. Do not expose a listener or claim multiplayer complete
+from this authority slice. The latest explicit LAN request supersedes historical
+no-networking boilerplate; no public relay, firewall edits or host-repo changes.
+
 23. User reports NPC drinking looks wrong because hands grab from **inside**
     the glass instead of around its outside. Preserve as an explicit drinking
     mechanics acceptance requirement, without restarting the paused hand-art/
