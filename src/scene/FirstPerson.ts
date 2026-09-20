@@ -3,7 +3,7 @@ import { SeatedArm } from './Arm'
 import { InteractionDirector } from './InteractionDirector'
 import { PLAYER_LAYOUT } from './environment/layout'
 import { coaster, TableDrink } from './Drinks'
-import { ASHTRAY, isDrinkKind, type DrinkKind } from './props/specs'
+import { ASHTRAY, CIGAR, isDrinkKind, type DrinkKind } from './props/specs'
 import { createAshtray, createCigar } from './props/Smoking'
 import type { Card } from '../engine/cards'
 import { createHeldCardFan } from './CardGrip'
@@ -82,15 +82,25 @@ export class FirstPerson {
       drink: transform(this.drink.root), cigar: transform(this.cigar), table: transform(this.tableProps),
       drinkOwner: this.resolved.drink.owner, cigarOwner: this.resolved.cigar.owner, drinkKind: this.drink.kind,
       arm: this.resolved.arm, drinkHome: this.drinkHome.toArray(), cigarHome: this.cigarHome.toArray(),
+      mouth: [...PLAYER_LAYOUT.mouth],
+      cigarBite: this.cigar.localToWorld(new THREE.Vector3(...CIGAR.bite)).toArray(),
+      cigarEmber: this.cigarTip.getWorldPosition(new THREE.Vector3()).toArray(),
+      glassRim: this.drink.root.localToWorld(this.drink.rim.clone()).toArray(),
       glassGrip: this.director.calibration.handGlassContact, cigarGrip: this.director.calibration.handCigarContact }
   }
-  get inspectionTargets(): Record<string, THREE.Object3D> { return { 'Player cards': this.left.root, 'Player cigar': this.right.root, 'Old Fashioned': this.drink.root } }
+  get inspectionTargets(): Record<string, THREE.Object3D> { return { 'Player cards': this.left.root, 'Player cigar': this.right.root, 'Old Fashioned': this.drink.root, 'Player contact rig': this.root } }
   resetInteraction(): void { this.director.setActive(false, 0); this.director.setActive(this.active, 0); this.now = 0; this.inspecting = false }
   setActive(active: boolean): void { this.active = active; this.root.visible = active; this.director.setActive(active, this.now) }
   setInspection(active: boolean): void { this.inspecting = active; this.director.inspect(active, this.now) }
   /** The dev inspector hides unrelated surfaces, but uses these exact meshes.
    * This is display isolation only; it never substitutes a prettier test hand. */
   showInspectionSubject(name: string): void {
+    if (name === 'Player contact rig') {
+      this.leftRig.mesh.visible = true; this.rightRig.mesh.visible = true
+      this.left.root.visible = true; this.right.root.visible = true
+      this.tableProps.children.forEach(object => { object.visible = true })
+      return
+    }
     // These are hand close-ups. The shoulder-based sleeve now extends well
     // beyond the hand's framing box and can occlude the fingers from behind.
     // Inspect full arm attachment in the seated view/integration replay; hiding
@@ -140,7 +150,7 @@ export class FirstPerson {
       const material = new THREE.SpriteMaterial({ map: this.smokeTexture, color: '#b5b6b1', transparent: true, depthWrite: false, opacity: .20 })
       const mesh = new THREE.Sprite(material), seed = now * 71
       this.root.updateWorldMatrix(true, true); this.tableProps.updateWorldMatrix(true, true)
-      const origin = this.root.worldToLocal(exhale ? new THREE.Vector3(.015, 1.335, 1.37) : this.cigarTip.getWorldPosition(new THREE.Vector3()))
+      const origin = this.root.worldToLocal(exhale ? new THREE.Vector3(...PLAYER_LAYOUT.mouth) : this.cigarTip.getWorldPosition(new THREE.Vector3()))
       mesh.position.copy(origin); this.root.add(mesh); this.smoke.push({ mesh, birth: now, seed, origin })
     }
     for (let i = this.smoke.length - 1; i >= 0; i--) {

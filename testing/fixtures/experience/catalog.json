@@ -3,6 +3,14 @@
   "semanticsSource": "Julius's reported requirements: connected arms, credible grips, no prop/furniture clipping, private cards, cozy Christmas lighting, block props, compact drink ordering and smooth performance",
   "cases": [
     {
+      "id": "player-mouth-contact-and-cigar-direction",
+      "trace": "poker-evidence-2026-09-20T05-26-21-152Z.json.gz",
+      "frequency": { "puffSamples": 7, "sipSamples": 11 },
+      "evidence": "Actual puff cigar axis [.95056,.01946,.30992] points partly back toward the eyes. Cigar bite [.015,1.335,1.37] and glass rim [.005,1.335,1.365] disagree and float ahead of the authored lips. Anchor-only attachment tests did not detect this.",
+      "expected": "One shared body lip landmark, outward ember, exact rim/bite contact while held, unchanged arm lengths and no reach correction. Exhalation shares the same landmark.",
+      "status": "recorded-negative-control-and-corrected-replay-pass; studio-captures-retained; fresh-live-browser-acceptance-open"
+    },
+    {
       "id": "surface-contact-and-opponent-frame",
       "trace": "poker-evidence-2026-09-20T04-23-47-481Z.json.gz",
       "images": ["contact-player-glass.png", "contact-player-cigar.png", "contact-opponent-sip.png"],

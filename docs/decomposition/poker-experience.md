@@ -955,3 +955,12 @@ Integration gates: source/shipped visible fold landing/retention, no below-felt
 corners or coplanar overlapping discards, no private texture request, unchanged
 engine/save state and bounded mesh counts across hands. This does not authorize
 resuming the paused hand-animation pass.
+
+Frozen hand/contact checkpoint: recorded replay now targets one authored lip
+landmark with an outward cigar; thumb side-rest and shallower palm pad are
+provisional. `npm run verify` passes65 tests/build/2SDK checks/exact-byte preview.
+Three actual studio exports retain the revised silhouette/full sleeves, not
+live motion approval. User rejected naturalness and stopped this work; keep it
+deferred. Source baseline smoke/sip was recorded; fresh source/shipped contact
+acceptance remains open after CUA tab-reconnection timeout. No further hand
+changes are part of the next table-card slice.

@@ -187,6 +187,9 @@
     }
   ],
   "rigImages": [
+    { "file": "thumb-cigar-side-rest.png", "subject": "Player cigar", "action": "idle", "seconds": 0, "candidate": "Actual source studio four-view export after thumb side-rest correction. User subsequently rejected overall hand naturalness and paused further hand-animation work. NOT approved art." },
+    { "file": "player-contact-puff.png", "subject": "Player contact rig", "action": "smoke", "seconds": 1.3, "candidate": "Actual source studio export including sleeves and orange authored lip marker. Controlled pose, not live motion or final anatomy approval." },
+    { "file": "player-contact-sip.png", "subject": "Player contact rig", "action": "drink", "seconds": 2.6, "candidate": "Actual source studio export including sleeves and shared lip marker. Controlled pose, not live motion or final anatomy approval." },
     { "file": "user-thumb-silhouette-before.png", "subject": "User-reported cigar thumb silhouette", "candidate": "Actual user screenshot supplied during continuation8. Bulky hooked thumb over palm; failing baseline, not art approval. No renderer timing or exact capture time supplied." },
     { "file": "poker-fixed-2026-09-20T05-06-31-602Z.png", "subject": "Legacy canvas AA fixed-time lobby", "candidate": "Rejected pixel comparison baseline: old sampler still inherited NPC sip history. Preserve as diagnostic negative control, not visual golden." },
     { "file": "poker-fixed-2026-09-20T05-09-06-358Z.png", "subject": "No canvas AA fixed-time lobby", "candidate": "Rejected comparison candidate: differences around two NPC arms/glasses reflect stateful scheduling. Canonical rest-pose pair still required; no equivalence or speed claim." },

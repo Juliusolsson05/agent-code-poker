@@ -36,6 +36,8 @@ the actual production rig from four angles with a scrubbed timeline and exact
 time input. Select **Player drink grip**, **Drink**, time **2.6** to inspect hand
 and glass together. Studio poses are controlled inspections, not recordings of
 live gameplay. `npx tsx testing/audit-grip.ts` runs an offline calibration aid;
+**Player contact rig** includes both sleeves and table props; its optional
+orange dot marks the shared authored lip landmark, not a rendered head.
 the stronger triangle-envelope tests, not its sampled fit, guard runtime grips.
 Confirm downloaded evidence exists before leaving a session: browsers may
 block subsequent automatic downloads. A missing export is not retained proof.

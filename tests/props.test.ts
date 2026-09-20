@@ -5,6 +5,7 @@ import { TableDrink } from '../src/scene/Drinks'
 import { createAshtray, createCigar } from '../src/scene/props/Smoking'
 import { ASHTRAY, DRINKS, type DrinkKind } from '../src/scene/props/specs'
 import { InteractionDirector } from '../src/scene/InteractionDirector'
+import { PLAYER_LAYOUT } from '../src/scene/environment/layout'
 
 function blockFaces(root: THREE.Object3D): number {
   let triangles = 0
@@ -69,7 +70,10 @@ test('ordering cannot replace a drink during a reach, held sip or interrupted re
     assert.equal(director.orderDrink(kind, 0), true)
     const c = director.calibration, rim = new THREE.Vector3(0, DRINKS[kind].height, DRINKS[kind].radius)
     rim.applyQuaternion(new THREE.Quaternion(...c.drinkMouth.rotation)).add(new THREE.Vector3(...c.drinkMouth.position))
-    assert.ok(rim.distanceTo(new THREE.Vector3(.005, 1.335, 1.365)) < 1e-7, 'sip targets the actual rim, not the old glass height')
+    // The old literal preserved the very floating mouth reported by the user.
+    // Keep exact rim contact for ALL heights, now against the shared anatomical
+    // landmark; the recorded old matrices remain a separate negative control.
+    assert.ok(rim.distanceTo(new THREE.Vector3(...PLAYER_LAYOUT.mouth)) < 1e-7, 'sip targets the actual rim, not the old glass height')
   }
   director.begin('drink', 0)
   for (const time of [.3, 1, 2.5, 3.8]) {

@@ -18,7 +18,13 @@ export class InteractionDirector {
   private leisure: Leisure
   constructor() {
     const trayRotation = basis(new Vector3(-1, 0, 0), new Vector3(0, 0, -1), new Vector3(0, -1, 0))
-    const smokeRotation = rotation(-.39, -.30, -.10)
+    // The recorded Euler pose aimed the ember +Z, back toward the eyes, while
+    // a grip-only test still passed. Solve the PROP's outward shaft first, then
+    // transport its fitted hand frame. Local +X runs bite -> ember; world -Z
+    // faces the table. Keep a slight right/down cant, not a sideways cigarette.
+    const shaft = new Vector3(.28, -.10, -1).normalize()
+    const up = new Vector3(0, 1, 0).addScaledVector(shaft, -shaft.y).normalize()
+    const smokeRotation = basis(shaft, up, new Vector3().crossVectors(shaft, up))
     const handCigarContact: [number, number, number] = [...CIGAR_HAND_CONTACT]
     const bite = new Vector3(...CIGAR.bite).add(new Vector3(...handCigarContact)).applyQuaternion(new Quaternion(...smokeRotation))
     this.calibration = {
@@ -27,7 +33,7 @@ export class InteractionDirector {
       cigarHome: { position: [...PLAYER_LAYOUT.cigar], rotation: trayRotation },
       drinkHome: { position: [...PLAYER_LAYOUT.drink], rotation: [0, 0, 0, 1] },
       drinkMouth: { position: [.005, 1.245, 1.32], rotation: rotation(.24, 0, .08) },
-      smokeHand: { position: new Vector3(.015, 1.335, 1.37).sub(bite).toArray(), rotation: smokeRotation },
+      smokeHand: { position: new Vector3(...PLAYER_LAYOUT.mouth).sub(bite).toArray(), rotation: smokeRotation },
       glassHandRotation: [...GLASS_HAND_ROTATION], handGlassContact: [...GLASS_HAND_CONTACT], glassContact: [.032, .040, 0], handCigarContact,
     }
     this.leisure = new Leisure(this.calibration)
@@ -36,7 +42,7 @@ export class InteractionDirector {
   private calibrateDrink(kind: DrinkKind): void {
     const anchors = drinkAnchors(kind)
     this.calibration.glassContact = anchors.grip
-    this.calibration.drinkMouth.position = new Vector3(.005, 1.335, 1.365)
+    this.calibration.drinkMouth.position = new Vector3(...PLAYER_LAYOUT.mouth)
       .sub(new Vector3(...anchors.rim).applyQuaternion(new Quaternion(...this.calibration.drinkMouth.rotation))).toArray()
   }
   canOrder(now: number): boolean { return this.leisure.canReplaceDrink(now) }

@@ -3,11 +3,14 @@ import { anatomyMaterial, VoxelSculpt } from './Voxel'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
 export type HandPose = 'rest' | 'cards' | 'cigar' | 'glass' | 'push'
-type Pose = { curl: number[][]; spread: number[]; thumb: [number, number, number] }
+type Pose = { curl: number[][]; spread: number[]; thumb: [number, number, number]; thumbSplay?: number }
 const POSES: Record<HandPose, Pose> = {
   rest: { curl: [[.12, .22, .12], [.16, .28, .14], [.21, .34, .19], [.29, .40, .22]], spread: [-.055, -.015, .02, .06], thumb: [-.66, .20, .22] },
   cards: { curl: [[.07, .12, .12], [1.20, 1.30, .80], [1.23, 1.30, .85], [1.25, 1.30, .85]], spread: [-.03, 0, .02, .06], thumb: [-.25, .40, -.25] },
-  cigar: { curl: [[0, .50, .405], [.60, .295, 0], [.45, .65, .40], [.55, .70, .45]], spread: [-.04, .01, .045, .09], thumb: [-.50, .65, .43] },
+  // Index/middle own this pinch. Opposing the unused thumb as if gripping a
+  // glass produced the user's hooked central protrusion (tip69mm off palm).
+  // Let it rest along the radial edge; glass opposition is a separate pose.
+  cigar: { curl: [[0, .50, .405], [.60, .295, 0], [.45, .65, .40], [.55, .70, .45]], spread: [-.04, .01, .045, .09], thumb: [-.35, .15, .18], thumbSplay: .55 },
   // Fit against the shared HandGrips contact frame and actual voxel skin, not
   // just fingertip bones. Shorter digits cannot reach the middle finger's wrap
   // angle without entering the glass; the little finger supports its near arc.
@@ -41,7 +44,9 @@ export class AnatomicalHand {
       const cup = -.0025 * (1 - Math.abs(x) / width)
       return (x / width) ** 6 + ((z - cup) / depth) ** 4 <= 1 && y < .067 - Math.abs(x) * .14
     }, skin)
-    palm.ellipsoid([-.023, .023, .005], [.014, .027, .011], skin)
+    // The thenar pad is a broad, shallow palm wedge, not a knuckle ball. Most
+    // of this volume blends into the palm instead of sitting proud of its face.
+    palm.ellipsoid([-.023, .023, .003], [.016, .025, .007], skin)
     const base = new THREE.Bone(); this.root.add(base); base.add(palm.mesh(material, { deformable: true }))
     const lengths = [[.036, .024, .018], [.039, .027, .019], [.036, .025, .018], [.028, .019, .016]]
     const widths = [.0072, .0075, .0070, .0060]
@@ -72,10 +77,17 @@ export class AnatomicalHand {
       const bone = new THREE.Bone(); const length = [.030, .025, .022][j]
       bone.position.set(j ? 0 : -.026, j ? [.030, .025][j - 1] : .025, j ? 0 : .003)
       if (j === 0) {
-        const surface = new VoxelSculpt(step).segment(.077, .0105, .009, skin, .68).mesh(material, { deformable: true })
+        const surface = new VoxelSculpt(step).segment(.077, .0105, .0075, skin, .68).mesh(material, { deformable: true })
         surface.userData.jointLengths = [.030, .025, .022]; bone.add(surface)
       }
       parent.add(bone); parent = bone; this.thumb.push(bone)
+      if (j === 2) {
+        // A dorsal nail is a small planar landmark that makes the tapered end
+        // read as a thumb, not an unbroken round tube. It uses the same merged
+        // skin/bone path as finger nails, adding no runtime draw or new material.
+        const nail = new THREE.Mesh(new THREE.BoxGeometry(.010, .012, .0008), nailMaterial)
+        nail.position.set(0, .013, -.0055); bone.add(nail)
+      }
     }
     // One draw per hand instead of one draw per phalanx/nail. Five opponents
     // previously multiplied dozens of tiny meshes into hundreds of submissions
@@ -122,7 +134,7 @@ export class AnatomicalHand {
       bone.rotation.x = THREE.MathUtils.lerp(bone.rotation.x, target.curl[f][j], blend)
       bone.rotation.z = THREE.MathUtils.lerp(bone.rotation.z, j ? 0 : target.spread[f], blend)
     }
-    this.thumb[0].rotation.z = THREE.MathUtils.lerp(this.thumb[0].rotation.z, name === 'cards' ? -.40 : -.75, blend)
+    this.thumb[0].rotation.z = THREE.MathUtils.lerp(this.thumb[0].rotation.z, target.thumbSplay ?? (name === 'cards' ? -.40 : -.75), blend)
     this.thumb[0].rotation.y = THREE.MathUtils.lerp(this.thumb[0].rotation.y, target.thumb[0], blend)
     this.thumb[0].rotation.x = THREE.MathUtils.lerp(this.thumb[0].rotation.x, target.thumb[1], blend)
     this.thumb[1].rotation.x = THREE.MathUtils.lerp(this.thumb[1].rotation.x, target.thumb[2], blend)

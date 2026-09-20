@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import { FirstPerson, type LeisureAction } from '../src/scene/FirstPerson'
 import { buildHuman, humanMaterial, poseHuman } from '../src/scene/Human'
 import { createHeldCardFan } from '../src/scene/CardGrip'
+import { PLAYER_LAYOUT } from '../src/scene/environment/layout'
 
 /** Inspect the actual production rigs, not prettier stand-in hand meshes. Four
  * simultaneous views and a frozen timeline expose depth/contact failures that a
@@ -53,6 +54,11 @@ export function mountStudio(container: HTMLElement): void {
     mesh.renderOrder = 10; joints.add(mesh); dots.push(mesh)
   }
   const cameras = Array.from({ length: 4 }, () => new THREE.PerspectiveCamera(32, 1, .005, 30))
+  // Explicit anatomical guide, NOT a substitute rendered head or a pretty
+  // stand-in prop. The whole player rig lets side views reveal wrist/face
+  // approach while the orange dot marks the production lip target.
+  const lipMarker = new THREE.Mesh(new THREE.SphereGeometry(.006, 12, 8), new THREE.MeshBasicMaterial({ color: '#ff9255', depthTest: false }))
+  lipMarker.position.set(...PLAYER_LAYOUT.mouth); lipMarker.renderOrder = 10; scene.add(lipMarker)
   const offsets = [new THREE.Vector3(0, .15, 1), new THREE.Vector3(1, .08, 0), new THREE.Vector3(0, .12, -1), new THREE.Vector3(0, 1, .001)]
   const render = () => {
     const time = Number(timeline.value), selection = subject.value, opponent = selection.startsWith('Opponent')
@@ -63,6 +69,7 @@ export function mountStudio(container: HTMLElement): void {
     if (action.value === 'drink') hero.sipDrink()
     hero.frame(time, false)
     hero.showInspectionSubject(opponent ? '' : selection)
+    lipMarker.visible = selection === 'Player contact rig' && markers.checked
     human.sipAt = action.value === 'drink' ? 0 : -100; human.nextSip = 100
     poseHuman(human, time, { reduced: false, active: false, folded: action.value === 'fold', showing: false, hasCards: true, dealt: 1, action: action.value, actionAge: time, gaze: 0 })
     joints.visible = markers.checked
@@ -75,6 +82,10 @@ export function mountStudio(container: HTMLElement): void {
     let bounds = new THREE.Box3().setFromObject(targets[selection])
     if (selection === 'Player cigar') bounds.union(new THREE.Box3().setFromObject(hero.tableProps.getObjectByName('player-cigar')!))
     if (selection === 'Player drink grip') bounds.union(new THREE.Box3().setFromObject(hero.inspectionTargets['Old Fashioned']))
+    if (selection === 'Player contact rig') {
+      bounds.union(new THREE.Box3().setFromObject(hero.tableProps))
+      bounds.expandByPoint(lipMarker.position)
+    }
     if (selection === 'Opponent left arm' || selection === 'Opponent right arm') {
       const rig = selection.includes('left') ? human.leftRig : human.rightRig
       rig.mesh.computeBoundingBox(); bounds.union(new THREE.Box3().setFromObject(rig.mesh))

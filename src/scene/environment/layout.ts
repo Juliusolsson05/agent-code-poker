@@ -8,6 +8,10 @@ import { ASHTRAY } from '../props/specs'
  * Tree/bar envelopes are a separate recorded-layout slice, not inferred here. */
 export const PLAYER_LAYOUT = {
   eye: [0, 1.43, 1.50] as [number, number, number],
+  // A body landmark, not a near-plane trick: 95mm below and55mm forward of
+  // the seated eyes. Smoking, drinking and exhalation must agree on one mouth.
+  // Camera inspection cannot move this point or pull held props through us.
+  mouth: [0, 1.335, 1.445] as [number, number, number],
   look: [0, 1.03, -.60] as [number, number, number],
   body: [0, 0, 1.28] as [number, number, number],
   shoulder: [.192, 1.195, 1.305] as [number, number, number],
