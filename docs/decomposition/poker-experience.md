@@ -1015,3 +1015,35 @@ closes the source restoration check above, not the console/performance gates.
 
 Final continuation9 verify:71 tests pass, TypeScript/build,2SDK checks and
 exact-byte production-preview integration pass. No dependency/lockfile change.
+
+### D5 camera slice — continuation10
+
+Browser baseline instrumentation now records pointer down/up target category
+and coordinates before changing input. Fresh CUA recording is unavailable:
+the QA tab times out and browser inventory becomes empty. Do not invent that
+missing drag trace. Existing05-52-49 raw source evidence contains325 seated
+poses with camera yaw -0.01391…0.01899 radians, plus real inspection transitions.
+This verifies the tiny parallax substrate, not the unrecorded pointer cause.
+
+- **Produces:** camera baseline catalog, retained-trace measurement test, and
+  an isolated `scene/camera/SeatedLook.ts` controller; then a DEV-only `&look`
+  adapter in Room. Normal/shipped play keeps its verified camera until live
+  input/comfort/privacy/restore checks pass.
+- **Verified by:** existing recorded camera/inspection samples plus explicitly
+  synthetic drag/cancel/frame-rate boundaries. Tests precede implementation.
+  Room is the sole runtime consumer; engine/props/hands/React cannot import it.
+- **Why separate:** camera arbitration must not make hands chase the camera,
+  accept controls as drag surfaces, or start sipping while turned away. No
+  world-space prop or gesture pose changes are authorized by this slice.
+- **Reality check:** actual05-52-49 trace and current Room/App code; fresh drag
+  and source/shipped browser acceptance remain unrecorded, not synthetic proof.
+
+Candidate contract: primary mouse drag on canvas only, bounded yaw/pitch,
+retain angle on release, explicit R/recenter and session-only off toggle.
+Elapsed-time damping; no inertia after release. Pause/focus/menu/inspection/
+busy leisure cancel drag. Inspection temporarily centers but retains intent;
+R or a leisure request discards intent and centers. Sip/puff requests wait until
+centered before calling the existing hero API; pause/menu/inspection cancel a
+pending request. Reduced motion applies direct input without easing. World
+labels project through the live camera and hide outside its frustum; fixed
+community cards/controls remain untouched. Do not add a persisted-save field.

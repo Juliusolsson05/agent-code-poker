@@ -3,6 +3,14 @@
   "semanticsSource": "Julius's reported requirements: connected arms, credible grips, no prop/furniture clipping, private cards, cozy Christmas lighting, block props, compact drink ordering and smooth performance",
   "cases": [
     {
+      "id": "seated-camera-parallax-not-deliberate-look",
+      "trace": "poker-evidence-2026-09-20T05-52-49-020Z.json.gz",
+      "frequency": { "seatedPoses": 325 },
+      "evidence": "Actual seated camera yaw spans only -0.01391 to0.01899rad. Code listens to parent pointermove, including controls, and uses frame-dependent .045 interpolation. Raw pointer causes were not captured in this old trace; new baseline down/up instrumentation awaits a connected browser.",
+      "expected": "Deliberate canvas-only drag, bounded retained look, explicit recenter/off, UI/focus/inspection/leisure arbitration without moving props or revealing private cards.",
+      "status": "isolated-contract-work; fresh-input-recording-and-integration-acceptance-open"
+    },
+    {
       "id": "folded-npc-cards-disappear-on-landing",
       "trace": "poker-evidence-2026-09-20T04-02-22-844Z.json.gz",
       "frequency": { "observedOpponentFolds": 2 },
