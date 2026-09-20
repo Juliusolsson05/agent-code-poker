@@ -11,6 +11,29 @@ const context = (game: PokerGame): BettingContext => {
 }
 const key = (value: string, extra: Partial<KeyInput> = {}): KeyInput => ({ key: value, repeat: false, shift: false, modified: false, composing: false, target: 'table', ...extra })
 
+test('actual recorded cancel/reopen discards an abandoned all-in without committing chips', () => {
+  const trace = JSON.parse(gunzipSync(readFileSync(new URL('../testing/fixtures/experience/poker-evidence-2026-09-20T09-55-42-159Z.json.gz', import.meta.url))).toString())
+  type RecordedInput = KeyInput & BettingContext & { amount: number }
+  const inputs: RecordedInput[] = trace.entries.filter((e: { kind: string }) => e.kind === 'betting-input').map((e: { data: RecordedInput }) => e.data)
+  assert.deepEqual(inputs.slice(0,7).map(i => i.key), ['b','arrowright','arrowright','4','escape','enter','b'])
+  assert.equal(inputs[6].amount, 2000, 'retain the real negative control: the canceled all-in survived')
+  // Replay input intent, not the recorded wrong draft amounts. These bounds
+  // came from a real hand facing a raise70; the original recording remains
+  // unchanged so a future test cannot accidentally bless the bad behavior.
+  const first=inputs[0], c: BettingContext={...first,coarseStep:20}
+  let draft=initialDraft(c)
+  for(const input of inputs.slice(0,7)) {
+    const command=commandForKey({...input,composing:false},draft.open)
+    if(!command)continue
+    const result=reduceBetting(draft,c,command)
+    assert.equal(result.intent,undefined,'sizing/cancel/reopen must not spend any chips')
+    draft=result.draft
+  }
+  assert.equal(draft.open,true)
+  assert.equal(draft.amount,first.legal.min,'cancel abandons amount as well as closing the tray')
+  assert.equal(commandForKey({...inputs[7],composing:false},true),null,'recorded native preset Enter stays native')
+})
+
 test('recorded public raise/call sequence supplies realistic engine bounds without claiming recorded keys', () => {
   // Raw browser evidence contains PUBLIC action results, not key events or a
   // deck. Reconstruct public betting with an arbitrary deterministic deck: no
@@ -31,6 +54,9 @@ test('recorded public raise/call sequence supplies realistic engine bounds witho
   game.act(0, result.intent!)
   assert.deepEqual(game.snapshot().players.map(p => [p.stack, p.bet]), first.players.map((p: { stack: number; bet: number }) => [p.stack, p.bet]))
   assert.equal(reduceBetting(result.draft, c, 'confirm').intent, undefined, 'same-revision double submit is latched')
+  const canceledAfterSubmit=reduceBetting(result.draft,c,'cancel').draft
+  assert.equal(canceledAfterSubmit.submitted,true,'cancel cannot release a pending submission latch')
+  assert.equal(reduceBetting(canceledAfterSubmit,c,'call').intent,undefined)
 })
 
 test('synthetic keyboard focus, repeat and OS shortcut boundaries do not emit accidental wagers', () => {

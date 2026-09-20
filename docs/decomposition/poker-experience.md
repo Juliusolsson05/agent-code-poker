@@ -28,6 +28,24 @@ the current legal minimum while preserving any submission latch. Native Enter
 on a preset selects only that preset. Unknowns still needing browser checks:
 pause/resume while sizing, focus recovery and normal shipped compact layout.
 
+D8/E8 checkpoint: the normal App now uses the shared keyboard tray without
+betkeys or a second amount owner. Cancel resets to legal.min without clearing
+the duplicate-submission latch. The recorded negative-control test failed with
+2000 !==120 before the fix and passes afterward. Input/save/engine boundaries
+remain unchanged. README and in-game help explain all sizing keys.
+
+Fresh normal source10-00-32 raw trace retains14 input events, including actual
+cancel/reopen40, native Pot Enter, fine/coarse arrows, pause-discard and raise60.
+Source reload restores stack1940/pot357. Shipped CUA verifies half-pot65, cancel
+without hidden submission, native preset Enter, raise60, inspection and paused
+reload/return with stack1940/pot403. Both captured warning/error logs empty.
+Actual UI screenshots inspected; source canvas PNG retained only for the earlier
+candidate, not a whole-UI golden. Original room/controls remain in place. Full
+verify152 tests/builds/SDK/exact-byte preview passed, followed by passing focused
+tests for the added normal-path static guard and expanded real-corpus manifest.
+This is not native-repeat, narrow-layout, FPS, new LAN or Electron acceptance.
+Session29 notes and both raw downloads preserve scope. Hand art was not touched.
+
 ## Installed-extension hosting requirement — B17–E17
 
 User now requires starting LAN from inside Agent Code. Terminal instructions

@@ -33,11 +33,10 @@ export function App({ api }: { api: PokerApi }) {
   const [speed, setSpeed] = useState<Save['speed']>('relaxed')
   const [panel, setPanel] = useState<'history' | 'settings' | 'rules' | null>(null)
   const [confirmNew, setConfirmNew] = useState(false)
-  const [raiseTo, setRaiseTo] = useState(40)
   const [raiseOpen, setRaiseOpen] = useState(false)
-  // Keep the new ownership/focus path isolated until actual keyboard sessions
-  // pass. Pure reducer tests cannot establish browser native-button behavior.
-  const keyboardBetting = import.meta.env.DEV && new URLSearchParams(location.search).has('betkeys')
+  // Normal and LAN play share one disposable sizing owner. Keeping the old
+  // slider beside a gated keyboard draft made source/shipped behavior diverge.
+  // App retains execution/save authority; this ref cannot move chips itself.
   const betting = useRef<BettingHandle>(null)
   const [inspecting, setInspecting] = useState(false)
   const [drinkMenu, setDrinkMenu] = useState(false)
@@ -202,8 +201,6 @@ export function App({ api }: { api: PokerApi }) {
   useEffect(() => {
     if (gameState?.actor === 0 && !lobby) audio.current?.play('turn')
     setRaiseOpen(false)
-    const min = game.current?.legal().min
-    if (min) setRaiseTo(min)
   }, [gameState?.revision, lobby])
 
   const enter = () => {
@@ -243,7 +240,6 @@ export function App({ api }: { api: PokerApi }) {
   const awarded = s?.awards.reduce((n, a) => n + a.amount, 0) ?? 0
   const bestHand = ours?.hole.length === 2 && (s?.board.length ?? 0) >= 3 ? evaluate([...ours.hole, ...s!.board]) : null
   const winningCards = finished ? s?.results.find(r => r.seat === 0 && r.won > 0)?.hand?.cards ?? [] : []
-  const boundedRaise = Number.isFinite(raiseTo) ? Math.max(legal.min, Math.min(legal.max, Math.floor(raiseTo))) : legal.min
   const showOpponents = s?.phase === 'showdown' || finished && s?.results.some(r => r.hand)
   const status = finished ? champion ? 'The table is yours.' : busted ? 'A good run. Another seat awaits.' : s.history[0]?.summary
     : s?.phase === 'showdown' ? 'Cards on the table.' : s?.phase === 'transition' ? 'The next chapter…'
@@ -261,11 +257,11 @@ export function App({ api }: { api: PokerApi }) {
         scene.current?.recordBettingInput({ key: editing ? 'editing' : key,
           target: editing ? 'editing' : isInput(event.target) ? 'control' : 'table',
           repeat: event.repeat, shift: event.shiftKey, modified: event.altKey || event.ctrlKey || event.metaKey,
-          revision: s?.revision ?? -1, open: betting.current?.snapshot().open ?? raiseOpen, amount: betting.current?.snapshot().amount ?? boundedRaise, blocked,
+          revision: s?.revision ?? -1, open: betting.current?.snapshot().open ?? false, amount: betting.current?.snapshot().amount ?? legal.min, blocked,
           legal: { ...legal }, currentBet: s?.currentBet ?? 0, pot, ownBet: ours?.bet ?? 0, stack: ours?.stack ?? 0 })
       }
       if (event.metaKey || event.ctrlKey || event.altKey || event.nativeEvent.isComposing) return
-      if (keyboardBetting && betting.current?.handleKey(event, editing ? 'editing' : isInput(event.target) ? 'control' : 'table')) return
+      if (betting.current?.handleKey(event, editing ? 'editing' : isInput(event.target) ? 'control' : 'table')) return
       if (event.key === 'Escape') {
         event.preventDefault(); event.stopPropagation()
         if (confirmNew) setConfirmNew(false)
@@ -279,7 +275,7 @@ export function App({ api }: { api: PokerApi }) {
       if (drinkMenu) return
       // Sizing owns the interaction; don't start inspection or prop motion
       // behind the draft. Tab/native buttons remain usable without a focus trap.
-      if (keyboardBetting && raiseOpen && ['s', 'd', 'r', ' '].includes(key)) return
+      if (raiseOpen && ['s', 'd', 'r', ' '].includes(key)) return
       if (event.key.toLowerCase() === 's' && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed && !(event.target instanceof HTMLElement && event.target.closest('input, select, textarea, [contenteditable]'))) {
         event.preventDefault(); if (!event.repeat) scene.current?.smokeCigar(); return
       }
@@ -297,10 +293,6 @@ export function App({ api }: { api: PokerApi }) {
       }
       if (event.repeat) return
       if (key === 'm') { event.preventDefault(); toggleMute() }
-      if (!blocked && !keyboardBetting) {
-        if (key === 'f') { event.preventDefault(); perform({ type: 'fold' }) }
-        if (key === 'c') { event.preventDefault(); perform({ type: legal.check ? 'check' : 'call' }) }
-      }
     }}>
     <PokerHeader onLobby={() => { setLobby(true); setPaused(true) }}>
         <button onClick={toggleMute} disabled={loading || saving || loadFailed} aria-label={muted ? 'Unmute sound' : 'Mute sound'} title="Sound (M)">{muted ? '♪̸' : '♪'}</button>
@@ -359,20 +351,9 @@ export function App({ api }: { api: PokerApi }) {
         handLabel={ours?.folded?'Folded':bestHand?.name??'Practice chips'} status={status} withActions={turn||finished}
         detail={saving?'Saving…':paused?'Paused':finished?`Net ${ours!.stack-ours!.startStack>=0?'+':''}${chips(ours!.stack-ours!.startStack)}`:s.log.at(-1)} />
       {(turn || finished) && !paused && !panel && !error && <section className="quick-actions" aria-label="Poker actions">
-        {finished ? <button className="primary" disabled={saving || sceneFailed} onClick={champion || busted ? () => setConfirmNew(true) : nextHand}>{champion || busted ? 'New table' : 'Deal next hand'} <span>→</span></button> : keyboardBetting ? <BettingControls ref={betting} revision={s.revision} blocked={blocked} legal={legal}
+        {finished ? <button className="primary" disabled={saving || sceneFailed} onClick={champion || busted ? () => setConfirmNew(true) : nextHand}>{champion || busted ? 'New table' : 'Deal next hand'} <span>→</span></button> : <BettingControls ref={betting} revision={s.revision} blocked={blocked} legal={legal}
           pot={pot} currentBet={s.currentBet} ownBet={ours?.bet ?? 0} bigBlind={s.bigBlind} onAction={perform}
-          onOpenChange={setRaiseOpen} focusTable={() => root.current?.focus({ preventScroll: true })} /> : <>
-          {raiseOpen && <div className="raise-popover" role="group" aria-label="Set your raise">
-          <div className="raise-controls"><label htmlFor="raise-size">{s.currentBet === 0 ? 'BET' : 'RAISE'} TO</label><input id="raise-size" type="number" inputMode="numeric" min={legal.min} max={legal.max} step={1} value={raiseTo} onChange={event => setRaiseTo(Number(event.target.value))} disabled={blocked || !legal.raise} />
-            <div className="bet-presets">{[['Min', legal.min], ['½ pot', s.currentBet + Math.round((pot + legal.call) / 2)], ['Pot', s.currentBet + pot + legal.call], ['All-in', legal.max]].map(([label, amount]) => <button key={label} disabled={blocked || !legal.raise} onClick={() => setRaiseTo(Math.max(legal.min, Math.min(legal.max, Number(amount))))}>{label}</button>)}</div>
-          </div>
-          <input className="raise-slider" aria-label="Raise amount" type="range" min={legal.min} max={Math.max(legal.min, legal.max)} value={boundedRaise} step={1} onChange={event => setRaiseTo(Number(event.target.value))} disabled={blocked || !legal.raise} />
-          <button className="primary confirm-raise" disabled={blocked || !legal.raise} onClick={() => perform({ type: 'raise', to: boundedRaise })}>{s.currentBet === 0 ? 'Bet' : 'Raise to'} {chips(boundedRaise)}</button>
-          </div>}
-          <button className="fold-button" onClick={() => perform({ type: 'fold' })} disabled={blocked}>Fold <kbd>F</kbd></button>
-          <button className="call-button" onClick={() => perform({ type: legal.check ? 'check' : 'call' })} disabled={blocked}>{legal.check ? 'Check' : `Call ${chips(legal.call)}`} <kbd>C</kbd></button>
-          <button className="primary" disabled={blocked || !legal.raise} aria-expanded={raiseOpen} onClick={() => setRaiseOpen(value => !value)}>{s.currentBet === 0 ? 'Bet' : 'Raise'} ▴</button>
-        </>}
+          onOpenChange={setRaiseOpen} focusTable={() => root.current?.focus({ preventScroll: true })} />}
       </section>}
     </> : <footer className="lobby-footer"><span className="lobby-footer-mark">♣ ♦ ♥ ♠</span><span>A poker room for the moments between.</span><button onClick={() => openPanel('rules')}>New to the table? Learn the rules ↗</button></footer>}
 
@@ -390,7 +371,7 @@ export function App({ api }: { api: PokerApi }) {
         {scene.current?.experimentalLook && <><label>Mouse-look<button aria-pressed={lookEnabled} onClick={() => setLookEnabled(value => !value)}>{lookEnabled ? 'On' : 'Off'}</button></label><p>Hold the left mouse button and drag the room. R centers your view. Controls never steer the camera. This setting lasts until reload.</p></>}
         <p>Motion follows your device’s reduced-motion preference.</p>
         <div className="settings-divider" /><h3>A fresh table</h3><p>Start everyone with 2,000 practice chips. This replaces your current table and hand history.</p><button className="secondary" onClick={() => setConfirmNew(true)} disabled={saving || loading}>Start a new table</button>
-      </div> : <div className="rules-content"><p>Build the best five-card hand using your two cards and the five shared cards. You can use both, one, or neither of your cards.</p><h3>A hand in four acts</h3><p><b>Pre-flop:</b> two private cards. <b>Flop:</b> three shared cards. <b>Turn:</b> one more. <b>River:</b> the last card. Betting follows each street.</p><h3>Your move</h3><p><b>Check</b> when nothing is owed. <b>Call</b> to match. <b>Raise</b> to increase the total bet for this street. <b>Fold</b> to leave the hand. “Raise to” includes chips you already put in this street.</p><h3>All-in means all-in</h3><p>You can only win the chips you match. Additional bets form side pots. A short all-in may require a call without reopening a raise. Ties split each pot; odd chips go clockwise from the dealer.</p><h3>From strongest to weakest</h3><ol>{['Straight flush', 'Four of a kind', 'Full house', 'Flush', 'Straight', 'Three of a kind', 'Two pair', 'One pair', 'High card'].map(name => <li key={name}>{name}</li>)}</ol><p>Blinds stay at 10/20. Eliminated seats sit out; a moving button rotates through funded seats. Beat the table, or start fresh any time. Bots use their own cards and public information.</p><h3>Keyboard</h3><p><kbd>F</kbd> fold · <kbd>C</kbd> check/call · <kbd>M</kbd> sound · <kbd>Esc</kbd> pause. Buttons and text fields keep their normal keyboard behavior.</p><p>Everything is local. All chips are free practice currency.</p></div>}
+      </div> : <div className="rules-content"><p>Build the best five-card hand using your two cards and the five shared cards. You can use both, one, or neither of your cards.</p><h3>A hand in four acts</h3><p><b>Pre-flop:</b> two private cards. <b>Flop:</b> three shared cards. <b>Turn:</b> one more. <b>River:</b> the last card. Betting follows each street.</p><h3>Your move</h3><p><b>Check</b> when nothing is owed. <b>Call</b> to match. <b>Raise</b> to increase the total bet for this street. <b>Fold</b> to leave the hand. “Raise to” includes chips you already put in this street.</p><h3>All-in means all-in</h3><p>You can only win the chips you match. Additional bets form side pots. A short all-in may require a call without reopening a raise. Ties split each pot; odd chips go clockwise from the dealer.</p><h3>From strongest to weakest</h3><ol>{['Straight flush', 'Four of a kind', 'Full house', 'Flush', 'Straight', 'Three of a kind', 'Two pair', 'One pair', 'High card'].map(name => <li key={name}>{name}</li>)}</ol><p>Blinds stay at 10/20. Eliminated seats sit out; a moving button rotates through funded seats. Beat the table, or start fresh any time. Bots use their own cards and public information.</p><h3>Keyboard</h3><p><kbd>F</kbd> fold · <kbd>C</kbd> check/call · <kbd>B</kbd> open wager. Arrows adjust by one chip; Shift + arrows adjust by one big blind. Keys 1–4 choose minimum, half-pot, pot or all-in. <kbd>Enter</kbd> confirms only a visible wager with table focus. <kbd>Esc</kbd> cancels sizing before it pauses. Buttons and text fields keep their normal Enter/Space behavior.</p><p><kbd>M</kbd> sound · <kbd>Space</kbd> inspect cards · <kbd>S</kbd> cigar · <kbd>D</kbd> sip. Sizing does not move chips until you confirm.</p><p>Everything is local. All chips are free practice currency.</p></div>}
     </aside></div>}
     {error && <div className="save-alert" role="alert"><strong>{loadFailed ? 'Saved table needs attention' : 'Table paused'}</strong><p>{error}</p>{!loadFailed && <button className="primary" disabled={saving} onClick={() => void persist(game.current?.snapshot() ?? null)}>Retry save</button>}<button className="text-button" disabled={saving} onClick={() => setConfirmNew(true)}>Start a new table instead</button></div>}
     {confirmNew && <div className="panel-scrim"><div className="confirm-card" role="alertdialog" aria-modal="true" aria-labelledby="fresh-title"><span className="eyebrow">FRESH FELT</span><h2 id="fresh-title">Start a new table?</h2><p>Your current hand, chip stacks, and history will be replaced. Everyone starts with 2,000 practice chips.</p><div><button className="secondary" onClick={() => setConfirmNew(false)}>Keep this table</button><button className="primary" disabled={saving || sceneFailed} onClick={newTable}>Start fresh</button></div></div></div>}

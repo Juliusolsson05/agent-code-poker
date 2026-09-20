@@ -18,6 +18,17 @@ test this recorded case and reset canceled drafts to legal.min, retain submissio
 latch, remove the legacy amount/slider path and DEV gate, and document all keys.
 Source AND shipped browser checks must verify cancel/confirm/focus/pause/restore.
 
+Keyboard checkpoint: normal source/shipped now use BettingControls, with the
+legacy slider/number input and DEV gate removed. Actual09-55-42 negative control
+drove a red2000-vs120 cancel/reopen regression; corrected Cancel abandons the
+amount while preserving submission latch. Actual10-00-32 normal-source input
+trace confirms cancel/reopen40, native preset Enter, pause discard and raise60.
+Source restores stack1940/pot357; shipped keyboard raise60 restores stack1940/
+pot403 after inspection/pause/reload. Captured warning/error logs empty. Full
+verify152 tests/builds/SDK/preview passed; added static normal-path guard and
+expanded raw-corpus validation pass separately. Native key-repeat, narrow-layout
+and Electron checks are not claimed. Next gameplay task is solo bank/rebuys.
+
 Shared-UI implementation checkpoint (B16–D16): original PokerChrome components
 now serve solo and LAN controllers, using original room/board/seat/action styles.
 The per-viewer DTO stays the network boundary; no fake GameState or hidden-card

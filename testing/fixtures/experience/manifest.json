@@ -66,6 +66,15 @@
   ],
   "candidateSessions": [
     {
+      "file": "poker-evidence-2026-09-20T10-00-32-431Z.json.gz",
+      "rawSha256": "36baaf46b3bd9b5919e1fe69c1b51c0654133b6886dbd42289e503e32e8a1167",
+      "provenance": "Actual CUA normal source, no betkeys flag, after cancel fix. Unmodified downloaded trace compressed losslessly.14 betting inputs, native Pot button Enter, cancel/reopen reset40, pause-discard and deliberate raise60.",
+      "frameCount": 914,
+      "poseCount": 456,
+      "images": [],
+      "limitations": "No benchmark or key-repeat/narrow-layout/Electron claim. UI screenshot was inspected in CUA, not retained as a golden. Source restore is recorded separately in session29 notes."
+    },
+    {
       "file": "poker-evidence-2026-09-20T09-55-42-159Z.json.gz",
       "rawSha256": "7317f85b62790e4516649efb63c82ac2f0d851e61ea1ccf10f4f3c2c53dd8a19",
       "provenance": "Actual CUA source keyboard candidate on c89c6a1. Untouched downloaded trace compressed losslessly;10 real betting-input events, including native preset Enter and explicit raise140.",

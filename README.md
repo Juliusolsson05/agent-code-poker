@@ -10,7 +10,16 @@ The preview stores a separate local-browser save. It does not read installed Age
 
 ## Playing
 
-Use the on-screen actions and raise sizing controls. **F** folds, **C** checks/calls, **M** toggles sound, **Esc** pauses, and **S** raises your cigar for a puff. Typing in a field does not trigger gameplay shortcuts. Opponents keep card backs facing you until a public showdown. The active hand saves after every decision. Losing focus pauses the table; returning does not silently resume betting.
+Use the compact on-screen actions or keyboard. **F** folds, **C** checks/calls,
+and **B** opens wager sizing. Arrows change one chip; **Shift + arrows** change
+one big blind. **1–4** select minimum, half-pot, pot or all-in. **Enter** confirms
+the visible draft with table focus; **Esc** cancels it before pausing. Cancel
+discards the amount. Focused buttons keep native Enter/Space behavior, so Enter
+on a preset only selects that preset. No typing or slider is required.
+**M** toggles sound and **S** raises your cigar. Text fields do not trigger
+gameplay shortcuts. Opponents keep card backs facing you until public showdown.
+The active hand saves after every decision. Losing focus pauses the table;
+returning does not silently resume betting.
 
 **Drinks ▾** opens a compact free menu: Old Fashioned, winter ale, red wine or water. **D** sips the current drink. Ordering is available only once your hand has finished its current action; it replaces the glass on your coaster and never spends chips. Drink selection is cosmetic and resets to Old Fashioned on reload, without changing the saved poker hand. Grips remain under visual refinement.
 
@@ -119,13 +128,11 @@ artifact directories are committed; no source/Vite routes are served over LAN.
 
 ## Visual evidence workflow
 
-Keyboard-betting candidate: `/dev/?qa=keyboard&betkeys&record&stats` replaces the
-slider/number field with a compact draft tray. **B** opens, arrows change by one
-chip, **Shift + arrows** by one big blind, **1–4** select min/half-pot/pot/all-in,
-**Enter** confirms with table focus, **Esc** cancels. Tab and native button
-Enter/Space retain their meanings. No chips move until confirmation or F/C.
-Pause/menu/revision changes discard the draft. This remains source-only opt-in
-until real browser keyboard/focus/layout checks pass; ordinary play is unchanged.
+Keyboard betting now uses one shared draft tray in normal source, shipped and
+LAN play. `/dev/?qa=keyboard&record&stats` isolates evidence capture; no betkeys
+flag is needed. No chips move until confirmation or F/C. Pause/menu/revision
+changes discard the draft. Raw09-55-42 input evidence preserves the original
+cancel/reopen all-in bug as a negative control for the regression test.
 
 The fireplace now uses one shared feature profile in source, shipped and LAN
 builds; production no longer silently restores the old shelf layout. For isolated

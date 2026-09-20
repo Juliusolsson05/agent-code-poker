@@ -52,7 +52,10 @@ export function commandForKey(k: KeyInput, open: boolean): Command | null {
 
 export function reduceBetting(draft: Draft, c: BettingContext, command: Command): { draft: Draft; intent?: Intent } {
   let d = currentDraft(draft, c)
-  if (command === 'cancel') return { draft: { ...d, open: false } }
+  // A real keyboard capture showed Escape hiding an all-in2000 but keeping it
+  // ready for the next B. Cancel abandons the amount, not just its panel. Keep
+  // the submission latch so cancel cannot authorize a duplicate pending wager.
+  if (command === 'cancel') return { draft: { ...d, open: false, amount: c.legal.min } }
   if (c.blocked || d.submitted) return { draft: d }
   let intent: Intent | undefined
   if (command === 'fold' && c.legal.fold) intent = { type: 'fold' }

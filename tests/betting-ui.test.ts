@@ -31,3 +31,11 @@ test('draft core has no dependencies and BettingControls is its sole runtime con
   }
   assert.deepEqual(consumers, ['BettingControls.tsx'])
 })
+
+test('normal solo play cannot silently fall back to the legacy amount owner', () => {
+  // Wiring guard for the observed source/shipped divergence, not proof of
+  // keyboard focus. The real browser recordings carry that separate evidence.
+  const app=readFileSync(new URL('../src/App.tsx',import.meta.url),'utf8')
+  assert.match(app,/<BettingControls ref=\{betting\}/)
+  assert.doesNotMatch(app,/betkeys|keyboardBetting|setRaiseTo|raise-slider|id="raise-size"/)
+})
