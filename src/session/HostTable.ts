@@ -8,6 +8,9 @@ type Member = Identity & {
   sequence: number; lastRequest: string | null
 }
 type Options = { random?: () => number; bot?: (observation: Observation) => Action }
+// This is an intentionally private-storage schema, NOT a transport DTO. Only
+// the standalone host may persist it. Never spread it into a SessionView.
+export type HostCheckpoint = { version: 1; host: string; revision: number; members: Member[]; game: ReturnType<PokerGame['snapshot']> }
 type Intent = { sequence: number; revision: number; action: Action }
 type Code = 'accepted' | 'duplicate' | 'unauthorized' | 'invalid' | 'disconnected' | 'waiting' |
   'sequence-conflict' | 'out-of-order' | 'stale' | 'not-your-turn' | 'illegal'
@@ -64,6 +67,7 @@ export class HostTable {
   #members = new Map<string, Member>()
   #revision = 0
   #bot: (observation: Observation) => Action
+  #random: () => number
 
   constructor(host: Identity, options: Options = {}) {
     principal(host.id)
@@ -74,10 +78,63 @@ export class HostTable {
     // Reuse one word: shuffling happens at a hand boundary, never every frame.
     const word = new Uint32Array(1)
     const deckRandom = options.random ?? (() => globalThis.crypto.getRandomValues(word)[0] / 0x1_0000_0000)
+    this.#random = deckRandom
     this.#game = new PokerGame(deckRandom)
     this.#bot = options.bot ?? (o => chooseAction(o))
     this.#host = host.id
     this.#members.set(host.id, { id: host.id, name, seat: 0, active: true, connected: true, leaving: false, sequence: 0, lastRequest: null })
+  }
+
+  /** Private host disk boundary. Deliberately not toJSON(): accidental owner
+   * serialization must remain {}. Copying all three owners together prevents
+   * restoring chips without the accepted sequence (which would replay a bet),
+   * or restoring a seat without its private-card entitlement. */
+  exportHostCheckpoint(): HostCheckpoint {
+    return { version: 1, host: this.#host, revision: this.#revision,
+      members: [...this.#members.values()].map(m => ({ ...m })), game: this.#game.snapshot() }
+  }
+
+  static restoreHostCheckpoint(value: unknown, options: Options = {}): HostTable {
+    const invalid = () => new Error('Invalid host checkpoint. Original saved data has been preserved.')
+    try {
+      if (!record(value) || !keys(value, ['version', 'host', 'revision', 'members', 'game']) || value.version !== 1 ||
+        typeof value.host !== 'string' || !Number.isSafeInteger(value.revision) || Number(value.revision) < 0 ||
+        Number(value.revision) >= Number.MAX_SAFE_INTEGER - 10 || !Array.isArray(value.members) ||
+        value.members.length < 1 || value.members.length > 6) throw invalid()
+      principal(value.host)
+      const members: Member[] = [], seats = new Set<number>(), ids = new Set<string>()
+      for (const m of value.members) {
+        if (!record(m) || !keys(m, ['id', 'name', 'seat', 'active', 'connected', 'leaving', 'sequence', 'lastRequest']) ||
+          typeof m.id !== 'string' || typeof m.name !== 'string' || displayName(m.name) !== m.name ||
+          !Number.isInteger(m.seat) || Number(m.seat) < 0 || Number(m.seat) > 5 ||
+          typeof m.active !== 'boolean' || typeof m.connected !== 'boolean' || typeof m.leaving !== 'boolean' ||
+          m.leaving && m.connected || !Number.isSafeInteger(m.sequence) || Number(m.sequence) < 0 ||
+          Number(m.sequence) > Number(value.revision) || seats.has(Number(m.seat)) || ids.has(m.id)) throw invalid()
+        principal(m.id)
+        if (m.sequence === 0) { if (m.lastRequest !== null) throw invalid() }
+        else {
+          if (typeof m.lastRequest !== 'string' || m.lastRequest.length > 256) throw invalid()
+          const accepted = intent(JSON.parse(m.lastRequest))
+          if (!accepted || JSON.stringify(accepted) !== m.lastRequest || accepted.sequence !== m.sequence ||
+            accepted.revision >= Number(value.revision)) throw invalid()
+        }
+        seats.add(Number(m.seat)); ids.add(m.id)
+        members.push({ id: m.id, name: m.name, seat: Number(m.seat), active: m.active,
+          connected: false, leaving: m.leaving, sequence: Number(m.sequence), lastRequest: m.lastRequest as string | null })
+      }
+      const host = members.find(m => m.id === value.host)
+      if (!host || host.seat !== 0 || !host.active || host.leaving) throw invalid()
+      const table = new HostTable(host, options)
+      const game = PokerGame.restore(value.game, table.#random), state = game.snapshot()
+      if (state.players.length !== 6 || state.revision > Number(value.revision) ||
+        state.phase === 'ready' && members.some(m => !m.active)) throw invalid()
+      table.#game = game; table.#members = new Map(members.map(m => [m.id, m]))
+      // Every old socket lease is dead after a process restart. Invalidate
+      // queued intents even if no wager occurred, while retaining duplicate
+      // ACK fingerprints. Transport separately requires explicit host resume.
+      table.#revision = Number(value.revision) + 1
+      return table
+    } catch { throw invalid() }
   }
 
   join(id: string, rawName: string): number {

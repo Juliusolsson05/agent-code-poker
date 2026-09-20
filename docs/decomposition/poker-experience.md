@@ -31,6 +31,38 @@ enabling durability in the normal CLI; do not advertise recovery from an
 isolated checkpoint test. All tests use temporary directories, never user saves.
 Hand art remains paused; dealer canceled. User waived the plan-approval stop.
 
+B12–D12 implementation checkpoint: explicit private export/restore validates
+six-seat membership, chip state and canonical last-command fingerprints as one
+document. Recovery invalidates live leases and stale intents, without discarding
+duplicate ACK identity. The retained nine public wager/fold states replay across
+recovery for every viewer. Initial missing-method/module failures were test
+scaffolding, not recorded real-world crashes. New corruption/retry tests are
+labeled synthetic. No private fixture is retained.
+
+`server/persistence/CheckpointStore.ts` is consumed only by the host. Files use
+0600 permissions, exclusive staging, fsync/rename/directory-fsync, bounded reads
+and exclusive ownership. A write fault poisons the writer; API responses become
+503 without publishing speculative cards/chips. The host's optional
+`checkpointDirectory` path passes actual loopback restart/admission/private-view/
+retry/end checks in temporary directories. Normal CLI is NOT enabled yet.
+Synchronous saves serialize the small authority before ACK; ordinary unchanged
+polls do not write. Disk latency remains unmeasured, not performance acceptance.
+
+E12 remains open: interrupted processes can leave `host.lock` or `table.pending`.
+These deliberately fail closed rather than stealing a possibly live writer or
+deleting uncertain data. Resolve safe operator recovery before normal CLI
+integration. Browser credentials are still tab-scoped; implement an explicit
+saved-seat recovery choice, storage-denial handling and cross-tab warnings next.
+A public process generation now distinguishes reset response counters from
+late pre-restart polls; it carries no private checkpoint content. Real browser
+restart/order and two-client play remain required, not inferred from HTTP tests.
+
+Full verify:121 tests, TypeScript, extension/LAN builds,2 SDK and exact-byte
+preview pass. Source/shipped CUA call, inspection, pause and restore pass with
+held props and folded backs visible. Manual session21 notes retain values and
+debugger-timeout recovery; screenshots were inspected, not saved as goldens.
+Active5192 session remains untouched. No Wi-Fi, FPS, listening or Electron proof.
+
 ## Full multiplayer integration — restarted loop, B11–E11
 
 A: `HostTable` and bounded HTTP transport return private-view DTOs, while Room,

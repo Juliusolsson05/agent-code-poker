@@ -66,6 +66,15 @@ Durable sessions, actual two-browser3D acceptance, bank debt and separate-device
 LAN acceptance remain open. The installed extension has no
 network-hosting API and does not load this standalone server.
 
+Host recovery is under isolated integration: `startLanHost` accepts an optional
+private `checkpointDirectory` for testing commit-before-ACK and restart. It is
+not enabled by the CLI yet. Checkpoints contain private cards and credentials:
+never publish, serve, export or commit that directory. Corrupt data, failed writes
+and leftover ownership/staging files fail closed; do not delete them to start a
+new table. Safe interrupted-host cleanup and closed-tab seat recovery remain
+release gates. Normal shutdown preserves a checkpoint; explicit host Leave
+persists an ended-session tombstone. Solo saves are never involved.
+
 `src/presentation/RoomProjection.ts` is the room's only reconciliation layer.
 Local/remote inputs become explicit visible/hidden/absent card views and rotated
 display accounts; Cards/Chips never receive the private engine deck. All wagers

@@ -2,6 +2,17 @@
 
 ## Active direction — full multiplayer first (restarted goal loop)
 
+B12–D12 checkpoint: private host export/restore, bounded atomic file store and
+optional host commit-before-ACK are implemented. Actual isolated HTTP restart
+restores all6 seats/cards/balances and rejects duplicate spending; explicit end
+survives restart. Injected disk failure returns503 without uncommitted views.
+Normal CLI remains memory-only: finish safe crash-lock handling and explicit
+closed-tab seat recovery before enabling durability for users. Existing active
+hosts were not restarted. Full verify121 tests/build/SDK/preview pass. CUA source
+call20 restores hand1/stack1980/pot210; shipped call117 restores hand1/stack1883/
+pot879. Held props/folded backs inspected, captured warn/errors empty. Next E12
+and real multi-client browser acceptance remain open; no LAN/FPS/Electron claim.
+
 Recovery next (B12–E12): validate one private checkpoint containing engine,
 membership and accepted-command identity, then atomic storage, then host
 commit-before-ACK and explicit browser seat recovery. Keep active5192 untouched.

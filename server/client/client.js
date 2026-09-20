@@ -24,6 +24,7 @@ function record(path, status, data) {
 }
 async function api(path, body) {
   const credentialAtStart = token
+  const generationAtStart = state?.generation
   const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST', cache: 'no-store',
     headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(5000) })
@@ -36,7 +37,15 @@ async function api(path, body) {
   // Keep transient failures resumable; only offer explicit local cleanup after
   // the host has told this tab its connection can no longer be used.
   if (token && [401,410].includes(response.status)) { ended = true; el('forget').hidden = false }
-  if (data.view && (!state || data.observation > state.observation)) { state = data; connectionLost = false; render() }
+  const newGeneration = state && data.generation !== state.generation
+  // A restarted server begins its observation counter again. Accept its first
+  // response only if no newer generation has already replaced the one this
+  // request began in; a delayed pre-restart poll cannot switch us back.
+  if (data.view && (!state || newGeneration && generationAtStart === state.generation ||
+    !newGeneration && data.observation > state.observation)) {
+    if (newGeneration) { controlsRevision++; authorityRevision=-1; inspected=false;room?.setInspection(false) }
+    state = data; connectionLost = false; render()
+  }
   if (!response.ok) throw new Error(data.error || data.receipt?.code || 'Request rejected.')
   return data
 }

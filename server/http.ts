@@ -3,10 +3,11 @@ import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { readFile, readdir } from 'node:fs/promises'
 import { networkInterfaces } from 'node:os'
 import { HostTable } from '../src/session/HostTable'
+import { CheckpointStore } from './persistence/CheckpointStore'
 
 type Credential = { id: string; token: string; nonce: string; name: string; seen: number; connected: boolean }
 type Room = { table: HostTable; code: string; host: Credential; credentials: Map<string, Credential>; paused: boolean; nextTick: number; observation: number }
-type Options = { port?: number; lan?: boolean; now?: () => number; automaticTicks?: boolean }
+type Options = { port?: number; lan?: boolean; now?: () => number; automaticTicks?: boolean; checkpointDirectory?: string }
 class HttpFailure extends Error { constructor(readonly status: number, message: string) { super(message) } }
 const fail = (status: number, message: string): never => { throw new HttpFailure(status, message) }
 const isLoopback = (address?: string) => address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1'
@@ -61,6 +62,52 @@ export async function startLanHost(options: Options = {}) {
     bytes: await readFile(new URL(file, built)), type: file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html',
   }] as const)))
   let room: Room | null = null, port = 0, closed = false
+  const generation = randomBytes(16).toString('hex')
+  const store = options.checkpointDirectory ? new CheckpointStore(options.checkpointDirectory) : undefined
+  let committed = 'null', storageFailed = false
+  // Disk is a private host boundary. No object produced here may be reused as
+  // a response. The public envelope below remains an explicit view allowlist.
+  const checkpoint = () => room ? { version: 1, code: room.code, host: room.host.id,
+    table: room.table.exportHostCheckpoint(), credentials: [...room.credentials.values()].map(c =>
+      ({ id: c.id, token: c.token, nonce: c.nonce, name: c.name })) } : null
+  try {
+    const saved = store?.load() ?? null
+    if (saved !== null) {
+      shape(saved, ['version', 'code', 'host', 'table', 'credentials'])
+      if (saved.version !== 1 || typeof saved.code !== 'string' || !/^[A-F0-9]{10}$/.test(saved.code) ||
+        typeof saved.host !== 'string' || !Array.isArray(saved.credentials) || saved.credentials.length < 1 || saved.credentials.length > 6) throw new Error()
+      const table = HostTable.restoreHostCheckpoint(saved.table), privateState = table.exportHostCheckpoint()
+      if (saved.host !== privateState.host) throw new Error()
+      const credentials = new Map<string, Credential>(), ids = new Set<string>(), nonces = new Set<string>()
+      for (const c of saved.credentials) {
+        shape(c, ['id', 'token', 'nonce', 'name'])
+        if (typeof c.id !== 'string' || !/^[a-f0-9]{32}$/.test(c.id) || typeof c.token !== 'string' ||
+          !/^[A-Za-z0-9_-]{43}$/.test(c.token) || typeof c.nonce !== 'string' || !/^[a-f0-9]{64}$/.test(c.nonce) ||
+          typeof c.name !== 'string' || c.name.length > 96 || /[\p{Cc}\p{Cf}]/u.test(c.name) ||
+          credentials.has(c.token) || ids.has(c.id) || nonces.has(c.nonce)) throw new Error()
+        const member = privateState.members.find(m => m.id === c.id)
+        if (!member || member.leaving || member.name !== c.name.normalize('NFC').trim().replace(/\s+/gu, ' ')) throw new Error()
+        ids.add(c.id); nonces.add(c.nonce)
+        credentials.set(c.token, { id: c.id, token: c.token, nonce: c.nonce, name: c.name, connected: false, seen: now() })
+      }
+      const host = [...credentials.values()].find(c => c.id === saved.host)
+      if (!host || privateState.members.some(m => !m.leaving && !ids.has(m.id))) throw new Error()
+      // No saved lease remains live; no action/bot resumes until the host
+      // reconnects AND explicitly unpauses. This protects an unattended restart.
+      room = { table, code: saved.code, host, credentials, paused: true, nextTick: now() + 1000, observation: 0 }
+      committed = JSON.stringify(saved)
+    }
+  } catch {
+    store?.close()
+    throw new Error('Invalid host checkpoint. Hosting refused; original saved data has been preserved.')
+  }
+  const persist = () => {
+    if (!store || storageFailed || closed) return
+    try {
+      const value = checkpoint(), serialized = JSON.stringify(value)
+      if (serialized !== committed) { store.commit(value); committed = serialized }
+    } catch { storageFailed = true }
+  }
   // Global buckets have constant memory and also bound attacks spread over many
   // claimed IPs. Admission is slower than ordinary six-client500ms polling.
   const buckets = { request: { tokens: 200, time: now() }, admission: { tokens: 20, time: now() } }
@@ -85,25 +132,31 @@ export async function startLanHost(options: Options = {}) {
   // Response order can differ from processing order. Transport observation is
   // distinct from wager revision: pause/lease responses also need an ordering
   // guard so a late poll cannot visually undo an acknowledged pause or action.
-  const envelope = (r: Room, c: Credential) => ({ observation: ++r.observation, view: r.table.view(c.id), isHost: c === r.host,
+  const envelope = (r: Room, c: Credential) => ({ generation, observation: ++r.observation, view: r.table.view(c.id), isHost: c === r.host,
     paused: r.paused || !r.host.connected, hostConnected: r.host.connected,
     ...(c === r.host ? { code: r.code } : {}) })
   const send = (response: ServerResponse, status: number, value: unknown) => {
+    // The synchronous commit finishes before ANY API response is published.
+    // On failure even reads are refused: in-memory mutation may be newer than
+    // the last durable chips. Do not leak that speculative state or retry it.
+    persist()
+    if (storageFailed) { status = 503; value = { error: 'Host storage failed. Table frozen; preserve the host save and restart after resolving storage.' } }
     response.statusCode = status; response.setHeader('Content-Type', 'application/json; charset=utf-8'); response.end(JSON.stringify(value))
   }
   const pulse = () => {
     const r = room
-    if (!r || closed) return
+    if (!r || closed || storageFailed) return
     const at = now()
     for (const c of r.credentials.values()) if (c.connected && at - c.seen > 15000) {
       r.table.disconnect(c.id); c.connected = false
     }
-    if (r.paused || !r.host.connected || at < r.nextTick) return
+    if (r.paused || !r.host.connected || at < r.nextTick) { persist(); return }
     // A missing host browser freezes the entire session. Connected guests do
     // not silently keep playing against the host's unattended bot.
     try { r.table.tick(r.table.view(r.host.id).revision) }
     catch { r.paused = true }
     r.nextTick = at + 1000
+    persist()
   }
   const server = createServer({ requestTimeout: 5000, headersTimeout: 5000, keepAliveTimeout: 2000, maxHeaderSize: 8192 }, (request, response) => {
     response.setHeader('Cache-Control', 'no-store')
@@ -125,12 +178,14 @@ export async function startLanHost(options: Options = {}) {
       if (request.method === 'GET' && assets.has(route)) {
         const asset = assets.get(route)!; response.setHeader('Content-Type', `${asset.type}; charset=utf-8`); response.end(asset.bytes); return
       }
+      if (closed || storageFailed) fail(503, 'Host closed or storage failed; table frozen.')
       if (request.method === 'GET' && route === '/api/state') {
         const { r, c } = authorize(request); send(response, 200, envelope(r, c)); return
       }
       if (request.method !== 'POST' || !['/api/create', '/api/join', '/api/start', '/api/action', '/api/pause', '/api/leave'].includes(route)) fail(404, 'Not found.')
       if (route === '/api/create' || route === '/api/join') rate('admission')
       const input = await body(request)
+      if (closed || storageFailed) fail(503, 'Host closed or storage failed; table frozen.')
       // Do not keep a pre-await room reference: another request may have closed
       // or replaced it while this body was arriving. Admission and mutations
       // below execute synchronously against one current room.
@@ -194,7 +249,9 @@ export async function startLanHost(options: Options = {}) {
     })
   })
   server.maxConnections = 32; server.maxRequestsPerSocket = 200; server.setTimeout(5000, socket => socket.destroy())
-  await new Promise<void>((resolve, reject) => { server.once('error', reject); server.listen(options.port ?? 5192, options.lan ? '0.0.0.0' : '127.0.0.1', () => { server.off('error', reject); resolve() }) })
+  try {
+    await new Promise<void>((resolve, reject) => { server.once('error', reject); server.listen(options.port ?? 5192, options.lan ? '0.0.0.0' : '127.0.0.1', () => { server.off('error', reject); resolve() }) })
+  } catch (error) { store?.close(); throw error }
   port = (server.address() as { port: number }).port
   const timer = options.automaticTicks === false ? undefined : setInterval(pulse, 250)
   timer?.unref()
@@ -202,7 +259,8 @@ export async function startLanHost(options: Options = {}) {
     async close() {
       if (closed) return
       closed = true; if (timer) clearInterval(timer); room = null
-      await new Promise<void>((resolve, reject) => { server.close(error => error ? reject(error) : resolve()); server.closeAllConnections() })
+      try { await new Promise<void>((resolve, reject) => { server.close(error => error ? reject(error) : resolve()); server.closeAllConnections() }) }
+      finally { store?.close() }
     },
   }
 }
