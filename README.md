@@ -22,6 +22,10 @@ or need an inspection toggle. Narrow layouts lift it above the betting row.
 
 ## Boundaries
 
+Folded cards settle face-down on the felt and remain until the next hand.
+Restoring a save restores those discards without replaying a throw. Dealer
+collection is planned separately; the engine still owns every chip balance.
+
 This is an evolving visual/gameplay implementation, not a finished realism benchmark. WebGL2 is required. The camera is desktop seated perspective, not headset/WebXR support. There is no multiplayer, real money, remote service or downloaded runtime asset. Blinds stay at 10/20 with a moving button. Bots sample equity and have different risk profiles; they are not a solver or a claim of professional-level play.
 
 `src/engine/` owns the ledger and legal decisions; `src/scene/` projects state into cards, chips, voxel humans and first-person hands; `src/App.tsx` owns controls, pacing and storage. Rendering never changes chip balances. Keep WHY comments beside these invariants. Full Electron-host verification is separate from the browser preview.
@@ -36,9 +40,9 @@ the actual production rig from four angles with a scrubbed timeline and exact
 time input. Select **Player drink grip**, **Drink**, time **2.6** to inspect hand
 and glass together. Studio poses are controlled inspections, not recordings of
 live gameplay. `npx tsx testing/audit-grip.ts` runs an offline calibration aid;
+the stronger triangle-envelope tests, not its sampled fit, guard runtime grips.
 **Player contact rig** includes both sleeves and table props; its optional
 orange dot marks the shared authored lip landmark, not a rendered head.
-the stronger triangle-envelope tests, not its sampled fit, guard runtime grips.
 Confirm downloaded evidence exists before leaving a session: browsers may
 block subsequent automatic downloads. A missing export is not retained proof.
 The recorder's **Wide room** / **Seated view** controls inspect actual furniture

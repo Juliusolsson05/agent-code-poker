@@ -66,6 +66,16 @@
   ],
   "candidateSessions": [
     {
+      "file": "poker-evidence-2026-09-20T05-52-49-020Z.json.gz",
+      "rawSha256": "632b8b84142f1ac52791c5af76ffd5fb53bac66a94a515f35e5a034b340f5d42",
+      "provenance": "Actual source Chrome CUA session, isolated qa=table-quality-9. Inspection, raise to500, three folds, two calls, flop, pause and export. Unmodified download losslessly compressed.",
+      "frameCount": 1151, "poseCount": 512,
+      "frameMsP50": 34.1, "frameMsP95": 110.2,
+      "cpuSubmissionMsP50": 5.2, "cpuSubmissionMsP95": 9.4,
+      "limitations": "Instrumented mixed-camera workload, not a controlled performance comparison. Metadata confirms actual print sizes/filtering. Six folded backs remain above felt through later decisions. Inspection before/after shares save/camera but not chip rotations or NPC poses; not a pixel golden. No fresh console-log export.",
+      "images": ["poker-evidence-2026-09-20T05-52-49-020Z-34.599.png", "poker-evidence-2026-09-20T05-52-49-020Z-57.382.png"]
+    },
+    {
       "file": "poker-evidence-2026-09-20T05-26-21-152Z.json.gz",
       "rawSha256": "8bd0adabf1ce06979a9fc9a2f541017af12fc5c5e5c39546756528326ae1fabc",
       "provenance": "Actual CUA source session on c1d885d, isolated qa=lip-contact-8. Entered hand, smoked cigar, sipped Old Fashioned; raw downloaded JSON compressed losslessly. Export succeeded despite subsequent browser command timeout.",
@@ -187,6 +197,7 @@
     }
   ],
   "rigImages": [
+    { "file": "table-lettering-before.png", "url": "/dev/?qa=table-quality-9&record&stats", "subject": "Actual inspection view before lettering candidate", "seconds": 40.700, "candidate": "Actual Chrome canvas export poker-evidence-2026-09-20T05-43-43-579Z-40.700.png,2137x1169. No raw session export retained before hot reload/browser disconnect. Not a fixed-pose golden or performance benchmark." },
     { "file": "thumb-cigar-side-rest.png", "subject": "Player cigar", "action": "idle", "seconds": 0, "candidate": "Actual source studio four-view export after thumb side-rest correction. User subsequently rejected overall hand naturalness and paused further hand-animation work. NOT approved art." },
     { "file": "player-contact-puff.png", "subject": "Player contact rig", "action": "smoke", "seconds": 1.3, "candidate": "Actual source studio export including sleeves and orange authored lip marker. Controlled pose, not live motion or final anatomy approval." },
     { "file": "player-contact-sip.png", "subject": "Player contact rig", "action": "drink", "seconds": 2.6, "candidate": "Actual source studio export including sleeves and shared lip marker. Controlled pose, not live motion or final anatomy approval." },

@@ -78,3 +78,11 @@ tested checkpoint as provisional; do not continue D2/D5 hand art unless asked.
 Proceed with the other requested work. D7 records/fixes folded NPC cards that
 vanish instead of remaining face-down on the felt, and connects their eventual
 collection to the planned dealer presentation without changing poker rules.
+
+Continuation9 table checkpoint: folded backs now remain above felt, with single
+flight ownership, restored settled discards and reduced-motion coverage. Chip
+cap/felt artwork is2x with bounded anisotropic sampling and shared textures.
+Actual source trace/PNGs and source/shipped action-inspection-restoration checks
+are retained;71 tests/build/SDK/exact-byte preview pass. Hand work stays paused.
+Dealer collection, center dealer, mouse-look, fireplace/audio, warmer glow,
+noticeable snow and measured active-play performance remain open in D4-D7/E.

@@ -1,11 +1,18 @@
 {
-  "checkpoint": "E2 rejected drifting ablation; isolated unchanged post chain and added persistent public board. New contact/ambience/audio gates remain open.",
-  "latestBrowserLimitations": "E2 baseline allocation and ablation recorded; first fixed image pair rejected because NPC pose inherited sip history. Canonical recapture and fresh source/shipped interaction checks were interrupted by browser connection failures. Canvas AA removal is DEV-only. Bottom-right board has render-contract tests, not fresh layout acceptance. Prior source/production evidence below is historical, not verification of this latest checkpoint.",
+  "checkpoint": "Continuation9: folded cards persist face-down, chip/felt printing sharpened; hands paused by user. Dealer/camera/ambience/audio/performance gates remain open.",
+  "latestBrowserLimitations": "Source and shipped table actions, inspection, folds, held rest props and restoration checked through CUA. Source recovered via fresh isolated tab after reload detached debugger. No fresh console-log export, no controlled texture-cost benchmark or Electron test. Earlier contact/ablation evidence below is historical.",
+  "tableCheckpoint": {
+    "trace": "poker-evidence-2026-09-20T05-52-49-020Z.json.gz",
+    "source": "Isolated qa=table-quality-9; inspection, raise500, three folds/two calls, flop, pause. Stack1500/pot1550, six folded backs above felt. Two actual PNGs plus1151 frames/512 poses retained. After debugger detachment, fresh source tab/Return restores same flop, stack1500/pot1550 and visible folded backs; left paused.",
+    "production": "Isolated qa=table-quality-production-9; raise500 caused all five folds. Ten backs remain face-down through inspection and completed hand. Pause/reload/Return restores stack2090 and same completed hand. Screenshots inspected in CUA, not exported as raw production trace.",
+    "visual": "Felt ellipse/lettering cleaner in source comparison, chip denominations readable; actual metadata256px caps/2048x1024 felt/8x filtering. Resting held cards/cigar and bottom-right public board checked. No hand-animation iteration or final anatomy approval.",
+    "measurement": "Instrumented mixed-workload frame p50/p95 34.1/110.2ms, CPU submission5.2/9.4ms. Uneven delivery, not a controlled comparison or performance acceptance. Print memory increment estimated9.25MiB RGBA8+mips, not measured driver memory."
+  },
   "date": "2026-09-20",
   "automated": {
     "command": "npm run verify",
     "result": "passed",
-    "coverage": "Full verify passed 61 tests including actual ablation drift rejection, post-processing allocation/resize and synthetic public-board render contracts. TypeScript/build, 2 SDK packaging checks and exact-byte HTTP preview integration also pass. Browser layout/contact/audio acceptance remains separate.",
+    "coverage": "Full verify passes71 tests, TypeScript/build,2SDK packaging checks and exact-byte HTTP preview. Includes actual candidate folded-pose fixture, recorded fold replay, restore/fast-fold/reduced-motion boundaries and bounded print allocation tests. Contact/audio/performance acceptance remains separate.",
     "limitation": "Passing tests do not approve the recorded contact, anatomy, lighting or performance defects"
   },
   "sourceBrowser": {

@@ -11,6 +11,7 @@ import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLigh
 import { createTableSurface, dealerPosition, TABLE } from './Table'
 import { SceneCapture, transform } from './diagnostics/SceneCapture'
 import { CHAIR_BLOCKS, PLAYER_LAYOUT, SEATS, seatYaw } from './environment/layout'
+import { createFeltPrint } from './TablePrint'
 
 import { createRoomPlan, type RoomBlock } from './environment/RoomPlan'
 import { createTavernLighting, TAVERN_EXPOSURE } from './environment/Lighting'
@@ -105,7 +106,7 @@ export class PokerRoom {
       human.cards.add(createHeldCardFan(() => this.cardTexture(null)).fan)
     }
     this.hero = new FirstPerson(this.geometry, c => this.cardTexture(c)); this.scene.add(this.camera, this.hero.root, this.hero.tableProps)
-    this.chips = new ChipField(SEATS); this.scene.add(this.chips.root)
+    this.chips = new ChipField(SEATS, this.renderer.capabilities.getMaxAnisotropy()); this.scene.add(this.chips.root)
     this.cardField = new CardField(SEATS, c => this.cardTexture(c)); this.scene.add(this.cardField.root)
     this.dealer = new THREE.Mesh(new THREE.CylinderGeometry(.039, .039, .012, 32), this.material('#b9af99')); this.dealer.visible = false; this.scene.add(this.dealer)
     const dustGeometry = new THREE.BufferGeometry(), positions = new Float32Array(150 * 3)
@@ -122,6 +123,10 @@ export class PokerRoom {
         decorBounds: [...this.christmas.decorBounds].map(([name, bounds]) => ({ name, bounds: bounds.min.toArray().concat(bounds.max.toArray()) })),
         roomBlocks: this.roomBlocks,
         table: { feltY: TABLE.feltY }, exposure: this.renderer.toneMappingExposure, pipeline: this.post.diagnostics(),
+        prints: { chips: this.chips.printDiagnostics(), felt: {
+          width: this.textures.get('felt')!.image.width, height: this.textures.get('felt')!.image.height,
+          anisotropy: this.textures.get('felt')!.anisotropy,
+        } },
       }), wide => { this.diagnosticWide = wide; this.pausedRendered = false }, mode => {
         // Timed comparison is deliberately lobby-only: freezing a live poker
         // clock would let betting timers race the visual ownership director.
@@ -183,11 +188,7 @@ export class PokerRoom {
     mesh.castShadow = true; mesh.receiveShadow = true; this.scene.add(mesh); this.feltMark()
   }
   private feltMark(): void {
-    const canvas = document.createElement('canvas'); canvas.width = 1024; canvas.height = 512
-    const g = canvas.getContext('2d')!; g.textAlign = 'center'; g.strokeStyle = '#d6c18a50'; g.lineWidth = 2
-    g.beginPath(); g.ellipse(512, 256, 445, 180, 0, 0, Math.PI * 2); g.stroke()
-    g.fillStyle = '#d6c18a75'; g.font = '26px Georgia'; g.fillText('T H E   R I V E R   C L U B', 512, 337); g.font = '16px Georgia'; g.fillText('NO LIMIT  ·  GOOD COMPANY', 512, 365)
-    const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; this.textures.set('felt', texture)
+    const texture = createFeltPrint(this.renderer.capabilities.getMaxAnisotropy()); this.textures.set('felt', texture)
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2.9, 1.35), new THREE.MeshStandardMaterial({ map: texture, transparent: true, depthWrite: false, roughness: 1 }))
     mesh.rotation.x = -Math.PI / 2; mesh.position.set(0, TABLE.feltY + .0001, 0); this.scene.add(mesh)
   }
@@ -339,6 +340,7 @@ export class PokerRoom {
     this.capture?.afterRender()
     this.capture?.frame(wallTime, frameMs, performance.now() - wallTime, () => ({
       camera: transform(this.camera), hero: this.hero.diagnosticPose(), paused: this.paused, inspectionBlend: this.inspectionBlend,
+      tableCards: this.cardField.diagnosticPose(),
       people: this.people.map(h => ({ seat: h.seat, root: transform(h.root), drink: transform(h.drink.root),
         rightHand: transform(h.rightRig.hand.root), shoulder: h.rightRig.shoulder.toArray(), elbow: h.rightRig.elbow.toArray(), wrist: h.rightRig.wrist.toArray() })),
     }))

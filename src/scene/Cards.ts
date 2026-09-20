@@ -19,6 +19,7 @@ export class CardField {
       // Paper luminance is bounded independently of dramatic room lighting.
       // This is intentionally NOT emissive and can never cross bloom threshold.
       mesh = new THREE.Mesh(new THREE.PlaneGeometry(.104, .145), new THREE.MeshBasicMaterial({ color: '#bdb6a6', side: THREE.DoubleSide }))
+      mesh.name = key
       this.cards.set(key, mesh); this.root.add(mesh)
     }
     mesh.material.map = this.texture(value); mesh.material.needsUpdate = true; mesh.rotation.x = -Math.PI / 2
@@ -52,9 +53,27 @@ export class CardField {
         } else if (newHand && !p.folded) {
           const mesh = this.card(key, null)
           this.flights.push({ mesh, start: new THREE.Vector3(0, .96, -.84), end, time: now, duration: .54, delay: i * .70 + p.seat * .105, disappear: true, spin: .25 })
-        } else if (p.folded && !old?.players[p.seat].folded) {
+        } else if (p.folded && (newHand || !old?.players[p.seat].folded)) {
           const mesh = this.card(key, null)
-          this.flights.push({ mesh, start: new THREE.Vector3(x * .79, .98, z * .72), end: new THREE.Vector3(-.2 + i * .07, TABLE.cardY, -.65), time: now, duration: .68, delay: i * .08, disappear: true, spin: .55 })
+          // Folding transfers paper to the felt, not to invisibility. The old
+          // flight hid it on landing, which looked like sinking through the
+          // table. Keep backs in a small, layered muck until next-hand reset;
+          // a future dealer collection must consume THESE meshes, not copies.
+          // Stable seat layers also make save restoration deterministic and
+          // prevent coplanar discarded faces from flickering into each other.
+          const discard = new THREE.Vector3(-.26 + p.seat * .026 + i * .014,
+            TABLE.cardY + (p.seat * 2 + i) * .00045, -.65 + p.seat * .018)
+          // An early fold can overtake the original delayed deal. There can be
+          // only one flight owner for this paper: a stale deal must never hide
+          // the newly settled discard a frame later.
+          this.flights = this.flights.filter(flight => flight.mesh !== mesh)
+          if (newHand) {
+            // Restoring already-folded state has no observed handoff to replay.
+            // Present its settled truth immediately instead of phantom throws.
+            mesh.position.copy(discard); mesh.rotation.z = 0; mesh.visible = true
+          } else {
+            this.flights.push({ mesh, start: new THREE.Vector3(x * .79, .98, z * .72), end: discard, time: now, duration: .68, delay: i * .08, disappear: false, spin: .55 })
+          }
         }
       }
     }
@@ -64,6 +83,11 @@ export class CardField {
   setInspection(active: boolean): void {
     if (this.inspecting === active) return
     this.inspecting = active; this.updateInspection()
+  }
+  diagnosticPose(): { key: string; position: number[]; visible: boolean; moving: boolean }[] {
+    // Pose evidence only; never export the map's private face value or texture.
+    return [...this.cards].map(([key, mesh]) => ({ key, position: mesh.position.toArray(), visible: mesh.visible,
+      moving: this.flights.some(flight => flight.mesh === mesh) }))
   }
   private updateInspection(): void {
     const state = this.previous, player = state?.players[0]
@@ -89,7 +113,9 @@ export class CardField {
       const flight = this.flights[i], t = reduced ? 1 : THREE.MathUtils.clamp((now - flight.time - flight.delay) / flight.duration, 0, 1)
       flight.mesh.position.lerpVectors(flight.start, flight.end, 1 - (1 - t) ** 3)
       flight.mesh.position.y += Math.sin(t * Math.PI) * .045; flight.mesh.rotation.z = (1 - t) * flight.spin
-      flight.mesh.visible = now >= flight.time + flight.delay && !(flight.disappear && t >= 1)
+      // Reduced motion settles in this frame. Keeping the old stagger delay
+      // while removing its completed flight stranded later cards invisible.
+      flight.mesh.visible = (reduced || now >= flight.time + flight.delay) && !(flight.disappear && t >= 1)
       if (t >= 1) this.flights.splice(i, 1)
     }
   }

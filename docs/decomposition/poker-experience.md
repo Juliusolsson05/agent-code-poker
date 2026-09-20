@@ -964,3 +964,54 @@ live motion approval. User rejected naturalness and stopped this work; keep it
 deferred. Source baseline smoke/sip was recorded; fresh source/shipped contact
 acceptance remains open after CUA tab-reconnection timeout. No further hand
 changes are part of the next table-card slice.
+
+Continuation9 table checkpoint: real retained events `04-02-22-844Z` capture
+seat4/5 folds at20.4149/21.5804s. New tests first fail because paper is hidden on
+landing; candidate retains layered backs, cancels stale deal ownership and
+restores settled discards immediately. Synthetic fast-fold and reduced-motion
+probes additionally guard lifecycle boundaries. No hand animation was changed.
+
+Actual source inspection capture `05-43-43-579Z-40.700.png` is retained as
+`table-lettering-before.png` (2137×1169). Felt line stair-stepping is visible;
+player100 denominations can already be read, so do not exaggerate the defect.
+Candidate doubles chip cap and felt source resolution, retains edge resolution,
+mipmaps, materials and draw count, and caps supported anisotropy at8. Estimated
+RGBA8+mipmap increment is9.25MiB, NOT a driver-memory measurement or free speedup.
+Three's texture reference documents the clarity/sample-cost tradeoff:
+https://threejs.org/docs/pages/Texture.html#anisotropy
+The pinned r169 sampler code was also inspected. Chip tests verify actual shared
+material/texture configuration with a labeled canvas stub, not raster quality.
+
+Full verify passes70 tests/build/SDK/exact-byte preview at this checkpoint.
+Source hand entry/inspection and baseline PNG were captured, but repeated browser
+timeouts then debugger detachment interrupted follow-up. The user is actively
+playing their own tab; do not switch it for QA. Candidate source/shipped fold
+landing, matched lettering images and measured sampling cost remain OPEN.
+New opt-in recorder metadata includes print configuration and table-card poses
+without values/textures, to make the next actual session more diagnostic.
+
+Continuation9 acceptance follow-up supersedes the interrupted checks above:
+source `05-52-49-020Z` now retains1151 frames,512 poses,two PNGs and the complete
+untruncated raw trace with SHA256 in the manifest. Raise500 yields three folds,
+two calls and a flop; six backs remain visibly face-down above felt through
+later decisions. A distinct actual-pose assertion complements renderer replay.
+Production QA also raises500, observes all five folds/ten backs, inspection,
+pause and reload/Return restoring the completed hand and stack2090. Source
+reload loses the CUA debugger, so that final source check remains open.
+
+Before/after inspection views share the saved hand and camera, not random chip
+rotations/NPC poses; smoother felt lettering is visible, but this is not a
+pixel-aligned golden. Actual metadata confirms capped8x filtering and doubled
+source artwork. Frame p50/p95 34.1/110.2ms and CPU5.2/9.4ms are instrumented mixed
+workload observations, NOT performance improvement. No fresh console export,
+Electron verification or hand-motion acceptance. Keep existing quality and
+performance gates open; center dealer/mouse-look/fireplace/audio remain next.
+
+Source restoration recovery: fresh isolated tab321804218 loaded the same QA save
+after the debugger failure. Return to table restores hand1/flop K♥3♦9♥,
+stack1500/pot1550 and six visible folded backs; CUA screenshot inspected, then
+left paused. No new trace is claimed for this restoration screenshot. This
+closes the source restoration check above, not the console/performance gates.
+
+Final continuation9 verify:71 tests pass, TypeScript/build,2SDK checks and
+exact-byte production-preview integration pass. No dependency/lockfile change.

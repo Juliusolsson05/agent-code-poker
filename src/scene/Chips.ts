@@ -20,9 +20,14 @@ export class ChipField {
   private geometry = new THREE.CylinderGeometry(.026, .026, .0055, 32)
   private dummy = new THREE.Object3D()
 
-  constructor(private seats: [number, number][]) {
+  constructor(private seats: [number, number][], maxAnisotropy = 1) {
     DENOMINATIONS.forEach((denomination, i) => {
-      const top = document.createElement('canvas'); top.width = top.height = 128; const g = top.getContext('2d')!
+      // Inspection magnifies this printed face, while the seated camera sees
+      // it at a grazing angle. More ink texels address the first problem;
+      // anisotropic mip sampling addresses the second without inflating the
+      // entire HDR framebuffer. Keep only five shared faces, not one per chip.
+      const top = document.createElement('canvas'); top.width = top.height = 256; const g = top.getContext('2d')!
+      g.scale(2, 2)
       g.fillStyle = COLORS[i]; g.fillRect(0, 0, 128, 128)
       for (let stripe = 0; stripe < 8; stripe++) {
         const a = stripe * Math.PI / 4
@@ -31,7 +36,8 @@ export class ChipField {
       g.beginPath(); g.arc(64, 64, 39, 0, Math.PI * 2); g.fillStyle = '#bbae91'; g.fill()
       g.strokeStyle = COLORS[i]; g.lineWidth = 2; g.beginPath(); g.arc(64, 64, 34, 0, Math.PI * 2); g.stroke()
       g.fillStyle = '#292924'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = 'bold 28px Georgia'; g.fillText(String(denomination), 64, 65)
-      const topTexture = new THREE.CanvasTexture(top); topTexture.colorSpace = THREE.SRGBColorSpace; this.textures.push(topTexture)
+      const topTexture = new THREE.CanvasTexture(top); topTexture.colorSpace = THREE.SRGBColorSpace
+      topTexture.anisotropy = Math.max(1, Math.min(8, maxAnisotropy)); this.textures.push(topTexture)
       const edge = document.createElement('canvas'); edge.width = 128; edge.height = 8; const e = edge.getContext('2d')!
       e.fillStyle = COLORS[i]; e.fillRect(0, 0, 128, 8); e.fillStyle = '#d0c0a1'
       for (let j = 0; j < 8; j++) e.fillRect(j * 16 + 4, 1, 5, 6)
@@ -42,6 +48,9 @@ export class ChipField {
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mesh.count = 0; mesh.frustumCulled = false; mesh.castShadow = true; mesh.receiveShadow = true
       this.meshes.set(denomination, mesh); this.root.add(mesh)
     })
+  }
+  printDiagnostics(): { width: number; height: number; anisotropy: number }[] {
+    return this.textures.map(texture => ({ width: texture.image.width, height: texture.image.height, anisotropy: texture.anisotropy }))
   }
   private anchor(group: string): THREE.Vector3 {
     const y = TABLE.feltY + .0055 / 2

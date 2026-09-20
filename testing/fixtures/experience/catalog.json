@@ -3,6 +3,23 @@
   "semanticsSource": "Julius's reported requirements: connected arms, credible grips, no prop/furniture clipping, private cards, cozy Christmas lighting, block props, compact drink ordering and smooth performance",
   "cases": [
     {
+      "id": "folded-npc-cards-disappear-on-landing",
+      "trace": "poker-evidence-2026-09-20T04-02-22-844Z.json.gz",
+      "frequency": { "observedOpponentFolds": 2 },
+      "evidence": "Retained public events at20.4149 and21.5804 seconds fold seats4 and5. Replaying those inputs through the old CardField hides each back after landing; user reports cards disappearing through felt. No claim of recorded below-felt geometry.",
+      "expected": "Face-down discards stay above felt, survive later decisions/restore, and clear only on next hand or future visible dealer collection. One flight owns each card; no private textures.",
+      "status": "recorded-replay-and-live-source-shipped-retention-and-restoration-verified",
+      "candidate": "Actual05-52-49 source trace records six settled backs after three folds through the flop. Source PNG and production CUA views show face-down paper above felt. Production five-fold hand restores ten settled backs with stack2090. Fresh source tab restores same flop/stack1500/pot1550 and six backs after debugger recovery. Dealer collection remains planned."
+    },
+    {
+      "id": "chip-and-felt-print-detail",
+      "images": ["table-lettering-before.png"],
+      "evidence": "Actual source inspection canvas at40.700s,2137x1169 pixels. Felt ellipse shows stair-stepping; player chip100 is readable but small. Source audit finds128px chip caps and1024x512 felt artwork, both at default anisotropy1 unlike cards. No same-frame comparison or FPS attribution yet.",
+      "expected": "Readable inspection lettering and stable grazing-angle print, shared textures and bounded resource cost; do not raise global framebuffer resolution or disable mipmaps.",
+      "status": "source-and-shipped-inspection-checked; controlled-sampling-cost-open",
+      "candidate": "Actual05-52-49-34.599 inspection export shares baseline hand/save/camera; felt ellipse and print are cleaner, denominations readable. Chip rotations/NPC poses differ so not a pixel golden. Raw metadata confirms256px cap/2048x1024 felt and8x filtering, with unchanged edge resolution. No measured performance-improvement claim."
+    },
+    {
       "id": "player-mouth-contact-and-cigar-direction",
       "trace": "poker-evidence-2026-09-20T05-26-21-152Z.json.gz",
       "frequency": { "puffSamples": 7, "sipSamples": 11 },
