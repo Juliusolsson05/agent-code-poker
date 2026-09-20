@@ -901,3 +901,57 @@ source/shipped views and measure memory/draw/frame cost. Acceptance is readable
 denominations in normal inspection, stable edges at seated grazing angles and
 no shimmer/glow regression—not universally pixel-sharp distant tiny text. Final
 texture sizes/filter settings stay unknown until this evidence is collected.
+
+Source audit: `Chips.ts` authors each cap at128×128 with28px Georgia numerals;
+its CanvasTexture uses no explicit anisotropy. Felt artwork in `Room.ts` is
+1024×512 with26px/16px lettering and likewise no anisotropy, whereas card
+textures already use the renderer's maximum supported anisotropy. This is a
+specific likely grazing-angle blur contributor, not yet an image-proven sole
+cause. The2.5M render-pixel cap also limits projected detail; isolate texture
+sampling before spending more fullscreen pixels. No lettering fix is claimed.
+
+### Priority override — hand animation paused
+
+The user explicitly stopped hand-animation work after D5/D6 were planned.
+Preserve the current tested contact/thumb checkpoint as provisional. Do not
+iterate hand art, poses or gesture animation further without a new request.
+Continue table behavior, dealer, mouse-look, lettering, room ambience, snow,
+fireplace, audio and other non-hand work. D5 hand acceptance remains open/deferred,
+not silently passed; necessary future camera/prop integration must not disguise
+another hand-animation project.
+
+### D7 — folded cards remain on the felt
+
+**A:** the user sees folded NPC cards disappear through the table. Code confirms
+`Human.cards.visible` turns off immediately on fold, while `CardField` starts a
+face-down flight from a guessed height and marks it `disappear:true` at .68s.
+It is disappearance, not evidence of an actual below-felt vertex. Preserve this
+distinction and inspect the real flight before changing the presentation.
+**D:** folded cards land face-down above the felt, stay visible in a coherent
+discard area, and are only cleared by a visible dealer collection or next-hand
+reset. Never reveal folded faces, resurrect held cards or change the ledger.
+
+- **Produces (record/catalog):** actual public fold transitions from retained
+  browser traces, a new live fold capture where available, and a catalog entry
+  mapping the disappearance to table-card ownership. Record held-to-table
+  handoff, flight end, pause/reload and subsequent street transitions separately.
+- **Verified by:** fixture replay reconstructs only presentation inputs from
+  sanitized public state; private card placeholders are explicitly synthetic
+  and must never be requested as face textures. A failing test observes that
+  folded paper becomes hidden at flight end in the original implementation.
+- **Why separate:** setting a mesh visible is insufficient if an old deal flight
+  still owns it or restoration starts a new fold animation from invented hands.
+- **Reality check:** the user report, actual public trace events, current
+  `Cards.ts` and a fresh browser observation, each labeled by provenance.
+
+Then isolate lifecycle ownership within the existing CardField (Room remains
+its sole production consumer). A per-card presentation transfer supersedes any
+older flight for that mesh. Folded backs settle in a layered, felt-safe discard
+area and survive later state projections and pause; reload restores settled
+backs without re-dealing. New hands dispose them once. Add recorded regression
+tests plus labeled synthetic timing/restore probes before implementation.
+Dealer collection later consumes this same lifecycle; no second set of cards.
+Integration gates: source/shipped visible fold landing/retention, no below-felt
+corners or coplanar overlapping discards, no private texture request, unchanged
+engine/save state and bounded mesh counts across hands. This does not authorize
+resuming the paused hand-animation pass.

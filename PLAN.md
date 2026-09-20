@@ -72,3 +72,9 @@ Record current hands, seating, mouse/UI behavior and lettering, then catalog
 contracts before implementation. No camera-driven detached props or private
 card leaks. These additions are planned, not shipped; actual source/production
 visuals and measured resource cost remain required acceptance gates.
+
+User priority override: STOP hand-animation iteration now. Preserve the current
+tested checkpoint as provisional; do not continue D2/D5 hand art unless asked.
+Proceed with the other requested work. D7 records/fixes folded NPC cards that
+vanish instead of remaining face-down on the felt, and connects their eventual
+collection to the planned dealer presentation without changing poker rules.
