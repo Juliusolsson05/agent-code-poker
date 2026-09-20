@@ -1,5 +1,33 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## LAN room-interaction parity — E13
+
+A: client.js mounts the real PokerRoom, but only exposes inspection/betting.
+Room owns tested drink/cigar contact transitions; DrinkMenu and specs already
+serve solo. D: LAN players can order the same four block drinks, smoke with S
+and sip with D, using the same availability/contact owner and safe keyboard
+focus. This does not resume hand art or declare drinking quality accepted.
+
+| Stage | Produces | Verified by | Why separate | Reality check |
+|---|---|---|---|---|
+| Catalog | Existing UI/Room API inventory and missing LAN controls | Read actual client/index plus retained03-53/04-21 interaction traces | Do not invent a second drink clock or order event ledger | Current LAN markup lacks cigar/drink/menu controls; source screenshots show props |
+| Contracts | LAN LeisureControls props and shortcut tests | Static React markup and explicitly synthetic focus/repeat cases | Buttons must not issue wager/network commands or override editing | Existing DrinkMenu semantics and user S/D requests |
+| Integration | LAN component wired to Room methods/availability | Build, interaction regressions, source/shipped CUA; LAN CUA remains required | Owner must reject busy/interrupted requests, not UI timeouts | Existing owner tests/recordings; actual LAN browser gate open |
+
+LeisureControls has one runtime consumer, client.js. It may import DrinkMenu and
+drink specs, never engine/session authority, fetch, persistence or animation
+internals. Client supplies availability and delegates commands to Room. Opening
+the drink menu cancels betting drafts; closing returns table focus. Pause/loss,
+pending wager, waiting admission, inspection and table menu disable initiation;
+existing transitions continue/hold under the same Room clock. No order/smoke/sip
+is a wager, consumption event or source of intoxication. Do not add a filter on
+button press. Remote human cosmetic events remain a subsequent server-owned
+public-event integration contract, not silently faked by this local control UI.
+
+Investigation correction: an initial concern that host-loss left controls live
+was disproved by actual scripted HTTP lease expiry. The server already emits
+paused=true when hostConnected=false. No host-loss fix is claimed or needed.
+
 ## Durable multiplayer recovery — B12–E12
 
 ### E12 response-ownership substage

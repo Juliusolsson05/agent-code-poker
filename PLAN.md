@@ -2,6 +2,16 @@
 
 ## Active direction — full multiplayer first (restarted goal loop)
 
+Next full-room integration slice: LAN currently renders the player's cigar and
+Old Fashioned but provides neither interaction control nor drink ordering.
+Connect the existing Room/InteractionDirector through a compact LAN leisure UI,
+reusing DrinkMenu and authored drink specs. No hand/arm art changes, no new
+animation clock and no cosmetic action on the poker wire. Host pause/loss,
+waiting admission, inspection, pending wager and menus block new requests.
+This is local player interaction parity; remote human cosmetic synchronization
+and actual LAN-browser acceptance remain explicit integration gaps. Source
+evidence already records ordering/sipping; new shortcut tests are synthetic.
+
 E12 response ownership implemented: one browser-only ResponseOrder module
 arbitrates epochs/process generations/observations, including obsolete errors.
 Forget/resume seals old requests even when reusing a credential. Actual isolated
