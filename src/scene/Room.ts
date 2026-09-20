@@ -65,7 +65,9 @@ export class PokerRoom {
   private capture: SceneCapture | null = null
   private roomBlocks: Block[] = []
 
-  constructor(private container: HTMLElement, private onFailure: () => void, private onLayout: () => void = () => {}) {
+  private leisureKey = ''
+  constructor(private container: HTMLElement, private onFailure: () => void, private onLayout: () => void = () => {},
+    private onLeisure: (value: { kind: import('./props/specs').DrinkKind; available: boolean }) => void = () => {}) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
     if (import.meta.env.DEV && new URLSearchParams(location.search).has('stats')) {
       this.stats = document.createElement('output'); this.stats.setAttribute('aria-label', 'Rendering performance')
@@ -274,8 +276,19 @@ export class PokerRoom {
   }
   setPlaying(playing: boolean): void { this.capture?.event('playing', { playing }); this.hero.setActive(playing) }
   setPaused(paused: boolean): void { this.capture?.event('pause', { paused }); this.paused = paused; this.pausedRendered = false }
-  smokeCigar(): boolean { const accepted = !this.paused && !this.inspecting && this.hero.smokeCigar(); this.capture?.event('smoke', { accepted }); return accepted }
-  sipDrink(): boolean { const accepted = !this.paused && !this.inspecting && this.hero.sipDrink(); this.capture?.event('drink', { accepted }); return accepted }
+  private publishLeisure(): void {
+    const value = { kind: this.hero.drinkKind, available: !this.paused && !this.inspecting && this.hero.leisureAvailable }
+    const key = value.kind + ':' + value.available
+    // React only hears transitions, not every animation frame. The renderer
+    // owns availability; a UI timeout cannot predict interrupted return length.
+    if (key !== this.leisureKey) { this.leisureKey = key; this.onLeisure(value) }
+  }
+  smokeCigar(): boolean { const accepted = !this.paused && !this.inspecting && this.hero.smokeCigar(); this.capture?.event('smoke', { accepted }); this.publishLeisure(); return accepted }
+  sipDrink(): boolean { const accepted = !this.paused && !this.inspecting && this.hero.sipDrink(); this.capture?.event('drink', { accepted }); this.publishLeisure(); return accepted }
+  orderDrink(kind: import('./props/specs').DrinkKind): boolean {
+    const accepted = !this.paused && !this.inspecting && this.hero.orderDrink(kind)
+    this.capture?.event('order-drink', { kind, accepted }); this.publishLeisure(); return accepted
+  }
   update(state: GameState): void {
     this.capture?.event('public-game', { hand: state.handNumber, phase: state.phase, actor: state.actor,
       players: state.players.map(p => ({ seat: p.seat, stack: p.stack, bet: p.bet, folded: p.folded, action: p.action })) })
@@ -320,6 +333,7 @@ export class PokerRoom {
     this.visualTime += dt
     const t = this.visualTime, now = t * 1000
     this.hero.setInspection(this.inspecting); this.hero.frame(t, this.reduced.matches)
+    this.publishLeisure()
     // Inspection is a presentation-only lean, never a second gameplay mode.
     // Time-based damping avoids different transition speeds on 60/144Hz screens.
     this.inspectionBlend = this.reduced.matches ? Number(this.hero.inspectionReady)

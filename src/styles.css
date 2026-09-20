@@ -229,3 +229,16 @@ h2 { font-family: Georgia, serif; font-size: 33px; font-weight: 400; letter-spac
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 .poker.inspecting .seat, .poker.inspecting .pot-label { visibility: hidden; }
 .room-top-right button[aria-pressed="true"] { border-color: #c9ad80; background: #423a2dcc; }
+.drink-menu { position: absolute; z-index: 15; right: 25px; top: 112px; width: min(290px, calc(100% - 30px)); padding: 18px; border: 1px solid #aa906050; border-radius: 5px; background: #181b18f5; box-shadow: 0 12px 45px #0007; color: #dfd2b8; }
+.drink-menu header { display: flex; align-items: flex-start; justify-content: space-between; }
+.drink-menu header span { font-size: 8px; letter-spacing: 2px; color: #ab9674; }
+.drink-menu h3 { font: 25px Georgia, serif; margin: 5px 0 0; }
+.drink-menu header button { border: 0; background: none; color: #c5b697; font-size: 21px; padding: 0 5px; }
+.drink-menu p { color: #a9a18f; font-size: 11px; line-height: 1.5; }
+.drink-options { display: grid; gap: 6px; margin: 15px 0; }
+.drink-options button { text-align: left; padding: 11px; color: #daccb1; background: #282b2455; border: 1px solid #b39b6630; border-radius: 3px; }
+.drink-options button[aria-pressed="true"] { background: #55473355; border-color: #c1a77280; }
+.drink-options strong { display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; }
+.drink-options small { display: block; margin-top: 5px; color: #a29c8f; font-size: 10px; }
+.drink-options button:disabled { opacity: .45; cursor: not-allowed; }
+@media (max-width: 850px) { .room-top-right { gap: 5px; right: 12px; } .room-top-right button { padding: 7px; } }

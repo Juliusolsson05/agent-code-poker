@@ -3,7 +3,8 @@ import { SeatedArm } from './Arm'
 import { InteractionDirector } from './InteractionDirector'
 import { PLAYER_LAYOUT } from './environment/layout'
 import { coaster, TableDrink } from './Drinks'
-import { TABLE } from './Table'
+import { ASHTRAY, isDrinkKind, type DrinkKind } from './props/specs'
+import { createAshtray, createCigar } from './props/Smoking'
 import type { Card } from '../engine/cards'
 import { createHeldCardFan } from './CardGrip'
 import { transform } from './diagnostics/SceneCapture'
@@ -48,35 +49,38 @@ export class FirstPerson {
     this.rightRig = new SeatedArm(this.root, 1, '#ae8165', '#252b2c', '#ada796')
     this.left.pose('cards'); this.right.pose('cigar')
     const held = createHeldCardFan(texture); this.fan = held.fan; this.paper = held.paper; this.left.root.add(this.fan)
-    const cylinder = (r: number, length: number, color: string, x: number, roughness = .8) => {
-      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, length, 20), new THREE.MeshStandardMaterial({ color, roughness }))
-      mesh.rotation.z = -Math.PI / 2; mesh.position.x = x; this.cigar.add(mesh); return mesh
-    }
-    this.cigar.name = 'player-cigar'
-    cylinder(.0062, .126, '#513423', 0, .93)
-    cylinder(.00645, .015, '#b49a58', -.028, .45)
-    cylinder(.00635, .013, '#79756a', .068)
-    this.ember = new THREE.MeshStandardMaterial({ color: '#762c19', emissive: '#d73910', emissiveIntensity: .3, roughness: 1 })
-    const ember = new THREE.Mesh(new THREE.CylinderGeometry(.0059, .0059, .0015, 20), this.ember)
-    ember.rotation.z = -Math.PI / 2; ember.position.x = .075; this.cigar.add(ember)
-    this.cigarTip.position.x = .077; this.cigar.add(this.cigarTip)
+    const smoking = createCigar(); this.cigar = smoking.root; this.cigarTip = smoking.tip; this.ember = smoking.ember
     this.tableProps.add(this.drink.root, this.cigar)
     this.drink.root.position.copy(this.drinkHome)
     const mat = coaster(); mat.position.copy(this.drinkHome); mat.position.y -= .0015; this.tableProps.add(mat)
-    const tray = new THREE.Mesh(new THREE.CylinderGeometry(.060, .060, .026, 32), new THREE.MeshStandardMaterial({ color: '#5b5549', metalness: .65, roughness: .42 }))
-    tray.position.copy(this.cigarHome); tray.position.y = TABLE.feltY + .013; this.tableProps.add(tray)
+    const tray = createAshtray(); tray.position.copy(this.cigarHome)
+    tray.position.y = this.cigarHome.y - ASHTRAY.cigarRestY; this.tableProps.add(tray)
     const canvas = document.createElement('canvas'); canvas.width = canvas.height = 64
     const g = canvas.getContext('2d')!, gradient = g.createRadialGradient(32, 32, 0, 32, 32, 32)
     gradient.addColorStop(0, '#d7d2c850'); gradient.addColorStop(.4, '#b6b5b021'); gradient.addColorStop(1, '#aab1b000')
     g.fillStyle = gradient; g.fillRect(0, 0, 64, 64); this.smokeTexture = new THREE.CanvasTexture(canvas)
   }
   get leisureAction(): LeisureAction { return this.resolved.action }
+  get drinkKind(): DrinkKind { return this.drink.kind }
+  get leisureAvailable(): boolean { return this.active && !this.inspecting && this.director.canOrder(this.now) }
+  orderDrink(kind: DrinkKind): boolean {
+    if (!isDrinkKind(kind) || !this.leisureAvailable) return false
+    if (kind === this.drink.kind) return true
+    // Construct before committing the swap, so allocation failure preserves the
+    // existing glass and calibration. A rejected order never creates a second
+    // visible drink. Only this instance's owned GPU resources are disposed.
+    const next = new TableDrink(kind)
+    if (!this.director.orderDrink(kind, this.now)) { next.dispose(); return false }
+    next.root.position.copy(this.drinkHome)
+    this.drink.dispose(); this.drink = next; this.tableProps.add(next.root)
+    return true
+  }
   get inspectionReady(): boolean { return this.resolved.inspectionReady }
   diagnosticPose() {
     return { action: this.resolved.action, phase: this.resolved.phase, active: this.active, inspecting: this.inspecting,
       root: transform(this.root), left: transform(this.left.root), right: transform(this.right.root),
       drink: transform(this.drink.root), cigar: transform(this.cigar), table: transform(this.tableProps),
-      drinkOwner: this.resolved.drink.owner, cigarOwner: this.resolved.cigar.owner,
+      drinkOwner: this.resolved.drink.owner, cigarOwner: this.resolved.cigar.owner, drinkKind: this.drink.kind,
       arm: this.resolved.arm, drinkHome: this.drinkHome.toArray(), cigarHome: this.cigarHome.toArray(),
       glassGrip: this.director.calibration.handGlassContact, cigarGrip: this.director.calibration.handCigarContact }
   }

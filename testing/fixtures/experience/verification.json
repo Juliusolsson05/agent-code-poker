@@ -1,10 +1,10 @@
 {
-  "checkpoint": "D2 conforming animated surfaces and jaw-painted facial hair; not finished-game acceptance",
+  "checkpoint": "D2 block drinks, recessed ashtray/cigar and safe free ordering; not finished-game acceptance",
   "date": "2026-09-20",
   "automated": {
     "command": "npm run verify",
     "result": "passed",
-    "coverage": "37 tests including actual closed hand/sleeve topology, silhouette-preserving surface painting, real-input ownership replay, production skeleton integration and forbidden-import boundary; TypeScript, production build, 2 SDK packaging checks and exact-byte production-preview HTTP integration",
+    "coverage": "41 tests including recorded all-drink ordering/disposal integration, block surfaces/anchors/ashtray raycasts, closed hand/sleeve topology, silhouette-preserving painting, real-input ownership replay, production skeleton integration and import boundary; TypeScript/build, 2 SDK packaging checks and exact-byte preview HTTP integration",
     "limitation": "Passing tests do not approve the recorded contact, anatomy, lighting or performance defects"
   },
   "sourceBrowser": {
@@ -38,5 +38,12 @@
     "visual": "Neutral four-view images preserve closed finger bends and removal of jaw slab. Seated source and production views inspected. Cigar pinch and glass wrap remain visibly awkward; no overall hand/anatomy signoff.",
     "measurement": "728 instrumented frames: p50/p95 frame 28.6/31.9ms, CPU submission 5.2/7.8ms. Median 350 draws and 1233436 triangles including shadows. Not a controlled benchmark or GPU timing."
   },
-  "remaining": ["opponent interaction ownership/contact", "block-built drinks and ordering", "ashtray", "hand topology and visible grip contact", "anatomy and facial hair", "tree clearance", "cozy lighting", "controlled performance comparison", "reduced motion and visibility interruption checks", "fresh final source/production visual acceptance"]
+  "orderingCheckpoint": {
+    "trace": "poker-evidence-2026-09-20T04-02-22-844Z.json.gz",
+    "source": "All four orders/sips, busy choices disabled, paused sip, inspection safe return, cigar pickup and call48. Reload preserves hand1 flop stack1952 pot254. No console warnings/errors observed.",
+    "production": "All four menu choices; ale/wine/water sip, busy gating, pause/resume, inspection return and cigar pickup. Stack2000 unchanged by orders; call20 leaves1980. Reload preserves hand1 flop stack1980 pot252. No console warnings/errors observed.",
+    "measurement": "2303 instrumented frames, 772 poses, p50/p95 frame30/33.5ms and CPU submission5.9/7.9ms. Not controlled performance acceptance.",
+    "visual": "Six recorded canvas images. Recessed tray and block drink contents visible; grips are still awkward and not signed off. Menu screenshots inspected in CUA transcript; no approved image golden."
+  },
+  "remaining": ["opponent interaction ownership/contact", "visible finger/prop grip contact", "character anatomy/face refinement", "tree clearance", "cozy lighting", "controlled performance comparison", "reduced motion and visibility interruption checks", "fresh final source/production visual acceptance"]
 }

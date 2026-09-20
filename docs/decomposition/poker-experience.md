@@ -2,8 +2,9 @@
 
 Status: Stage B baseline captured; C/D1 hero ownership/connected reach implemented
 and replayed through actual production bones. Fresh source recording confirms
-bounded reach and safe interrupted return. D2 props/grips and C/D3 environment
-remain open, as do final quality/performance gates.
+bounded reach and safe interrupted return. D2 block props and safe ordering are
+implemented/browser-checked; grip art and C/D3 environment remain open, as do
+final quality/performance gates.
 Scope: issue #1, `feat/voxel-poker`. Anatomy/Christmas art remains provisional,
 not an accepted visual baseline. No automatic merge.
 
@@ -288,3 +289,38 @@ Next D2 work must make block prop dimensions/contact anchors the source of truth
 for grip calibration, rather than tweaking fingers around the old cylinder
 meshes. Build a recessed ashtray/cigar rest and block glass/liquid/garnish assets,
 then fit/verify grips against actual surfaces and expose safe free ordering.
+
+### D2 block props and safe ordering
+
+`props/specs.ts` now owns vessel radii/rims, cigar endpoints and ashtray rest
+height; block factories consume the same dimensions as interaction calibration.
+All four drinks use a shared lower tumbler/stemless grip profile with different
+heights/contents. The director targets each actual rim at the same mouth point.
+No transmission render target or per-block draw call is introduced. Liquid,
+ice, orange peel, foam, cigar, coaster and recessed/notched ashtray are sampled
+block surfaces. A raycast regression caught the first cigar rest 1mm too low;
+the support is now calibrated from the actual tray geometry and shared felt Y.
+
+The non-modal Drinks menu never calls the poker engine or save API. The director
+rejects replacement during reach/sip/return/inspection, even when bypassing UI;
+the presenter swaps one table-owned glass and disposes its owned geometry and
+materials. Availability is published to React only on transitions, not guessed
+with a timeout. Drink choice deliberately resets on reload, leaving saved hands
+untouched. The user requested ordering, not a persistent cosmetic save migration.
+
+Actual source session `2026-09-20T04-02-22-844Z` records all four orders/sips,
+pause/resume, interrupted return/inspection, cigar pickup and a legal call.
+It contains 2,303 frame samples, 772 poses and six images. A production-mesh
+integration replay covers every order, sole glass ownership, disposal, rejected
+mid-motion replacements and zero reach correction for all heights. Full verify
+passes 41 tests plus build/packaging/preview integration. Source reload retains
+hand 1 flop, stack 1,952 and pot 254. No source console warnings/errors observed.
+Frame p50/p95 30/33.5ms is an instrumented workload, not controlled FPS acceptance.
+Finger/glass wrap and cigar pinch are still visibly awkward; the new assets
+establish the surface contracts for that next grip pass, not final art signoff.
+
+Shipped `/dev/?production&qa=props-production` independently verifies all four
+menu choices, ale/wine/water sipping, disabled mid-motion orders, pause/resume,
+inspection return and cigar pickup. Orders leave the stack at 2,000; call 20
+spends only that legal wager. Reload retains hand 1 flop, stack 1,980 and pot
+252. No production console warnings/errors observed. Electron host is separate.

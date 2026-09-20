@@ -1,60 +1,70 @@
 import * as THREE from 'three'
+import { VoxelSculpt, anatomyMaterial } from './Voxel'
+import { DRINKS, drinkAnchors, type DrinkKind } from './props/specs'
+export type { DrinkKind } from './props/specs'
 
-export type DrinkKind = 'old-fashioned' | 'beer' | 'wine' | 'water'
-
-/** All geometry is authored locally. Glass uses a thin double-sided wall, not a
- * solid transparent cylinder: the latter makes ice look embedded in plastic.
- * The drink origin is its contact with the coaster; grip/rim anchors eliminate
- * guessed offsets when transferring it between table and hand. */
+/** Sampled hollow solids, not transparent filled cylinders. Only exposed block
+ * faces are emitted. Standard alpha glass avoids transmission render targets;
+ * a separate restrained rim keeps the vessel legible in the dark room. Each
+ * instance owns resources: replacing it cannot dispose another actor's drink.
+ * No per-frame geometry allocation or procedural re-sampling. */
 export class TableDrink {
   readonly root = new THREE.Group()
-  readonly grip = new THREE.Vector3()
-  readonly rim = new THREE.Vector3()
+  readonly grip: THREE.Vector3
+  readonly rim: THREE.Vector3
   constructor(readonly kind: DrinkKind = 'old-fashioned') {
+    const spec = DRINKS[kind], anchors = drinkAnchors(kind), step = .002
+    this.grip = new THREE.Vector3(...anchors.grip); this.rim = new THREE.Vector3(...anchors.rim)
     this.root.name = `${kind}-drink`
-    const glass = new THREE.MeshPhysicalMaterial({ color: '#d4d9d1', roughness: .13, metalness: 0,
-      transparent: true, opacity: .25, depthWrite: false, side: THREE.DoubleSide, clearcoat: 1 })
-    const radius = kind === 'beer' ? .030 : kind === 'wine' ? .037 : .039
-    const height = kind === 'beer' ? .155 : kind === 'wine' ? .095 : .087
-    const stem = kind === 'wine' ? .065 : 0
-    const wall = new THREE.Mesh(new THREE.CylinderGeometry(radius, kind === 'wine' ? .014 : radius * .91, height, 40, 1, true), glass)
-    wall.position.y = stem + height / 2 + .004; this.root.add(wall)
-    const base = new THREE.Mesh(new THREE.CylinderGeometry(radius * .92, radius * .92, .007, 40), glass)
-    base.position.y = .0035; this.root.add(base)
-    if (stem) {
-      const stalk = new THREE.Mesh(new THREE.CylinderGeometry(.003, .003, stem, 12), glass); stalk.position.y = stem / 2; this.root.add(stalk)
-    }
-    const rimMaterial = new THREE.MeshStandardMaterial({ color: '#c3c7bb', metalness: .1, roughness: .2, transparent: true, opacity: .60 })
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(radius, .0012, 5, 48), rimMaterial)
-    rim.rotation.x = Math.PI / 2; rim.position.y = stem + height + .004; this.root.add(rim)
-    const liquidHeight = height * (kind === 'beer' ? .82 : .50)
-    const liquid = new THREE.Mesh(new THREE.CylinderGeometry(radius * .86, radius * .82, liquidHeight, 36), new THREE.MeshPhysicalMaterial({
-      color: kind === 'old-fashioned' ? '#b26016' : kind === 'beer' ? '#b98a25' : kind === 'wine' ? '#551b23' : '#a1b8b7',
-      roughness: .18, transparent: true, opacity: kind === 'water' ? .35 : .87, depthWrite: false, clearcoat: 1,
-    }))
-    liquid.position.y = stem + .008 + liquidHeight / 2; this.root.add(liquid)
+    const radiusAt = (y: number) => spec.radius - .002 * (1 - Math.min(1, y / .030))
+    const wall = new VoxelSculpt(step).volume([-spec.radius, step / 2, -spec.radius], [spec.radius, spec.height - .004, spec.radius], (x, y, z) => {
+      const radius = radiusAt(y), r = Math.hypot(x, z)
+      return r < radius && (y <= .006 || r > radius - .0028)
+    }, '#b2c5be')
+    const glass = anatomyMaterial(.24); glass.transparent = true; glass.opacity = .23; glass.depthWrite = false
+    this.add(wall.mesh(glass), 'block-glass')
+    const lip = new VoxelSculpt(step).volume([-spec.radius, spec.height - .002, -spec.radius], [spec.radius, spec.height, spec.radius], (x, _y, z) => {
+      const r = Math.hypot(x, z); return r < spec.radius && r > spec.radius - .0025
+    }, '#c3c8b9')
+    const rimMaterial = anatomyMaterial(.32); rimMaterial.transparent = true; rimMaterial.opacity = .65; rimMaterial.depthWrite = false
+    this.add(lip.mesh(rimMaterial), 'block-rim')
+    const liquid = new VoxelSculpt(step).volume([-spec.radius, .008, -spec.radius], [spec.radius, spec.fill, spec.radius], (x, y, z) => Math.hypot(x, z) < radiusAt(y) - .0045, spec.color)
+    const liquidMaterial = anatomyMaterial(.26)
+    // Opaque amber/wine avoids nested alpha sorting through the hand. Water
+    // alone is translucent; the ice rises visibly above the fill surface.
+    if (kind === 'water') { liquidMaterial.transparent = true; liquidMaterial.opacity = .35; liquidMaterial.depthWrite = false }
+    this.add(liquid.mesh(liquidMaterial), 'block-liquid')
     if (kind === 'old-fashioned' || kind === 'water') {
-      const ice = new THREE.Mesh(new THREE.BoxGeometry(.041, .041, .041), new THREE.MeshPhysicalMaterial({ color: '#cfdbd5', roughness: .18, transparent: true, opacity: .57, depthWrite: false, clearcoat: 1 }))
-      ice.position.set(.002, .050, -.002); ice.rotation.set(.10, .30, -.08); this.root.add(ice)
+      const ice = new VoxelSculpt(step).volume([-.018, -.019, -.018], [.018, .019, .018], (x, y, z) =>
+        Math.max(0, Math.abs(x) - .014) ** 2 + Math.max(0, Math.abs(y) - .015) ** 2 + Math.max(0, Math.abs(z) - .014) ** 2 < .004 ** 2, '#c4d5cc')
+      const mesh = ice.mesh(anatomyMaterial(.29)); mesh.position.set(.002, spec.fill + .005, -.002); mesh.rotation.y = .24
+      this.add(mesh, 'block-ice')
     }
     if (kind === 'old-fashioned') {
-      // A thin curled ribbon has an orange outside and pale pith inside. A
-      // whole orange torus floating above the rim read as a toy garnish.
-      const peel = new THREE.Mesh(new THREE.CylinderGeometry(.022, .022, .012, 18, 1, true, -.6, 2.7), new THREE.MeshStandardMaterial({ color: '#dc781d', roughness: .72, side: THREE.DoubleSide }))
-      peel.position.set(-.006, .063, .007); peel.rotation.set(.28, .2, .30); this.root.add(peel)
-      const pith = new THREE.Mesh(new THREE.CylinderGeometry(.0208, .0208, .010, 18, 1, true, -.6, 2.7), new THREE.MeshStandardMaterial({ color: '#d8bc75', roughness: .88, side: THREE.DoubleSide }))
-      pith.position.copy(peel.position); pith.rotation.copy(peel.rotation); this.root.add(pith)
+      const peel = new VoxelSculpt(.0015).volume([-.024, -.005, -.024], [.024, .005, .024], (x, _y, z) => {
+        const a = Math.atan2(z, x), r = Math.hypot(x, z)
+        return a > -.6 && a < 2.1 && r > .019 && r < .023
+      }, '#d37a27').paint((x, _y, z) => Math.hypot(x, z) < .0205, '#d7b46c')
+      const mesh = peel.mesh(anatomyMaterial(.8)); mesh.position.set(-.006, .065, .004); mesh.rotation.set(.3, .2, .35)
+      this.add(mesh, 'block-orange-peel')
     }
     if (kind === 'beer') {
-      const foam = new THREE.Mesh(new THREE.CylinderGeometry(radius * .88, radius * .88, .011, 32), new THREE.MeshStandardMaterial({ color: '#dbd0ae', roughness: 1 }))
-      foam.position.y = liquidHeight + .010; this.root.add(foam)
+      const foam = new VoxelSculpt(step).volume([-.033, spec.fill + .001, -.033], [.033, spec.fill + .009, .033], (x, y, z) =>
+        Math.hypot(x, z) < .031 && y < spec.fill + .007 + .0015 * Math.cos(x * 160) * Math.cos(z * 150), '#d9ccb0')
+      this.add(foam.mesh(anatomyMaterial(1)), 'block-foam')
     }
-    this.grip.set(0, stem + height * .45, 0); this.rim.set(0, stem + height + .004, radius)
-    this.root.traverse(o => { if (o instanceof THREE.Mesh) o.castShadow = false })
+  }
+  private add(mesh: THREE.Mesh, name: string): void {
+    mesh.name = name; mesh.castShadow = false; mesh.receiveShadow = true; this.root.add(mesh)
+  }
+  dispose(): void {
+    this.root.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); (o.material as THREE.Material).dispose() } })
+    this.root.removeFromParent()
   }
 }
 
 export function coaster(): THREE.Mesh {
-  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(.053, .053, .003, 40), new THREE.MeshStandardMaterial({ color: '#4c3527', roughness: .95 }))
-  mesh.receiveShadow = true; return mesh
+  const mesh = new VoxelSculpt(.003).volume([-.051, -.0015, -.051], [.051, .0015, .051], (x, _y, z) =>
+    Math.hypot(x, z) < .051, '#4c3527').mesh(anatomyMaterial(.95))
+  mesh.name = 'block-leather-coaster'; mesh.castShadow = false; return mesh
 }

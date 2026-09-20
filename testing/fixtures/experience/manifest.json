@@ -35,6 +35,26 @@
   ],
   "candidateSessions": [
     {
+      "file": "poker-evidence-2026-09-20T04-02-22-844Z.json.gz",
+      "rawSha256": "6a7d1ecad1f4393a5a030d031fd33f4ad24345482fbb5ed59983d1391b2e8d7b",
+      "provenance": "Actual Chrome source QA /dev/?qa=props-ordering&stats&record: all four orders and sips, pause/resume, inspection returns, cigar and legal call. Untouched JSON compressed losslessly.",
+      "frameCount": 2303,
+      "poseCount": 772,
+      "frameMsP50": 30,
+      "frameMsP95": 33.5,
+      "cpuSubmissionMsP50": 5.9,
+      "cpuSubmissionMsP95": 7.9,
+      "limitations": "Instrumented interaction workload, not a controlled benchmark. Menu screenshots inspected in CUA transcript; exported images show canvas only. Surface contacts/hand appearance remain under refinement.",
+      "images": [
+        "poker-evidence-2026-09-20T04-02-22-844Z-37.759.png",
+        "poker-evidence-2026-09-20T04-02-22-844Z-48.017.png",
+        "poker-evidence-2026-09-20T04-02-22-844Z-49.793.png",
+        "poker-evidence-2026-09-20T04-02-22-844Z-62.148.png",
+        "poker-evidence-2026-09-20T04-02-22-844Z-74.429.png",
+        "poker-evidence-2026-09-20T04-02-22-844Z-86.292.png"
+      ]
+    },
+    {
       "file": "poker-evidence-2026-09-20T03-53-42-707Z.json.gz",
       "rawSha256": "a21f89a9ba3838ce1bd2b910a576082c9431b88cbb772582eb870646e4de1d27",
       "provenance": "Actual Chrome source QA after conforming hand/sleeve topology and jaw-painted facial hair; drink, pause/resume, inspection, cigar pickup and legal call",

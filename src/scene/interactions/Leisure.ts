@@ -33,6 +33,11 @@ export class Leisure {
 
   constructor(readonly calibration: Calibration) {}
 
+  canReplaceDrink(now: number): boolean {
+    const pose = this.sample(now)
+    return this.active && !this.requestedInspection && !pose.busy && pose.drink.owner === 'table'
+  }
+
   setActive(active: boolean, now: number): void {
     this.active = active
     if (!active) {

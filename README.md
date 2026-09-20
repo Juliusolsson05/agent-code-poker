@@ -12,7 +12,7 @@ The preview stores a separate local-browser save. It does not read installed Age
 
 Use the on-screen actions and raise sizing controls. **F** folds, **C** checks/calls, **M** toggles sound, **Esc** pauses, and **S** raises your cigar for a puff. Typing in a field does not trigger gameplay shortcuts. Opponents keep card backs facing you until a public showdown. The active hand saves after every decision. Losing focus pauses the table; returning does not silently resume betting.
 
-**D** starts the current Old Fashioned sip. Drink ordering and believable reach/contact are under active reconstruction; the current animation is not a finished reference.
+**Drinks ▾** opens a compact free menu: Old Fashioned, winter ale, red wine or water. **D** sips the current drink. Ordering is available only once your hand has finished its current action; it replaces the glass on your coaster and never spends chips. Drink selection is cosmetic and resets to Old Fashioned on reload, without changing the saved poker hand. Grips remain under visual refinement.
 
 Hold **Space** while the table is focused to lean over your cards and chips; release to look up. The **Cards & chips** button toggles the same view without holding a key. Buttons and inputs retain normal Space behavior. Inspection does not pause betting or reveal opponents' cards. The website fills the browser and offers a fullscreen button; Agent Code host fullscreen is deferred.
 

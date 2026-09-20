@@ -6,6 +6,51 @@ import { gunzipSync } from 'node:zlib'
 import * as THREE from 'three'
 import ts from 'typescript'
 import { FirstPerson } from '../src/scene/FirstPerson'
+import type { DrinkKind } from '../src/scene/props/specs'
+
+test('actual recorded four-drink ordering replaces only idle props and disposes the previous glass', () => {
+  const previous = globalThis.document
+  globalThis.document = { createElement: () => ({ getContext: () => ({ createRadialGradient: () => ({ addColorStop() {} }), fillRect() {} }) }) } as unknown as Document
+  const texture = new THREE.Texture() as THREE.CanvasTexture, box = new THREE.BoxGeometry()
+  const hero = new FirstPerson(box, () => texture), scene = new THREE.Group()
+  scene.add(hero.root, hero.tableProps)
+  try {
+    const trace = JSON.parse(gunzipSync(readFileSync(new URL('../testing/fixtures/experience/poker-evidence-2026-09-20T04-02-22-844Z.json.gz', import.meta.url))).toString())
+    const kinds = new Set<DrinkKind>(); let poses = 0
+    for (const entry of trace.entries) {
+      hero.frame(entry.visualSeconds, true)
+      if (entry.kind === 'playing') hero.setActive(entry.data.playing)
+      if (entry.kind === 'inspection') hero.setInspection(entry.data.active)
+      if (entry.kind === 'drink') assert.equal(hero.sipDrink(), entry.data.accepted)
+      if (entry.kind === 'smoke') assert.equal(hero.smokeCigar(), entry.data.accepted)
+      if (entry.kind === 'order-drink') {
+        const old = hero.tableProps.getObjectByName(hero.drinkKind + '-drink')!
+        let disposed = 0, meshes = 0
+        old.traverse(o => { if (o instanceof THREE.Mesh) { meshes++; o.geometry.addEventListener('dispose', () => disposed++) } })
+        assert.equal(hero.orderDrink(entry.data.kind), entry.data.accepted)
+        assert.equal(disposed, meshes, 'replaced geometry leaked')
+        assert.equal(old.parent, null)
+        kinds.add(hero.drinkKind)
+      }
+      if (entry.kind === 'pose') {
+        const pose = hero.diagnosticPose()
+        assert.ok(pose.arm.reachError < 1e-6, `${hero.drinkKind}: rim calibration made the arm unreachable`)
+        assert.equal(hero.tableProps.children.filter(o => o.name.endsWith('-drink')).length, 1)
+        if (hero.leisureAction !== 'idle') {
+          const current = hero.tableProps.getObjectByName(hero.drinkKind + '-drink')
+          assert.equal(hero.orderDrink('water'), false, 'mid-motion order must be atomic, even if UI is bypassed')
+          assert.equal(hero.tableProps.getObjectByName(hero.drinkKind + '-drink'), current)
+        }
+        poses++
+      }
+    }
+    assert.equal(kinds.size, 4); assert.equal(poses, trace.counts.pose)
+  } finally {
+    hero.dispose(); texture.dispose(); box.dispose()
+    scene.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose()); if (o instanceof THREE.SkinnedMesh) o.skeleton.dispose() } })
+    if (previous) globalThis.document = previous; else delete (globalThis as { document?: Document }).document
+  }
+})
 
 test('real recorded inputs drive the actual hero mesh with attached wrists and world-space props', () => {
   // Canvas rasterization is not tested here. A minimal canvas supplies only the

@@ -3,6 +3,15 @@
   "semanticsSource": "Julius's reported requirements: connected arms, credible grips, no prop/furniture clipping, private cards, cozy Christmas lighting, block props, compact drink ordering and smooth performance",
   "cases": [
     {
+      "id": "block-props-and-free-ordering",
+      "trace": "poker-evidence-2026-09-20T04-02-22-844Z.json.gz",
+      "frequency": { "orders": 4, "sips": 4 },
+      "evidence": "All four menu choices recorded in actual source usage. Six exported canvas images include lifted glasses, recessed ashtray and cigar returned to slots. Production menu and busy-state screenshots inspected through CUA. Stack stays 2000 until legal call, not orders.",
+      "expected": "Self-authored block props, actual recessed tray/rest, one owned glass, no replacement during motion, no chip debit and no abandoned GPU resources.",
+      "status": "implemented-and-browser-checked; final-grip-art-open",
+      "candidate": "Recorded production-mesh replay checks all 772 poses, sole glass, zero reach error and disposal. Asset tests check block triangle orientation, rim/grip bounds, cavity/slot raycasts and actual cigar underside clearance. Gesture surface contact remains in finger-surface-and-grip."
+    },
+    {
       "id": "hero-drink-unbounded-reach",
       "trace": "poker-evidence-2026-09-20T03-19-01-705Z.json.gz",
       "events": "drink accepted at visual 17.7207 and 31.1354 seconds",
@@ -27,8 +36,8 @@
       "frequency": { "pauseResume": 1, "inspectionDuringDrink": 1 },
       "evidence": "Pause correctly freezes visual time. Inspection cancels directly to homes, without an explicit return phase; cigar request at 39.1742 is rejected during residual inspection blend although the UI button is enabled.",
       "expected": "Pause preserves pose; inspection has an explicit safe interruption/return policy and UI availability matches interaction availability.",
-      "status": "hero-return-policy-verified; full-ui-availability-open",
-      "candidate": "Fresh source recording captures mid-sip inspection returning the glass before inspectionReady, with cigar left on tray. Production preview reproduces return and accepts cigar immediately after Look up. Pause/idempotence and sparse-frame replay pass. Buttons can still appear available while an action is busy; D2 menu availability must consume resolved busy state."
+      "status": "hero-return-and-ui-availability-verified",
+      "candidate": "Fresh source recording captures mid-sip inspection returning the glass before inspectionReady, with cigar left on tray. Production reproduces return and accepts cigar after Look up. Pause/idempotence and sparse-frame replay pass. D2 publishes resolved availability on transitions: cigar/sip and all replacement choices disable during reach/sip/return; the read-only menu remains accessible."
     },
     {
       "id": "tree-bar-clearance",
@@ -66,5 +75,5 @@
       "status": "open"
     }
   ],
-  "notYetRecorded": ["drink ordering (not implemented)", "reduced-motion interaction", "visibility interruption mid-sip", "browser frame skip across ownership boundaries (synthetic sparse replay only)", "fresh cozy-lighting acceptance", "all five opponent grips and faces"]
+  "notYetRecorded": ["reduced-motion interaction", "visibility interruption mid-sip", "browser frame skip across ownership boundaries (synthetic sparse replay only)", "fresh cozy-lighting acceptance", "all five opponent grips and faces"]
 }

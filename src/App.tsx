@@ -5,6 +5,8 @@ import { cardLabel, evaluate, rankLabel, SUITS, suit, type Card } from './engine
 import { chooseAction, observe } from './engine/bots'
 import { CHARACTERS, PokerGame, STREETS, type Action, type GameState, type Legal } from './engine/game'
 import { PokerRoom } from './scene/Room'
+import { DRINKS, type DrinkKind } from './scene/props/specs'
+import { DrinkMenu } from './components/DrinkMenu'
 
 const SAVE_KEY = 'poker.table.v1'
 type Save = { table: GameState | null; muted: boolean; speed: 'relaxed' | 'brisk' }
@@ -37,6 +39,8 @@ export function App({ api }: { api: PokerApi }) {
   const [raiseOpen, setRaiseOpen] = useState(false)
   const [boardOpen, setBoardOpen] = useState(false)
   const [inspecting, setInspecting] = useState(false)
+  const [drinkMenu, setDrinkMenu] = useState(false)
+  const [leisure, setLeisure] = useState<{ kind: DrinkKind; available: boolean }>({ kind: 'old-fashioned', available: false })
   const inspectionHeld = useRef(false)
   const [orbit, setOrbit] = useState(0)
   const [sceneReady, setSceneReady] = useState(0)
@@ -79,7 +83,7 @@ export function App({ api }: { api: PokerApi }) {
       // visible view; hidden previews initialize when the user actually opens it.
       if (document.hidden || room) return
       try {
-        room = new PokerRoom(stage.current!, () => { setSceneFailed(true); setPaused(true) }, () => setSceneReady(n => n + 1))
+        room = new PokerRoom(stage.current!, () => { setSceneFailed(true); setPaused(true) }, () => setSceneReady(n => n + 1), setLeisure)
         scene.current = room; setSceneReady(n => n + 1)
         room.update(game.current?.snapshot() ?? new PokerGame().snapshot())
       } catch (reason) { console.error('Poker room initialization failed', reason); setSceneFailed(true) }
@@ -105,6 +109,7 @@ export function App({ api }: { api: PokerApi }) {
   useEffect(() => {
     if (lobby || paused || panel || confirmNew || error || sceneFailed) {
       inspectionHeld.current = false; setInspecting(false)
+      setDrinkMenu(false)
     }
   }, [lobby, paused, panel, confirmNew, error, sceneFailed])
   useEffect(() => {
@@ -235,6 +240,7 @@ export function App({ api }: { api: PokerApi }) {
       if (event.key === 'Escape') {
         event.preventDefault(); event.stopPropagation()
         if (confirmNew) setConfirmNew(false)
+        else if (drinkMenu) { setDrinkMenu(false); root.current?.focus({ preventScroll: true }) }
         else if (panel) setPanel(null)
         else if (raiseOpen) setRaiseOpen(false)
         else if (boardOpen) setBoardOpen(false)
@@ -242,6 +248,7 @@ export function App({ api }: { api: PokerApi }) {
         else if (!lobby) setPaused(value => !value)
         return
       }
+      if (drinkMenu) return
       if (event.key.toLowerCase() === 's' && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed && !(event.target instanceof HTMLElement && event.target.closest('input, select, textarea, [contenteditable]'))) {
         event.preventDefault(); if (!event.repeat) scene.current?.smokeCigar(); return
       }
@@ -278,7 +285,16 @@ export function App({ api }: { api: PokerApi }) {
       <div className="room-vignette" />
       {!lobby && s && <>
         <div className="table-info"><span className="live-dot" /> TABLE 01 <span>·</span> HAND {String(s.handNumber).padStart(3, '0')} <span>·</span> BLINDS 10 / 20</div>
-        <div className="room-top-right"><button onClick={() => { setInspecting(value => !value); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed} aria-pressed={inspecting} title="Hold Space to inspect cards and chips">{inspecting ? 'Look up' : 'Cards & chips'} <kbd>Space</kbd></button><button onClick={() => scene.current?.smokeCigar()} disabled={paused || !!panel || !!error || sceneFailed || inspecting} title="Smoke cigar (S)">Cigar <kbd>S</kbd></button><button onClick={() => { scene.current?.sipDrink(); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed || inspecting} title="Sip Old Fashioned (D)">Old Fashioned <kbd>D</kbd></button><button onClick={() => setBoardOpen(value => !value)} aria-expanded={boardOpen} aria-label="Inspect community cards">{STREETS[s.street]} ▾</button><button onClick={() => openPanel('history')}>Hand history ↗</button></div>
+        <div className="room-top-right">
+          <button onClick={() => { setDrinkMenu(false); setInspecting(value => !value); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed} aria-pressed={inspecting} title="Hold Space to inspect cards and chips">{inspecting ? 'Look up' : 'Cards & chips'} <kbd>Space</kbd></button>
+          <button onClick={() => scene.current?.smokeCigar()} disabled={paused || !!panel || !!error || sceneFailed || inspecting || !leisure.available} title="Smoke cigar (S)">Cigar <kbd>S</kbd></button>
+          <button onClick={() => { scene.current?.sipDrink(); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed || inspecting || !leisure.available} title="Sip current drink (D)">{DRINKS[leisure.kind].label} <kbd>D</kbd></button>
+          <button onClick={() => { setDrinkMenu(value => !value); setBoardOpen(false) }} disabled={paused || !!panel || !!error || sceneFailed || inspecting} aria-expanded={drinkMenu}>Drinks ▾</button>
+          <button onClick={() => { setDrinkMenu(false); setBoardOpen(value => !value) }} aria-expanded={boardOpen} aria-label="Inspect community cards">{STREETS[s.street]} ▾</button><button onClick={() => openPanel('history')}>Hand history ↗</button>
+        </div>
+        {drinkMenu && <DrinkMenu kind={leisure.kind} available={leisure.available} onClose={() => { setDrinkMenu(false); root.current?.focus({ preventScroll: true }) }} onOrder={kind => {
+          if (scene.current?.orderDrink(kind)) { setDrinkMenu(false); root.current?.focus({ preventScroll: true }) }
+        }} />}
         {s.players.map((p, i) => {
           if (i === 0) return null // Your seat is the camera; bankroll/cards already live in the foreground HUD.
           const position = scene.current?.projectSeat(i) ?? { x: 50, y: 50 }
