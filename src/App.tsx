@@ -34,6 +34,8 @@ export function App({ api }: { api: PokerApi }) {
   const [loadFailed, setLoadFailed] = useState(false)
   const [sceneFailed, setSceneFailed] = useState(false)
   const [muted, setMuted] = useState(false)
+  const [ambienceLevel,setAmbienceLevel]=useState(1)
+  const [effectsLevel,setEffectsLevel]=useState(1)
   const [speed, setSpeed] = useState<Save['speed']>('relaxed')
   const [panel, setPanel] = useState<'history' | 'settings' | 'rules' | 'bank' | null>(null)
   const [confirmNew, setConfirmNew] = useState(false)
@@ -92,6 +94,7 @@ export function App({ api }: { api: PokerApi }) {
       try {
         room = new PokerRoom(stage.current!, () => { setSceneFailed(true); setPaused(true) }, () => setSceneReady(n => n + 1), setLeisure)
         room.onAudioListener = matrix => audio.current?.setListenerMatrix(matrix)
+        if(audio.current)audio.current.onCue=kind=>room?.recordAudio({cue:kind})
         scene.current = room; setSceneReady(n => n + 1)
         room.update(game.current?.snapshot() ?? new PokerGame().snapshot())
       } catch (reason) { console.error('Poker room initialization failed', reason); setSceneFailed(true) }
@@ -119,6 +122,16 @@ export function App({ api }: { api: PokerApi }) {
     document.addEventListener('visibilitychange', sync); window.addEventListener('blur', blur); sync()
     return () => { document.removeEventListener('visibilitychange', sync); window.removeEventListener('blur', blur) }
   }, [api, lobby, paused, panel, confirmNew, error, sceneFailed])
+  useEffect(()=>{audio.current?.setLevels(ambienceLevel,effectsLevel)},[ambienceLevel,effectsLevel])
+  useEffect(()=>{
+    if(!gameState)return
+    // The same narrow public observation drives local and LAN effects. Never
+    // pass the full engine snapshot through an ostensibly cosmetic subsystem.
+    audio.current?.observe(gameState.revision,{hand:gameState.handNumber,phase:gameState.phase,
+      actor:gameState.actor,boardCount:gameState.board.length,
+      players:gameState.players.map(p=>({seat:p.seat,stack:p.stack,bet:p.bet,folded:p.folded,action:p.action}))},
+      !lobby&&!paused&&!panel&&!confirmNew&&!error&&!sceneFailed&&!document.hidden&&document.hasFocus(),0)
+  },[gameState,lobby,paused,panel,confirmNew,error,sceneFailed])
   // One paused visual clock preserves the exact grip/deal/chip contact across
   // dialogs and focus loss. Wall-clock animation would teleport to its ending.
   useEffect(() => { scene.current?.setPaused(paused || !!panel || confirmNew || !!error || sceneFailed) }, [paused, panel, confirmNew, error, sceneFailed, sceneReady])
@@ -166,7 +179,6 @@ export function App({ api }: { api: PokerApi }) {
     try {
       audio.current?.unlock()
       game.current.act(0, action)
-      audio.current?.play(action.type === 'fold' ? 'fold' : 'chip')
       // The clicked action button disappears when the opponent's turn begins.
       // Return focus before that unmount, or it falls onto document.body and all
       // table-scoped shortcuts (including Escape and inspect) silently stop.
@@ -187,10 +199,8 @@ export function App({ api }: { api: PokerApi }) {
       try {
         if (phase === 'betting' && actor !== null) {
           engine.act(actor, chooseAction(observe(engine.snapshot(), engine.legal())))
-          audio.current?.play('chip')
         } else {
           engine.advance()
-          audio.current?.play(engine.snapshot().phase === 'complete' ? 'win' : 'card')
         }
         publish()
       } catch (reason) { setError(reason instanceof Error ? reason.message : 'The table needs attention.'); setPaused(true) }
@@ -205,7 +215,6 @@ export function App({ api }: { api: PokerApi }) {
     return () => { window.removeEventListener('blur', suspend); document.removeEventListener('visibilitychange', visibility) }
   }, [lobby])
   useEffect(() => {
-    if (gameState?.actor === 0 && !lobby) audio.current?.play('turn')
     setRaiseOpen(false)
   }, [gameState?.revision, lobby])
 
@@ -218,12 +227,13 @@ export function App({ api }: { api: PokerApi }) {
   const newTable = () => {
     if (locked.current || loading || sceneFailed) return
     game.current = new PokerGame(); bank.current=freshSoloBank(game.current); game.current.startHand()
+    audio.current?.resetEvents()
     setConfirmNew(false); setPanel(null); setError(''); setLoadFailed(false); setPaused(false); setLobby(false)
     audio.current?.unlock(); audio.current?.play('card'); root.current?.focus({ preventScroll: true }); publish()
   }
   const nextHand = () => {
     if (locked.current || !game.current || gameState?.phase !== 'complete') return
-    game.current.startHand(); audio.current?.play('card'); root.current?.focus({ preventScroll: true }); publish()
+    game.current.startHand(); root.current?.focus({ preventScroll: true }); publish()
   }
   const openPanel = (next: typeof panel) => { setPaused(true); setPanel(next) }
   const bankTransfer = (action:BankOperation,revision:number) => {
@@ -390,6 +400,8 @@ export function App({ api }: { api: PokerApi }) {
       </div> : panel === 'settings' ? <div className="settings-content">
         <label>Table pace<select value={speed} disabled={saving || loading || loadFailed} onChange={event => { const value = event.target.value as Save['speed']; setSpeed(value); preferences.current.speed = value; void persist(game.current?.snapshot() ?? null) }}><option value="relaxed">Relaxed</option><option value="brisk">Brisk</option></select></label><p>How long opponents take between decisions.</p>
         <label>Sound<button onClick={toggleMute} disabled={saving || loading || loadFailed} aria-pressed={!muted}>{muted ? 'Off' : 'On'}</button></label>
+        <label>Fire ambience<select value={ambienceLevel} onChange={event=>{const value=Number(event.target.value);setAmbienceLevel(value);scene.current?.recordAudio({ambience:value,effects:effectsLevel})}}><option value={0}>Off</option><option value={.5}>Quiet</option><option value={1}>Normal</option></select></label>
+        <label>Game effects<select value={effectsLevel} onChange={event=>{const value=Number(event.target.value);setEffectsLevel(value);scene.current?.recordAudio({ambience:ambienceLevel,effects:value})}}><option value={0}>Off</option><option value={.5}>Quiet</option><option value={1}>Normal</option></select></label><p>Fire and game sounds have separate levels. Sound Off mutes both. Levels last until reload.</p>
         <label>Drink effect<select aria-label="Drink effect" value={drinkEffect} onChange={event=>setDrinkEffect(event.target.value as DrinkEffectLevel)}><option value="off">Off</option><option value="subtle">Subtle</option><option value="soft">Soft</option></select></label><p>A gentle edge warmth only after your completed alcoholic sips. No camera sway or blur. Water and ordering do not add it. Off clears it; this preference lasts until reload.</p>
         <label>Camera angle<input type="range" min={-1} max={1} step={0.1} value={orbit} onChange={event => setOrbit(Number(event.target.value))} /></label>
         {scene.current?.experimentalLook && <><label>Mouse-look<button aria-pressed={lookEnabled} onClick={() => setLookEnabled(value => !value)}>{lookEnabled ? 'On' : 'Off'}</button></label><p>Hold the left mouse button and drag the room. R centers your view. Controls never steer the camera. This setting lasts until reload.</p></>}

@@ -2,12 +2,27 @@
 
 ## Active direction — finish the non-LAN gameplay list
 
-Current queue: recover real source/shipped checks for mouse-look, NPC exterior
-pickup and snow; next implementation slice is public-event chip audio and
-independent ambience/effects levels. Keep actual listening and performance
-acceptance separate. Do not restart or replace a running LAN host for this work.
+Current queue: close-up NPC motion/contact review, controlled render performance
+and listening/mix acceptance after the public-event audio checkpoint. Actual
+normal source/shipped mouse-look, visible desktop snow, audio controls and
+restore checks recovered in session35. Keep remaining narrow/reduced-motion,
+LAN/installed-host and final art gates explicit; do not restart a running host.
 
 ### Public-event audio and independent levels — staged before implementation
+
+Checkpoint: implemented shared public classifier, bounded cached chip impacts,
+independent session-only volume levels and silent duplicate/gap/reconnect paths.
+Actual source14-00-40 trace has3065frames/762poses,20audio events and no timestamp
+inversions. Effects Off suppresses cues while poker continues;3fold cues are not
+chips. Source call20/call44/fold, inspection, pause/reload restores1936. Shipped
+restores that hand, deals/calls20, inspects, mutes and reloads hand2 stack1916/
+pot100, then checks. Levels reset; master mute persists. Console warnings/errors
+empty in both captures. Snow visibly larger in source/shipped; normal drag/Off/
+recenter work. Recorded222NPC transition poses reconstruct exterior skin across
+all five seats. Not listening evidence, final hand art or controlled FPS approval.
+Session35/manifest retain raw trace and3PNGs. Final full verify179 tests, both
+builds,2SDK contracts and1exact-byte preview pass. Next: close-up motion and
+controlled render profiling; retain actual listening as an explicitly open gate.
 
 Retained05-52-49 public-game events include three folds, two calls and two
 checks. Current solo NPC callback emits chip for all seven; LAN revision

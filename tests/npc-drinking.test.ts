@@ -58,3 +58,23 @@ test('NPC contact route is isolated from player ownership, camera and poker stat
   assert.doesNotMatch(core,/from ['"](?!three['"])/)
   assert.doesNotMatch(core,/\b(?:document|window|performance|requestAnimationFrame)\b/)
 })
+
+test('actual candidate pickup/release matrices reconstruct exterior skin on all recorded seats',()=>{
+  // Unlike the earlier synthetic time sweep, these wrist/vessel/grip samples
+  // came from real browser motion. Skin is still reconstructed from production
+  // geometry: this is not a captured-vertex or perceptual animation assertion.
+  const actual=JSON.parse(gunzipSync(readFileSync(new URL('../testing/fixtures/experience/poker-evidence-2026-09-20T14-00-40-788Z.json.gz',import.meta.url))).toString())
+  const hand=new AnatomicalHand('right','#ae8165',.0025),seats=new Set<number>()
+  let samples=0
+  for(const entry of actual.entries.filter((e:any)=>e.kind==='pose'))for(const p of entry.data.people){
+    if(!['clear','form','approach'].includes(p.drinkContact.phase))continue
+    hand.pose('rest');hand.pose('glass',p.drinkContact.grip)
+    const spec=DRINKS[p.seat===1||p.seat===5?'beer':p.seat===2?'wine':p.seat===3?'water':'old-fashioned']
+    const transform=new Matrix4().fromArray(p.drink.world).invert().multiply(new Matrix4().fromArray(p.rightHand.world))
+    const gap=skinVesselGap(hand,transform,spec.radius,spec.height)
+    assert.ok(gap>=Math.SQRT2*.001,`recorded seat${p.seat} at${entry.visualSeconds}: ${gap*1000}mm`)
+    assert.ok(p.drinkContact.reachError<1e-7)
+    seats.add(p.seat);samples++
+  }
+  assert.equal(samples,222);assert.equal(seats.size,5)
+})

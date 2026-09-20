@@ -4,6 +4,24 @@
 
 ### B23–E23 public-event audio and independent levels
 
+Checkpoint: shared classifier and capped/cached procedural impacts implemented;
+solo and LAN adapters project only public fields and expose independent levels.
+Actual source14-00-40 records20audio events (including3level changes), poker while
+effects Off with no cue submissions,3fold cues, one completed alcoholic sip,
+accepted/rejected look drags and monotonic timestamps. Normal source and shipped
+settings/actions/inspection/pause/restore checked; warnings/errors empty. Source
+restores1936; shipped hand2 call20 restores1916/pot100 with saved mute and reset
+session levels. Actual source3PNGs retained; shipped screenshots inspected in CUA
+transcript (no production recorder). E23 listening and live LAN mix remain open.
+
+Related E20/E22 recovery: normal source/shipped now visibly support drag/recenter/
+Off and larger window flakes, preserving bottom-right board and existing UI.
+These desktop observations do not verify narrow/reduced-motion or controlled FPS.
+E21 now has222actual clear/form/approach matrices across all five seats, with
+finite-surface reconstruction passing exterior clearance and reach; still not
+captured mesh vertices or final close-up motion/anatomy approval. Session35 is
+the latest evidence; earlier unavailable-browser notes remain historical.
+
 A: PokerAudio's existing gesture-gated effects and licensed FireAmbience;
 raw poker-evidence-2026-09-20T05-52-49-020Z.json.gz contains nine public-game
 frames. After the priming frame: three Fold transitions, two Call500 transitions,

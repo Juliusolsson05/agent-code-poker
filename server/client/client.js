@@ -29,7 +29,7 @@ const bankRoot = createRoot(el('bank'))
 const headerRoot=createRoot(el('header')),hudRoot=createRoot(el('hud')),potRoot=createRoot(el('pot')),infoRoot=createRoot(el('table-info'))
 const audio=new PokerAudio(TAVERN_FEATURES.fireplace?fireplaceRecording:undefined,
   [FIREPLACE_LAYOUT.position[0],.4,FIREPLACE_LAYOUT.position[2]+.05])
-let muted=false,lastSoundView=null,sceneViewer=null,focused=document.hasFocus(),lookEnabled=true
+let muted=false,sceneViewer=null,focused=document.hasFocus(),lookEnabled=true
 const soundActive=()=>audio.setAmbienceActive(!!state && !state.paused && !connectionLost && !ended && !menuOpen && !document.hidden && focused)
 el('app').addEventListener('pointerdown',()=>audio.unlock())
 el('app').addEventListener('keydown',event=>{if(!event.repeat)audio.unlock()})
@@ -89,7 +89,8 @@ async function api(path, body) {
   if (data.view) {
     if (!responses.accept(request, data)) throw new ObsoleteResponse()
     const newGeneration = state && data.generation !== state.generation
-    if (newGeneration) { controlsRevision++; authorityRevision=-1;lastSoundView=null; inspected=false;room?.setInspection(false) }
+    if (newGeneration || connectionLost) audio.resetEvents()
+    if (newGeneration) { controlsRevision++; authorityRevision=-1; inspected=false;room?.setInspection(false) }
     state = data; connectionLost = false; render()
   } else if (!response.ok && !responses.failureCurrent(request)) {
     throw new ObsoleteResponse()
@@ -161,7 +162,7 @@ function render() {
   soundActive()
   el('create').disabled = pending || !!token; el('join').disabled = pending || !!token
   if (!state) {
-    ensureRoom(0,true);room?.setPlaying(false);bettingRoot.render(null);lastSoundView=null
+    ensureRoom(0,true);room?.setPlaying(false);bettingRoot.render(null);audio.resetEvents()
     hudRoot.render(null);potRoot.render(null);infoRoot.render(null);el('actions').hidden=el('deal-actions').hidden=true
     inspected=false;menuOpen=false;drinkMenuOpen=false;wagerOpen=false;leisure={kind:'old-fashioned',available:false}
     connectionLost=false;authorityRevision=-1;el('menu').hidden=true;leisureRoot.render(null);bankRoot.render(null);showSaved(); return
@@ -199,16 +200,11 @@ function render() {
     position:`${v.dealer===own.seat?' · DEALER':''}${v.smallBlindSeat===own.seat?' · SB':''}${v.bigBlindSeat===own.seat?' · BB':''}`,
     handLabel:own.folded?'Folded':hand,status,detail:pending?'Sending…':v.self.waiting?'Joining at the next hand':own.action,
     winningCards:finished?v.results.find(r=>r.seat===own.seat&&r.won>0)?.hand?.cards??[]:[],withActions:turn||finished||v.phase==='ready'}))
-  // Polls and reconnect snapshots are not new chip sounds. Prime once, then
-  // emit only for a later game revision while connected; no audio ledger.
-  if(lastSoundView && v.gameRevision>lastSoundView.revision && !state.paused&&!connectionLost&&focused&&!document.hidden) {
-    if(v.handNumber!==lastSoundView.hand || v.board.length!==lastSoundView.board)audio.play('card')
-    else if(finished&&!lastSoundView.finished)audio.play('win')
-    else if(turn&&!lastSoundView.turn)audio.play('turn')
-    else if(!finished)audio.play('chip')
-    // A complete-hand bank transfer is NOT another poker win.
-  }
-  lastSoundView={revision:v.gameRevision,hand:v.handNumber,board:v.board.length,finished,turn}
+  // Authority seats, not rotated display slots. Polls/menus/restore must not
+  // fabricate chip sounds; shared owner silently advances inaudible snapshots.
+  audio.observe(v.gameRevision,{hand:v.handNumber,phase:v.phase,actor:v.actor,boardCount:v.board.length,
+    players:v.players.map(p=>({seat:p.seat,stack:p.stack,bet:p.bet,folded:p.folded,action:p.action}))},
+    !state.paused&&!connectionLost&&!ended&&!menuOpen&&!v.self.waiting&&focused&&!document.hidden,v.self.seat)
   // Names are untrusted text. Never use innerHTML for a roster, including a
   // developer-only lobby: it holds the same bearer token as the eventual game.
   el('players').replaceChildren(...[...v.players].sort((a,b)=>a.displaySeat-b.displaySeat).map(p => {
@@ -289,6 +285,9 @@ function bankTransfer(action,revision) {
 }
 function menu(open) {menuOpen=open;el('menu').hidden=!open;syncLookBlocked();render();if(!open)focusTable()}
 el('details').onclick=()=>menu(!menuOpen);el('close-menu').onclick=()=>menu(false)
+for(const id of ['ambience-level','effects-level'])el(id).onchange=()=>{
+  audio.setLevels(Number(el('ambience-level').value),Number(el('effects-level').value))
+}
 el('look-enabled').onclick=()=>{
   lookEnabled=!lookEnabled;room?.setLookEnabled(lookEnabled)
   el('look-enabled').setAttribute('aria-pressed',String(lookEnabled))

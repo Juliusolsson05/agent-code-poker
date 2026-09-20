@@ -1,0 +1,24 @@
+{
+  "date": "2026-09-20",
+  "kind": "actual source/shipped CUA gameplay and raw source trace, plus explicitly synthetic audio-device tests",
+  "plan": "1a7920c committed and pushed B23–E23 before implementation",
+  "implementation": "PokerAudio-only public transition classifier; no private cards/deck retained. First/duplicate/stale/gapped/reconnect snapshots silent. Authored3cached180ms mono chip variants,6source cap; other short tones12node cap. Independent Off/Quiet/Normal levels with .045fire/.18effects maximum, master mute precedence, pause/dispose cleanup. Existing UI layout and licensed spatial recording preserved. No dependency/lockfile change or host restart.",
+  "source": {
+    "url": "/dev/?qa=audio-35&record",
+    "raw": "poker-evidence-2026-09-20T14-00-40-788Z.json.gz",
+    "rawSha256": "775acc83dc135eb220b180aba332f9714ffd642fe8ec619c696e4c8ced4213b4",
+    "frames": 3065,
+    "poses": 762,
+    "audioEvents": 20,
+    "visualTimestampInversions": 0,
+    "observations": "Call20 then call44 then fold; no audio cues while effects Off despite continuing bot decisions. Quiet fire remained selected when effects returned to Normal. One accepted drag8moves; recenter; Off rejects next drag. One completed Old Fashioned receipt. Inspection, pause, completed hand and reload restore stack1936. Window flakes visibly larger. Three canvas PNG exports retained and full UI screenshots inspected in CUA. Captured warning/error log empty."
+  },
+  "shipped": {
+    "url": "/dev/?production&qa=audio-35&record",
+    "observations": "Initial accessibility call timed out; recovered existing owned tab. Restored source hand1 stack1936/pot award4084. Deal hand2, drag/recenter, call20, Fire Off/Effects Quiet, master mute, look Off, inspection, pause/reload. Restored hand2 flop stack1916/pot100 with mute retained. Unmute/check then settings confirms both levels Normal and look On after reload. Original room/fireplace/bottom-right board preserved; larger snow visible. Captured warning/error log empty.",
+    "limitations": "Screenshots/AX inspected in CUA transcript; production recorder intentionally absent. No raw shipped pose/audio trace or speaker recording."
+  },
+  "syntheticAndReconstructed": "Recorded05-52-49 public frames drive fold/call/check classification test; ordinal revision envelope is synthetic. Fake audio device verifies cache/voice/mute/dispose/gain contracts, waveform checks finite bounded samples, not timbre. Fresh actual222NPC clear/form/approach transforms reconstruct unchanged production skin outside all five glasses; these are not captured mesh vertices. Additional full-path time sweep remains synthetic.",
+  "verification": "Final npm run verify179 tests plus2SDK contracts/1exact-byte preview, TypeScript and both builds passed after fresh evidence/regressions. No dependency/lockfile changes. Production dist and lan-dist rebuilt. Bundle-size warnings remain; passing tests are not listening or performance acceptance.",
+  "open": "Listening/timbre/spatial mix, controlled performance, narrow/reduced-motion motion checks, close-up NPC motion/art, actual LAN device recovery and installed Electron/extension hosting remain open. No final-game completion or FPS claim. Hand-art pass remains last; dealer canceled."
+}

@@ -86,6 +86,15 @@
   ],
   "candidateSessions": [
     {
+      "file": "poker-evidence-2026-09-20T14-00-40-788Z.json.gz",
+      "rawSha256": "775acc83dc135eb220b180aba332f9714ffd642fe8ec619c696e4c8ced4213b4",
+      "provenance": "Actual normal source CUA: public audio cues, independent levels, effects-off interval, call20/call44/fold, look drag/recenter/Off rejection, Old Fashioned sip, inspection, completion and pause. Untouched download; monotonic timestamps.",
+      "frameCount": 3065,
+      "poseCount": 762,
+      "images": ["poker-evidence-2026-09-20T14-00-40-788Z-53.177.png", "poker-evidence-2026-09-20T14-00-40-788Z-67.617.png", "poker-evidence-2026-09-20T14-00-40-788Z-93.349.png"],
+      "limitations": "Audio event is a Web Audio submission, not a speaker/listening capture. Instrumented shared-device workload, not a controlled benchmark. Candidate NPC transition transforms recorded; skin reconstruction is separately labeled. Source/shipped screenshots show visible snow and preserved UI, not final hand-art approval."
+    },
+    {
       "file": "poker-evidence-2026-09-20T10-22-27-476Z.json.gz",
       "rawSha256": "6ef272bc6b7cc82d6c18991fc2f81a41f90d1b97d8afc405ecaeaeeb2bb5cbfb",
       "provenance": "Actual source CUA after receipt timestamp-order correction: restore hand1 stack1980, completed Old Fashioned sip with exactly one receipt and opacity.015, later pause. All recorded timestamps monotonic.",

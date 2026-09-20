@@ -21,6 +21,14 @@ gameplay shortcuts. Opponents keep card backs facing you until public showdown.
 The active hand saves after every decision. Losing focus pauses the table;
 returning does not silently resume betting.
 
+**Settings → Fire ambience / Game effects** (LAN: **Table menu**) independently
+select Off, Quiet or Normal. Normal keeps the existing background-fire maximum;
+master Sound Off mutes both. These levels reset on reload without changing your
+saved table. Wagers use cached procedural chip impacts; checks use a quiet tap,
+not chip sounds. Refresh, reconnect gaps and bank transfers do not replay wagers.
+Listening quality remains an acceptance gate; these are authored sounds, not
+recordings of real chips.
+
 **Bank** keeps a busted solo player at the same table: borrow 2,000 fictional
 chips between hands, then explicitly confirm. Debt has no interest or real-money
 value and saves with the table. Repay 500 or up to your available debt/stack
@@ -174,8 +182,11 @@ Window snow uses84 larger soft flakes in one draw, with24Hz position uploads
 and a frozen reduced-motion view. It stays behind the window's wooden bars,
 not across the table. The NPC drink pickup now approaches above the rim before
 lowering the existing grip around the exterior; release reverses that route.
-Surface and projection regressions pass, but fresh source/shipped motion and
-visual acceptance for these candidates remains open. No new hand art is included.
+Surface and projection regressions pass. Actual source/shipped desktop checks
+now show visible window snow, mouse-look/Off and preserved controls; the source
+trace also records all five NPC pickup/release paths. Reconstructed skin passes
+222 captured transition poses, but close-up motion/art and controlled device
+performance remain open. No new hand art is included.
 
 `/dev/?qa=my-check&stats&record` isolates a QA save and enables a bounded local
 trace recorder. Record evidence, exercise the real controls, capture views, then

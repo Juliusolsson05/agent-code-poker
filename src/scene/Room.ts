@@ -383,6 +383,11 @@ export class PokerRoom {
     // categories and public legal amounts, never DOM values or private cards.
     this.capture?.event('betting-input', data)
   }
+  recordAudio(data:{cue?:string;ambience?:number;effects?:number}):void {
+    // A submitted Web Audio cue is not proof of output at the user's speakers.
+    // These public categories help correlate real controls and state traces.
+    this.capture?.event('audio',data)
+  }
   update(state: GameState): void {
     this.present(this.projection.solo(state))
   }
