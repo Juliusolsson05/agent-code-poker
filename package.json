@@ -4,17 +4,25 @@
   "private": true,
   "type": "module",
   "description": "A block-built poker room for Agent Code",
-  "engines": { "node": ">=22.12" },
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "dev": "vite --config vite.dev.config.ts --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "test:contract": "node --test testing/contract.test.mjs",
-    "verify": "npm test && npm run build && npm run test:contract"
+    "test:preview": "node --test testing/preview.test.mjs",
+    "verify": "npm test && npm run build && npm run test:contract && npm run test:preview"
   },
-  "dependencies": { "react": "18.3.1", "react-dom": "18.3.1", "three": "0.169.0" },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "three": "0.169.0"
+  },
   "devDependencies": {
+    "@types/node": "22.20.4",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
     "@types/three": "0.169.0",

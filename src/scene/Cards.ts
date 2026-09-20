@@ -24,8 +24,8 @@ export class CardField {
     mesh.material.map = this.texture(value); mesh.material.needsUpdate = true; mesh.rotation.x = -Math.PI / 2
     return mesh
   }
-  update(state: GameState): void {
-    const now = performance.now() / 1000, old = this.previous, newHand = old?.handNumber !== state.handNumber || old?.deck.join() !== state.deck.join()
+  update(state: GameState, now = performance.now() / 1000): void {
+    const old = this.previous, newHand = old?.handNumber !== state.handNumber || old?.deck.join() !== state.deck.join()
     if (newHand) {
       for (const mesh of this.cards.values()) { mesh.geometry.dispose(); mesh.material.dispose(); mesh.removeFromParent() }
       this.cards.clear(); this.flights = []

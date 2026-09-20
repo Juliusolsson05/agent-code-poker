@@ -18,3 +18,13 @@ The user approved the research-led rebuild on September 19. Keep characters self
 The initial repository is private. All chips are free practice currency. There are no external assets, network calls, accounts, purchases or requested host permissions. Rules use TDA betting/settlement conventions where applicable; physical casino procedures are represented by legal UI actions.
 
 Keep the rationale near the implementation. The engine owns chip amounts and legal actions; rendering never moves money. Storage failure must be visible and must not silently replace saved progress.
+
+September 20: the user requested a long-running autonomous goal loop and the
+staged-decomposition skill. `docs/decomposition/poker-experience.md` is now the
+active staged plan. The loop is active; there is no approval pause between
+stages and no merge authorization. Current anatomy/Christmas work remains a
+provisional substrate. Two real browser traces and nine screenshots establish
+the failing baseline: unbounded detached hero reach, bar/tree overlap, flat
+facial-hair slab, poor bent fingers, and slow frame delivery. Preserve these
+recordings while isolating ownership/coordinates, building the drink menu and
+block props, and validating layout, lighting and measured performance.

@@ -71,12 +71,21 @@ export function App({ api }: { api: PokerApi }) {
   }, [api])
 
   useEffect(() => {
-    try {
-      const room = new PokerRoom(stage.current!, () => { setSceneFailed(true); setPaused(true) }, () => setSceneReady(n => n + 1))
-      scene.current = room; setSceneReady(n => n + 1)
-      room.update(game.current?.snapshot() ?? new PokerGame().snapshot())
-      return () => { room.dispose(); scene.current = null }
-    } catch { setSceneFailed(true) }
+    let room: PokerRoom | null = null
+    const mount = () => {
+      // Hot reload reaches every open preview tab. Building five procedural
+      // humans in each hidden tab simultaneously caused severe CPU/memory
+      // contention even after background rendering stopped. Construct only the
+      // visible view; hidden previews initialize when the user actually opens it.
+      if (document.hidden || room) return
+      try {
+        room = new PokerRoom(stage.current!, () => { setSceneFailed(true); setPaused(true) }, () => setSceneReady(n => n + 1))
+        scene.current = room; setSceneReady(n => n + 1)
+        room.update(game.current?.snapshot() ?? new PokerGame().snapshot())
+      } catch (reason) { console.error('Poker room initialization failed', reason); setSceneFailed(true) }
+    }
+    document.addEventListener('visibilitychange', mount); mount()
+    return () => { document.removeEventListener('visibilitychange', mount); room?.dispose(); scene.current = null }
   }, [])
   useEffect(() => {
     try { if (gameState) scene.current?.update(gameState) }
@@ -89,6 +98,9 @@ export function App({ api }: { api: PokerApi }) {
   }, [gameState, sceneReady])
   useEffect(() => { scene.current?.setOrbit(orbit); setSceneReady(n => n + 1) }, [orbit])
   useEffect(() => { scene.current?.setPlaying(!lobby) }, [lobby, sceneReady])
+  // One paused visual clock preserves the exact grip/deal/chip contact across
+  // dialogs and focus loss. Wall-clock animation would teleport to its ending.
+  useEffect(() => { scene.current?.setPaused(paused || !!panel || confirmNew || !!error || sceneFailed) }, [paused, panel, confirmNew, error, sceneFailed, sceneReady])
   useEffect(() => { scene.current?.setInspection(inspecting) }, [inspecting, sceneReady])
   useEffect(() => {
     if (lobby || paused || panel || confirmNew || error || sceneFailed) {
@@ -233,6 +245,9 @@ export function App({ api }: { api: PokerApi }) {
       if (event.key.toLowerCase() === 's' && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed && !(event.target instanceof HTMLElement && event.target.closest('input, select, textarea, [contenteditable]'))) {
         event.preventDefault(); if (!event.repeat) scene.current?.smokeCigar(); return
       }
+      if (event.key.toLowerCase() === 'd' && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed && !(event.target instanceof HTMLElement && event.target.closest('input, select, textarea, [contenteditable]'))) {
+        event.preventDefault(); if (!event.repeat) scene.current?.sipDrink(); return
+      }
       if (isEditing(event.target)) return
       if (event.code === 'Space' && !isInput(event.target) && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed) {
         event.preventDefault()
@@ -263,7 +278,7 @@ export function App({ api }: { api: PokerApi }) {
       <div className="room-vignette" />
       {!lobby && s && <>
         <div className="table-info"><span className="live-dot" /> TABLE 01 <span>·</span> HAND {String(s.handNumber).padStart(3, '0')} <span>·</span> BLINDS 10 / 20</div>
-        <div className="room-top-right"><button onClick={() => { setInspecting(value => !value); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed} aria-pressed={inspecting} title="Hold Space to inspect cards and chips">{inspecting ? 'Look up' : 'Cards & chips'} <kbd>Space</kbd></button><button onClick={() => scene.current?.smokeCigar()} disabled={paused || !!panel || !!error || sceneFailed || inspecting} title="Smoke cigar (S)">Cigar <kbd>S</kbd></button><button onClick={() => setBoardOpen(value => !value)} aria-expanded={boardOpen} aria-label="Inspect community cards">{STREETS[s.street]} ▾</button><button onClick={() => openPanel('history')}>Hand history ↗</button></div>
+        <div className="room-top-right"><button onClick={() => { setInspecting(value => !value); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed} aria-pressed={inspecting} title="Hold Space to inspect cards and chips">{inspecting ? 'Look up' : 'Cards & chips'} <kbd>Space</kbd></button><button onClick={() => scene.current?.smokeCigar()} disabled={paused || !!panel || !!error || sceneFailed || inspecting} title="Smoke cigar (S)">Cigar <kbd>S</kbd></button><button onClick={() => { scene.current?.sipDrink(); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed || inspecting} title="Sip Old Fashioned (D)">Old Fashioned <kbd>D</kbd></button><button onClick={() => setBoardOpen(value => !value)} aria-expanded={boardOpen} aria-label="Inspect community cards">{STREETS[s.street]} ▾</button><button onClick={() => openPanel('history')}>Hand history ↗</button></div>
         {s.players.map((p, i) => {
           if (i === 0) return null // Your seat is the camera; bankroll/cards already live in the foreground HUD.
           const position = scene.current?.projectSeat(i) ?? { x: 50, y: 50 }

@@ -1,21 +1,37 @@
 import * as THREE from 'three'
-import { Sculpture, humanMaterial } from './Human'
+import { AnatomicalHand } from './Hand'
+import { anatomyMaterial, VoxelSculpt } from './Voxel'
+import { coaster, TableDrink } from './Drinks'
+import { TABLE } from './Table'
 import type { Card } from '../engine/cards'
+import { createHeldCardFan } from './CardGrip'
+import { transform } from './diagnostics/SceneCapture'
 
-/** Camera-local anatomy gives a stable physical relationship between your eyes,
- * hands and cards. These are rendered objects, not pictures pasted over the HUD.
- * This class owns only presentation; smoking never changes poker state. */
+const smooth = (t: number, a: number, b: number) => THREE.MathUtils.smoothstep(t, a, b)
+export type LeisureAction = 'idle' | 'smoke' | 'drink'
+/** One right hand, one interaction owner. The visual clock is supplied by the
+ * room so pause freezes contacts instead of skipping a sip when focus returns.
+ * Inspection cancels leisure actions to stable homes; it never leaves a glass
+ * parented to an invisible hand or a cigar hanging in space. */
 export class FirstPerson {
   readonly root = new THREE.Group()
-  private left = new THREE.Group()
-  private right = new THREE.Group()
+  readonly tableProps = new THREE.Group()
+  private left = new AnatomicalHand('left')
+  private right = new AnatomicalHand('right')
   private fan = new THREE.Group()
   private paper: THREE.Mesh[] = []
-  private smoke: { mesh: THREE.Sprite; birth: number; seed: number; origin: THREE.Vector3 }[] = []
+  private cigar = new THREE.Group()
+  private cigarTip = new THREE.Object3D()
+  private bite = new THREE.Vector3(-.063, .003, 0)
   private ember: THREE.MeshStandardMaterial
-  private cigarTip: THREE.Object3D
+  private drink = new TableDrink('old-fashioned')
+  private drinkHome = new THREE.Vector3(.89, TABLE.feltY + .003, .53)
+  private cigarHome = new THREE.Vector3(1.10, TABLE.feltY + .013, .53)
+  private smoke: { mesh: THREE.Sprite; birth: number; seed: number; origin: THREE.Vector3 }[] = []
   private smokeTexture: THREE.CanvasTexture
-  private smokingAt = -100
+  private action: LeisureAction = 'idle'
+  private actionAt = -100
+  private now = 0
   private dealtAt = -100
   private foldAt = -100
   private visibleHand = false
@@ -23,82 +39,65 @@ export class FirstPerson {
   private lastEmission = 0
   private active = false
   private inspecting = false
-  private mouthLocal = new THREE.Vector3()
-  private restingRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(.10, -.35, -.08))
-  private smokingRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(.04, -.10, -.06))
+  private restRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(-.15, -.45, -.40))
+  private mouthRotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(-.20, -.30, -.10))
+  private cigarGrip = new THREE.Vector3(-.009, .091, .031)
+  private glassGrip = new THREE.Vector3(-.004, .079, .047)
 
-  constructor(geometry: THREE.BoxGeometry, private texture: (card: Card | null) => THREE.CanvasTexture) {
-    const material = humanMaterial()
-    for (const [group, cigar] of [[this.left, false], [this.right, true]] as const) {
-      const sculpt = new Sculpture(.0022), skin = '#a9846b'
-      sculpt.limb([cigar ? .04 : -.04, -.17, .045], [0, -.010, 0], [.029, .039, .026], '#272b2c')
-      sculpt.ellipsoid([0, -.007, 0], [.029, .018, .025], '#aaa391')
-      sculpt.ellipsoid([0, .028, 0], [.032, .044, .017], skin)
-      if (!cigar) {
-        // A pinch grip, not four straight fingers pasted over the card faces:
-        // the index supports the BACK of the lower edge, the thumb crosses its
-        // front, and the other fingers curl into the palm below that edge.
-        sculpt.limb([-.022, .052, -.009], [-.018, .085, -.018], [.009, .013, .009], skin)
-        sculpt.limb([-.018, .085, -.018], [.010, .093, -.014], [.008, .009, .008], skin)
-        for (let f = 0; f < 3; f++) {
-          const x = -.010 + f * .014, y = .055 - f * .008
-          sculpt.limb([x, y, -.004], [x, y + .012, -.030], [.008, .010, .012], skin)
-          sculpt.limb([x, y + .012, -.030], [x, y - .005, -.038], [.008, .012, .008], skin)
-        }
-        sculpt.limb([.027, .021, .004], [.039, .052, .016], [.012, .017, .012], skin)
-        sculpt.limb([.039, .052, .016], [.012, .078, .013], [.012, .013, .009], skin)
-        sculpt.ellipsoid([.012, .079, .021], [.008, .010, .0018], '#c0a78e')
-      } else {
-        // The index/middle fingers straddle the cigar, ring/pinky stay curled.
-        // Separate joints make the contact visible from the side of the hand.
-        for (let f = 0; f < 4; f++) {
-          const x = -.022 + f * .014, y = f < 2 ? .077 + f * .003 : .057 - (f - 2) * .01
-          sculpt.limb([x, .055, 0], [x - .005, y + .008, -.012], [.0075, .012, .010], skin)
-          sculpt.limb([x - .005, y + .008, -.012], [x - .011, y - .003, -.038], [.0075, .009, .013], skin)
-          sculpt.ellipsoid([x - .012, y - .003, -.047], [.0055, .007, .0015], '#bda087')
-        }
-        sculpt.limb([-.027, .023, .007], [-.040, .045, .014], [.012, .016, .012], skin)
-        sculpt.limb([-.040, .045, .014], [-.022, .055, -.010], [.010, .010, .014], skin)
-      }
-      group.add(sculpt.mesh(geometry, material)); this.root.add(group)
+  constructor(_geometry: THREE.BoxGeometry, private texture: (card: Card | null) => THREE.CanvasTexture) {
+    this.root.add(this.left.root, this.right.root)
+    this.left.pose('cards'); this.right.pose('cigar')
+    for (const hand of [this.left, this.right]) {
+      const sleeve = new VoxelSculpt(.004)
+      sleeve.volume([-.033, -.19, -.024], [.033, -.008, .028], (x, y, z) => {
+        const width = THREE.MathUtils.lerp(.030, .023, (y + .19) / .182)
+        return (x / width) ** 4 + (z / .023) ** 4 < 1
+      }, '#252b2c')
+      sleeve.volume([-.025, -.020, -.018], [.025, -.004, .018], (x, _y, z) => (x / .025) ** 4 + (z / .018) ** 4 < 1, '#ada796')
+      hand.root.add(sleeve.mesh(anatomyMaterial(.93)))
     }
-    this.fan.position.set(-.010, .124, 0); this.left.add(this.fan)
-    for (let i = 0; i < 2; i++) {
-      // A bounded unlit paper material deliberately opts out of scene exposure.
-      // Strong table lights must never turn white stock into a bloom emitter.
-      const card = new THREE.Mesh(new THREE.PlaneGeometry(.072, .101), new THREE.MeshBasicMaterial({ color: '#bcb6aa', side: THREE.DoubleSide }))
-      card.position.set((i - .5) * .025, 0, i * .001); card.rotation.z = (i - .5) * -.16
-      this.fan.add(card); this.paper.push(card)
+    const held = createHeldCardFan(texture); this.fan = held.fan; this.paper = held.paper; this.left.root.add(this.fan)
+    const cylinder = (r: number, length: number, color: string, x: number, roughness = .8) => {
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, length, 20), new THREE.MeshStandardMaterial({ color, roughness }))
+      mesh.rotation.z = -Math.PI / 2; mesh.position.x = x; this.cigar.add(mesh); return mesh
     }
-    const cigar = new THREE.Group(); cigar.position.set(-.019, .079, -.029)
-    cigar.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(1, .08, -.25).normalize())
-    cigar.scale.setScalar(.78); this.right.add(cigar)
-    this.mouthLocal.set(0, -.073 * .78, 0).applyQuaternion(cigar.quaternion).add(cigar.position)
-    const wrapper = new THREE.Mesh(new THREE.CylinderGeometry(.0075, .008, .145, 14), new THREE.MeshStandardMaterial({ color: '#52311f', roughness: .92 }))
-    cigar.add(wrapper)
-    for (let i = 0; i < 14; i++) {
-      const seam = new THREE.Mesh(new THREE.TorusGeometry(.0077, .00045, 3, 14), new THREE.MeshStandardMaterial({ color: '#39261c', roughness: 1 }))
-      seam.rotation.x = Math.PI / 2; seam.position.y = -.061 + i * .009; cigar.add(seam)
-    }
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(.0081, .0081, .018, 14), new THREE.MeshStandardMaterial({ color: '#b79751', roughness: .4, metalness: .4 }))
-    band.position.y = -.035; cigar.add(band)
-    const ash = new THREE.Mesh(new THREE.CylinderGeometry(.0078, .0075, .018, 14), new THREE.MeshStandardMaterial({ color: '#68615a', roughness: 1 }))
-    ash.position.y = .076; cigar.add(ash)
-    this.ember = new THREE.MeshStandardMaterial({ color: '#842711', emissive: '#ed4012', emissiveIntensity: .5, roughness: 1 })
-    const ember = new THREE.Mesh(new THREE.CylinderGeometry(.0072, .0072, .002, 14), this.ember); ember.position.y = .086; cigar.add(ember); this.cigarTip = ember
+    this.cigar.name = 'player-cigar'
+    cylinder(.0062, .126, '#513423', 0, .93)
+    cylinder(.00645, .015, '#b49a58', -.028, .45)
+    cylinder(.00635, .013, '#79756a', .068)
+    this.ember = new THREE.MeshStandardMaterial({ color: '#762c19', emissive: '#d73910', emissiveIntensity: .3, roughness: 1 })
+    const ember = new THREE.Mesh(new THREE.CylinderGeometry(.0059, .0059, .0015, 20), this.ember)
+    ember.rotation.z = -Math.PI / 2; ember.position.x = .075; this.cigar.add(ember)
+    this.cigarTip.position.x = .077; this.cigar.add(this.cigarTip)
+    this.right.root.add(this.cigar); this.cigar.position.copy(this.cigarGrip)
+    this.tableProps.add(this.drink.root)
+    this.drink.root.position.copy(this.drinkHome)
+    const mat = coaster(); mat.position.copy(this.drinkHome); mat.position.y -= .0015; this.tableProps.add(mat)
+    const tray = new THREE.Mesh(new THREE.CylinderGeometry(.060, .060, .009, 32), new THREE.MeshStandardMaterial({ color: '#5b5549', metalness: .65, roughness: .42 }))
+    tray.position.copy(this.cigarHome); tray.position.y -= .008; this.tableProps.add(tray)
     const canvas = document.createElement('canvas'); canvas.width = canvas.height = 64
     const g = canvas.getContext('2d')!, gradient = g.createRadialGradient(32, 32, 0, 32, 32, 32)
-    gradient.addColorStop(0, '#d7d2c860'); gradient.addColorStop(.4, '#b6b5b028'); gradient.addColorStop(1, '#aab1b000')
-    g.fillStyle = gradient; g.fillRect(0, 0, 64, 64)
-    this.smokeTexture = new THREE.CanvasTexture(canvas)
+    gradient.addColorStop(0, '#d7d2c850'); gradient.addColorStop(.4, '#b6b5b021'); gradient.addColorStop(1, '#aab1b000')
+    g.fillStyle = gradient; g.fillRect(0, 0, 64, 64); this.smokeTexture = new THREE.CanvasTexture(canvas)
   }
-  setActive(active: boolean): void { this.active = active; this.root.visible = active }
-  setInspection(active: boolean): void {
-    if (active && !this.inspecting) this.smokingAt = -100
-    this.inspecting = active
+  get leisureAction(): LeisureAction { return this.action }
+  diagnosticPose() {
+    return { action: this.action, actionAt: this.actionAt, active: this.active, inspecting: this.inspecting,
+      root: transform(this.root), left: transform(this.left.root), right: transform(this.right.root),
+      drink: transform(this.drink.root), cigar: transform(this.cigar), table: transform(this.tableProps),
+      drinkHome: this.drinkHome.toArray(), cigarHome: this.cigarHome.toArray(), glassGrip: this.glassGrip.toArray(), cigarGrip: this.cigarGrip.toArray() }
   }
-  update(cards: Card[], folded: boolean, hand: number): void {
-    const now = performance.now() / 1000
+  get inspectionTargets(): Record<string, THREE.Object3D> { return { 'Player cards': this.left.root, 'Player cigar': this.right.root, 'Old Fashioned': this.drink.root } }
+  resetInteraction(): void { this.cancel(); this.now = 0 }
+  setActive(active: boolean): void { this.active = active; this.root.visible = active; if (!active) this.cancel() }
+  setInspection(active: boolean): void { if (active && !this.inspecting) this.cancel(); this.inspecting = active }
+  private cancel(): void {
+    this.action = 'idle'; this.tableProps.add(this.drink.root); this.drink.root.position.copy(this.drinkHome); this.drink.root.quaternion.identity()
+    this.right.root.add(this.cigar); this.cigar.position.copy(this.cigarGrip); this.cigar.quaternion.identity()
+    for (const puff of this.smoke) { puff.mesh.removeFromParent(); puff.mesh.material.dispose() }
+    this.smoke = []
+  }
+  update(cards: Card[], folded: boolean, hand: number, now = this.now): void {
     if (hand !== this.lastHand) { this.dealtAt = now; this.lastHand = hand }
     if (folded && this.visibleHand) this.foldAt = now
     this.visibleHand = cards.length === 2 && !folded
@@ -107,44 +106,91 @@ export class FirstPerson {
       material.map = this.texture(card); material.needsUpdate = true
     })
   }
-  smokeCigar(): boolean {
-    const now = performance.now() / 1000
-    if (!this.active || this.inspecting || now - this.smokingAt < 4.2) return false
-    this.smokingAt = now; return true
+  smokeCigar(): boolean { return this.begin('smoke') }
+  sipDrink(): boolean { return this.begin('drink') }
+  private begin(action: LeisureAction): boolean {
+    if (!this.active || this.inspecting || this.action !== 'idle') return false
+    this.action = action; this.actionAt = this.now; return true
+  }
+  /** Solve wrist translation from a point of contact, not from eyeballed camera
+   * offsets. The same transform works at every aspect ratio and inspection yaw. */
+  private placeGrip(contact: THREE.Vector3, local: THREE.Vector3, rotation: THREE.Quaternion): THREE.Vector3 {
+    return contact.clone().sub(local.clone().applyQuaternion(rotation))
+  }
+  private tablePoint(point: THREE.Vector3): THREE.Vector3 {
+    this.root.updateWorldMatrix(true, false); this.tableProps.updateWorldMatrix(true, false)
+    return this.root.worldToLocal(this.tableProps.localToWorld(point.clone()))
   }
   frame(now: number, reduced: boolean): void {
-    const sincePuff = now - this.smokingAt, sinceDeal = now - this.dealtAt, sinceFold = now - this.foldAt
-    const lift = sincePuff < .9 ? THREE.MathUtils.smoothstep(sincePuff, 0, .9) : sincePuff < 2 ? 1 : 1 - THREE.MathUtils.smoothstep(sincePuff, 2, 3.2)
-    const breath = reduced ? 0 : Math.sin(now * 1.1) * .0015
-    const fold = this.visibleHand ? 0 : THREE.MathUtils.smoothstep(sinceFold, 0, .7)
-    const deal = 1 - THREE.MathUtils.smoothstep(sinceDeal, .35, 1.25)
-    this.left.visible = this.visibleHand || sinceFold < .8
-    this.left.position.set(-.205, -.205 + breath - Math.max(fold, deal) * .24, -.47)
-    this.left.rotation.set(-.18, .24, .10 + fold * .55)
-    // Solve the bite-end position against the mouth below the camera's eyes.
-    // Arbitrarily moving a cigar towards screen centre made it stab the lens.
-    const mouth = new THREE.Vector3(0, -.12, -.16)
-    const atMouth = mouth.sub(this.mouthLocal.clone().applyQuaternion(this.smokingRotation))
-    this.right.position.lerpVectors(new THREE.Vector3(.235, -.19 + breath, -.50), atMouth, lift)
-    this.right.quaternion.slerpQuaternions(this.restingRotation, this.smokingRotation, lift)
-    this.ember.emissiveIntensity = .5 + lift * 2.5
-    const exhale = sincePuff > 1.8 && sincePuff < 3.8
-    if (this.active && !this.inspecting && !reduced && now - this.lastEmission > (exhale ? .07 : .25)) {
+    this.now = now
+    const age = now - this.actionAt, sinceDeal = now - this.dealtAt, sinceFold = now - this.foldAt
+    const breath = reduced ? 0 : Math.sin(now * 1.1) * .001
+    const fold = this.visibleHand ? 0 : smooth(sinceFold, 0, .7), deal = 1 - smooth(sinceDeal, .8, 1.55)
+    this.left.root.visible = this.visibleHand || sinceFold < .8
+    this.left.root.position.set(-.165, -.19 + breath - Math.max(fold, deal) * .24, -.43)
+    this.left.root.rotation.set(-.22, .12, -.07 - fold * .4)
+    this.right.root.position.set(.205, -.215 + breath, -.47); this.right.root.quaternion.copy(this.restRotation)
+    this.right.pose('cigar')
+    let puff = 0
+    if (this.action === 'smoke') {
+      puff = age < .9 ? smooth(age, 0, .9) : age < 1.8 ? 1 : 1 - smooth(age, 1.8, 3.0)
+      if (!reduced) {
+        const localBite = this.bite.clone().add(this.cigarGrip)
+        const target = this.placeGrip(new THREE.Vector3(.015, -.095, -.14), localBite, this.mouthRotation)
+        this.right.root.position.lerp(target, puff); this.right.root.quaternion.slerp(this.mouthRotation, puff)
+      }
+      if (age >= 3.8) this.action = 'idle'
+    }
+    if (this.action === 'drink') {
+      // Table -> grip -> mouth -> table is explicit. Ownership changes only at
+      // contact boundaries, so a glass cannot exist simultaneously in two places.
+      const tray = this.tablePoint(this.cigarHome), glassBase = this.tablePoint(this.drinkHome)
+      const rotation = new THREE.Quaternion().setFromEuler(new THREE.Euler(-.10, -.55, -1.18))
+      const trayWrist = this.placeGrip(tray, this.cigarGrip, this.restRotation)
+      const gripPoint = glassBase.clone().add(new THREE.Vector3(.038, .038, .015))
+      const glassWrist = this.placeGrip(gripPoint, this.glassGrip, rotation)
+      if (age < .65) this.right.root.position.lerp(trayWrist, smooth(age, 0, .65))
+      else if (age < 1.25) {
+        this.tableProps.add(this.cigar); this.cigar.position.copy(this.cigarHome); this.cigar.quaternion.identity()
+        this.right.pose('rest'); this.right.root.position.lerpVectors(trayWrist, glassWrist, smooth(age, .65, 1.25))
+        this.right.root.quaternion.slerp(rotation, smooth(age, .65, 1.25))
+      } else if (age < 4.8) {
+        this.right.pose('glass')
+        const lift = age < 2.3 ? smooth(age, 1.25, 2.3) : age < 3.25 ? 1 : 1 - smooth(age, 3.25, 4.8)
+        // The glass itself owns the sip arc. Wrist position is derived from its
+        // grip anchor each frame, making it impossible for fingers to lag behind.
+        this.root.add(this.drink.root)
+        this.drink.root.position.lerpVectors(glassBase, new THREE.Vector3(.025, -.165, -.20), reduced ? 0 : lift)
+        this.drink.root.rotation.set(reduced ? 0 : .36 * lift, 0, reduced ? 0 : -.12 * lift)
+        const contact = new THREE.Vector3(.038, .038, .015).applyQuaternion(this.drink.root.quaternion).add(this.drink.root.position)
+        this.right.root.quaternion.copy(rotation).premultiply(this.drink.root.quaternion)
+        this.right.root.position.copy(this.placeGrip(contact, this.glassGrip, this.right.root.quaternion))
+      } else if (age < 5.4) {
+        this.tableProps.add(this.drink.root); this.drink.root.position.copy(this.drinkHome); this.drink.root.quaternion.identity()
+        this.right.pose('rest'); this.right.root.position.lerpVectors(glassWrist, trayWrist, smooth(age, 4.8, 5.4))
+        this.right.root.quaternion.copy(rotation).slerp(this.restRotation, smooth(age, 4.8, 5.4))
+      } else {
+        this.right.root.add(this.cigar); this.cigar.position.copy(this.cigarGrip); this.cigar.quaternion.identity()
+        this.right.root.position.lerpVectors(trayWrist, new THREE.Vector3(.205, -.215, -.47), smooth(age, 5.4, 6.1))
+        if (age >= 6.1) this.action = 'idle'
+      }
+    }
+    this.ember.emissiveIntensity = .3 + puff * 1.5
+    const exhale = this.action === 'smoke' && age > 1.8 && age < 3.6
+    if (this.active && !this.inspecting && !reduced && now - this.lastEmission > (exhale ? .10 : .5) && this.smoke.length < 30) {
       this.lastEmission = now
-      const material = new THREE.SpriteMaterial({ map: this.smokeTexture, color: '#b5b6b1', transparent: true, depthWrite: false, opacity: .25 })
+      const material = new THREE.SpriteMaterial({ map: this.smokeTexture, color: '#b5b6b1', transparent: true, depthWrite: false, opacity: .20 })
       const mesh = new THREE.Sprite(material), seed = now * 71
-      this.root.updateWorldMatrix(true, true)
-      const origin = exhale ? new THREE.Vector3(.0, -.02, -.22) : this.root.worldToLocal(this.cigarTip.getWorldPosition(new THREE.Vector3()))
+      this.root.updateWorldMatrix(true, true); this.tableProps.updateWorldMatrix(true, true)
+      const origin = exhale ? new THREE.Vector3(0, -.025, -.20) : this.root.worldToLocal(this.cigarTip.getWorldPosition(new THREE.Vector3()))
       mesh.position.copy(origin); this.root.add(mesh); this.smoke.push({ mesh, birth: now, seed, origin })
     }
     for (let i = this.smoke.length - 1; i >= 0; i--) {
-      const p = this.smoke[i], age = now - p.birth
-      // Smoke is camera-parented with the held cigar. Clear it on inspection;
-      // otherwise invisible puffs below the felt jump back into view on return.
-      if (age > 2.6 || !this.active || this.inspecting || reduced) { p.mesh.material.dispose(); p.mesh.removeFromParent(); this.smoke.splice(i, 1); continue }
-      p.mesh.position.copy(p.origin).add(new THREE.Vector3(Math.sin(age * 2 + p.seed) * age * .024, age * .055, -age * .045))
-      p.mesh.scale.setScalar(.021 + age * .04); p.mesh.material.rotation = p.seed + age * .3
-      p.mesh.material.opacity = Math.sin(age / 2.6 * Math.PI) * .27
+      const p = this.smoke[i], life = now - p.birth
+      if (life > 2.6 || !this.active || this.inspecting || reduced) { p.mesh.material.dispose(); p.mesh.removeFromParent(); this.smoke.splice(i, 1); continue }
+      p.mesh.position.copy(p.origin).add(new THREE.Vector3(Math.sin(life * 2 + p.seed) * life * .018, life * .048, -life * .04))
+      p.mesh.scale.setScalar(.017 + life * .032); p.mesh.material.rotation = p.seed + life * .3
+      p.mesh.material.opacity = Math.sin(life / 2.6 * Math.PI) * .20
     }
   }
   dispose(): void { this.smokeTexture.dispose() }

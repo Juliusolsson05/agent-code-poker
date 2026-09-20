@@ -1,0 +1,25 @@
+{
+  "checkpoint": "recorded failing baseline, not finished-game acceptance",
+  "date": "2026-09-20",
+  "automated": {
+    "command": "npm run verify",
+    "result": "passed",
+    "coverage": "rules/geometry/recorder/fixture integrity, TypeScript, production build, SDK packaging and exact-byte production-preview HTTP integration",
+    "limitation": "Passing tests do not approve the recorded contact, anatomy, lighting or performance defects"
+  },
+  "sourceBrowser": {
+    "url": "/dev/?qa=christmas-rig&stats&record",
+    "checked": ["enter hand", "call", "two drink starts", "pause/resume", "card inspection", "cigar", "restore after HMR"],
+    "evidence": "manifest.json sessions and images",
+    "console": "No warnings/errors observed in recorded source session"
+  },
+  "productionBrowser": {
+    "url": "/dev/?production&qa=evidence-production",
+    "checked": ["enter/restore hand", "call 20", "Old Fashioned control and motion", "private card inspection", "pause/resume", "cigar motion", "reload/restore same flop, stack 1980 and pot 186"],
+    "previewDefectFixed": "Eager source import caused duplicate Three.js; Vite transformed dist cache served stale view. Dev-only flat JS endpoint now serves current bundle and relative SDK chunk byte-for-byte with no-store.",
+    "console": "No new warnings/errors after route and shared-chunk fix; earlier failed attempts remain in browser log history",
+    "visual": "Same known detached reach, poor fingers/facial hair and overlapping tree as source; NOT accepted"
+  },
+  "host": "Electron installation not verified; host fullscreen explicitly deferred",
+  "remaining": ["interaction ownership/reach rebuild", "block-built drinks and ordering", "ashtray", "anatomy and facial hair", "tree clearance", "cozy lighting", "controlled performance comparison", "fixture-driven replacement regressions", "fresh final source/production visual acceptance"]
+}

@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "purpose": "Recorded failing baseline, not approved visual goldens",
+  "sourceParentCommit": "9709ef9",
+  "sourceState": "Uncommitted anatomy/Christmas substrate plus opt-in recorder; preserved by the following evidence checkpoint commit",
+  "privacy": "Public action labels and scene transforms only. No deck, hole-card identities, save objects or unrelated browser content in traces.",
+  "sessions": [
+    {
+      "file": "poker-evidence-2026-09-20T03-19-01-705Z.json.gz",
+      "rawSha256": "beaaf75c89570e9a096f79a1913e71d3a87208d1621fbae7c041fba07505171a",
+      "provenance": "Actual Chrome QA session operated through browser UI, /dev/?qa=christmas-rig&stats&record; untouched JSON download losslessly gzip-compressed",
+      "durationMs": 48637.300000000745,
+      "frameCount": 1122,
+      "poseCount": 500,
+      "frameMsP50": 36,
+      "frameMsP95": 56,
+      "cpuSubmissionMsP50": 6.900000000372529,
+      "cpuSubmissionMsP95": 9.400000000372529,
+      "limitations": "Includes real pause and screenshot-export overhead. CPU time is submission time, not GPU completion. Not an isolated benchmark. Pose sampling is 15 Hz, frame timing is full rate.",
+      "images": [
+        "poker-evidence-2026-09-20T03-19-01-705Z-18.065.png",
+        "poker-evidence-2026-09-20T03-19-01-705Z-31.485.png",
+        "poker-evidence-2026-09-20T03-19-01-705Z-32.248.png",
+        "poker-evidence-2026-09-20T03-19-01-705Z-39.513.png",
+        "poker-evidence-2026-09-20T03-19-01-705Z-54.010.png"
+      ]
+    },
+    {
+      "file": "poker-evidence-2026-09-20T03-21-27-774Z.json.gz",
+      "provenance": "Actual restored Chrome QA session after adding production room-block and pre-batching tree-bound metadata; untouched JSON download losslessly gzip-compressed",
+      "frameCount": 169,
+      "poseCount": 65,
+      "images": ["poker-evidence-2026-09-20T03-21-27-774Z-6.417.png"]
+    }
+  ],
+  "rigImages": [
+    { "file": "poker-rig-player-cards-idle-0.png", "url": "/dev/?studio", "subject": "Player cards", "action": "idle", "seconds": 0 },
+    { "file": "poker-rig-player-cigar-idle-0.png", "url": "/dev/?studio", "subject": "Player cigar", "action": "idle", "seconds": 0 },
+    { "file": "poker-rig-opponent-face-seat1-idle-0.png", "url": "/dev/?studio&seat=1", "subject": "Opponent face", "action": "idle", "seconds": 0 }
+  ]
+}

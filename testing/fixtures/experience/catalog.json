@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "semanticsSource": "Julius's reported requirements: connected arms, credible grips, no prop/furniture clipping, private cards, cozy Christmas lighting, block props, compact drink ordering and smooth performance",
+  "cases": [
+    {
+      "id": "hero-drink-unbounded-reach",
+      "trace": "poker-evidence-2026-09-20T03-19-01-705Z.json.gz",
+      "events": "drink accepted at visual 17.7207 and 31.1354 seconds",
+      "frequency": { "acceptedStarts": 2, "completed": 1, "interrupted": 1 },
+      "evidence": "At visual 31.8281, right wrist world [1.086105,0.711337,0.517719], camera distance 1.988202m. Screenshot 18.065 shows disconnected hand at table. Hero has only a wrist-parented short sleeve, no shoulder/elbow chain.",
+      "expected": "Reachable drink/ashtray homes and a connected shoulder-elbow-wrist chain. Resolve prop and wrist in one frame. Do not silently clamp wrist while prop continues independently.",
+      "status": "open"
+    },
+    {
+      "id": "drink-contact-is-not-reach",
+      "trace": "poker-evidence-2026-09-20T03-19-01-705Z.json.gz",
+      "evidence": "During attached sip phases the authored hand/glass anchors agree to 4.8e-16m. The visible reach is still wrong: a contact-equality test alone would bless this bug.",
+      "expected": "Contact constraints AND reachable connected body geometry; both must pass.",
+      "status": "open"
+    },
+    {
+      "id": "pause-inspection-ownership",
+      "trace": "poker-evidence-2026-09-20T03-19-01-705Z.json.gz",
+      "events": "Pause at visual 31.6271, resume after 5.4165s wall time at same visual time, inspection at 31.9255, look up at 38.8493",
+      "frequency": { "pauseResume": 1, "inspectionDuringDrink": 1 },
+      "evidence": "Pause correctly freezes visual time. Inspection cancels directly to homes, without an explicit return phase; cigar request at 39.1742 is rejected during residual inspection blend although the UI button is enabled.",
+      "expected": "Pause preserves pose; inspection has an explicit safe interruption/return policy and UI availability matches interaction availability.",
+      "status": "open"
+    },
+    {
+      "id": "tree-bar-clearance",
+      "trace": "poker-evidence-2026-09-20T03-21-27-774Z.json.gz",
+      "image": "poker-evidence-2026-09-20T03-19-01-705Z-54.010.png",
+      "frequency": { "observedLayouts": 1 },
+      "evidence": "Actual pre-batching tree AABB [2.235315,-0.002,-4.375988,4.084685,2.45,-2.524012] intersects recorded bar body, panels, counter and foot rail. Seven block-envelope overlaps. No side/back-wall overlap in this recorded camera/layout; user's broader wall report remains an additional clearance requirement.",
+      "expected": "Tree including branches/ornaments/presents has positive furniture/wall clearance, verified against production geometry. AABBs are conservative, not proof that every overlapping envelope is a triangle intersection.",
+      "status": "open"
+    },
+    {
+      "id": "facial-hair-flat-slab",
+      "image": "poker-rig-opponent-face-seat1-idle-0.png",
+      "frequency": { "closeupSubjects": 1 },
+      "evidence": "Front/side/top views show a dark U-shaped slab separated from the rounded jaw. The current beard volume adds a rectangular shell rather than coloring/sculpting the actual facial surface.",
+      "expected": "Restrained facial hair follows the jaw/upper-lip surface, without floating edges or squared-off cheek growth.",
+      "status": "open"
+    },
+    {
+      "id": "finger-surface-and-grip",
+      "images": ["poker-rig-player-cards-idle-0.png", "poker-rig-player-cigar-idle-0.png"],
+      "frequency": { "fourViewPoses": 2 },
+      "evidence": "Finger envelopes look like thin angular ribbons at bends; cigar is balanced across fingers instead of convincingly pinched. Existing no-paper-intersection test is not anatomy/contact signoff. Inspect greedy mesh T-junctions under skinning before adding more volume.",
+      "expected": "Closed, connected, naturally proportioned finger surfaces through bending; stable visible support/pinch without paper/cigar penetration.",
+      "status": "open"
+    },
+    {
+      "id": "frame-budget",
+      "trace": "poker-evidence-2026-09-20T03-19-01-705Z.json.gz",
+      "frequency": { "frames": 1122 },
+      "evidence": "2133x1166 CSS viewport, 2666x1458 drawing buffer, DPR cap 1.25: frame p50 36ms/p95 56ms; CPU submission p50 6.9ms/p95 9.4ms. Screenshots and diagnostics add overhead; GPU time not measured.",
+      "expected": "Measure comparable uninstrumented and instrumented warm runs, identify CPU/GPU/resource bottlenecks, preserve visual quality while approaching a stable 16.7ms frame budget on this machine.",
+      "status": "open"
+    }
+  ],
+  "notYetRecorded": ["drink ordering (not implemented)", "reduced-motion interaction", "visibility interruption mid-sip", "frame skip across ownership boundaries", "production bundle parity", "fresh cozy-lighting acceptance", "all five opponent grips and faces"]
+}

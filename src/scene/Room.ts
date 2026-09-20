@@ -5,13 +5,17 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js'
 import { rankLabel, suit, SUITS, type Card } from '../engine/cards'
 import { type GameState } from '../engine/game'
-import { buildHuman, humanMaterial, type Human } from './Human'
+import { buildHuman, humanMaterial, poseHuman, type Human } from './Human'
 import { FirstPerson } from './FirstPerson'
 import { ChipField } from './Chips'
 import { CardField } from './Cards'
+import { createHeldCardFan } from './CardGrip'
+import { ChristmasTavern } from './Christmas'
+import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js'
 import { createTableSurface, dealerPosition, TABLE } from './Table'
+import { SceneCapture, transform } from './diagnostics/SceneCapture'
 
-export const SEATS: [number, number][] = [[0, 1.7], [-1.91, -.43], [-1.15, -1.13], [0, -1.40], [1.15, -1.13], [1.91, -.43]]
+export const SEATS: [number, number][] = [[0, 1.7], [-1.82, -.39], [-1.10, -1.03], [0, -1.25], [1.10, -1.03], [1.82, -.39]]
 type Block = { color: string; position: [number, number, number]; size: [number, number, number] }
 
 /** Everything is authored in metres, from a seated human's eye line. The first
@@ -39,7 +43,9 @@ export class PokerRoom {
   private state: GameState | null = null
   private signature = ''
   private raf = 0
-  private start = performance.now()
+  private visualTime = 0
+  private paused = false
+  private pausedRendered = false
   private reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
   private observer: ResizeObserver
   private alive = true
@@ -50,12 +56,24 @@ export class PokerRoom {
   private pointer = new THREE.Vector2()
   private gaze = new THREE.Vector2()
   private dust: THREE.Points
+  private christmas: ChristmasTavern
+  private stats: HTMLOutputElement | null = null
+  private measuredAt = performance.now()
+  private measuredFrames = 0
+  private measuredCpu = 0
+  private capture: SceneCapture | null = null
+  private roomBlocks: Block[] = []
 
   constructor(private container: HTMLElement, private onFailure: () => void, private onLayout: () => void = () => {}) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
-    this.renderer.setPixelRatio(Math.min(1.5, window.devicePixelRatio || 1))
+    if (import.meta.env.DEV && new URLSearchParams(location.search).has('stats')) {
+      this.stats = document.createElement('output'); this.stats.setAttribute('aria-label', 'Rendering performance')
+      this.stats.style.cssText = 'position:absolute;left:16px;top:94px;z-index:20;padding:8px;background:#0a1010dc;color:#cee3c2;font:12px monospace;pointer-events:none'
+      container.append(this.stats); this.renderer.info.autoReset = false
+    }
+    this.renderer.setPixelRatio(Math.min(1.25, window.devicePixelRatio || 1))
     this.renderer.setClearColor('#090a0c'); this.renderer.outputColorSpace = THREE.SRGBColorSpace
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.28
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping; this.renderer.toneMappingExposure = 1.12
     this.renderer.shadowMap.enabled = true; this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
     this.renderer.domElement.setAttribute('aria-label', 'Seated first-person view of a dimly lit poker table, detailed voxel opponents, and an amber-lit bar')
     this.renderer.domElement.setAttribute('role', 'img'); container.append(this.renderer.domElement)
@@ -63,17 +81,23 @@ export class PokerRoom {
     container.parentElement?.addEventListener('pointermove', this.look)
     container.parentElement?.addEventListener('pointerleave', this.centerLook)
     this.scene.fog = new THREE.FogExp2('#0a0b10', .048)
-    this.scene.add(new THREE.HemisphereLight('#96abc1', '#241a14', .43))
+    this.scene.add(new THREE.HemisphereLight('#b8c4d0', '#443024', .65))
     // Broad warm key illuminates eyes/hands from the player's side. Dim cool
     // backlight separates dark jackets from the room. Only one light shadows.
-    const key = new THREE.SpotLight('#ffdeb7', 25, 12, .91, .78, 1.6)
+    const key = new THREE.SpotLight('#ffdeb7', 17, 12, .91, .78, 1.6)
     key.position.set(-.65, 3.05, 1.2); key.target.position.set(0, .82, -.30)
     key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -.00008; key.shadow.normalBias = .013
     this.scene.add(key, key.target)
+    // Broad warm fill gives skin/clothing a readable gradient. Three's area
+    // lights do not cast shadows, so the existing spot remains the shadow owner.
+    RectAreaLightUniformsLib.init()
+    const fill = new THREE.RectAreaLight('#ffe3c4', 2.2, 4, 2)
+    fill.position.set(0, 2.15, 2.9); fill.lookAt(0, 1.15, -.4); this.scene.add(fill)
     for (const [color, power, x, y, z] of [['#e6bd91', 4, 1.8, 1.9, 1.4], ['#728dca', 9, -2.7, 2.3, -2.5], ['#ef9e4b', 7, .3, 1.9, -3.3]] as const) {
       const light = new THREE.PointLight(color, power, 8, 1.5); light.position.set(x, y, z); this.scene.add(light)
     }
     this.buildRoom()
+    this.christmas = new ChristmasTavern(); this.scene.add(this.christmas.root)
     const skinMaterial = humanMaterial(); this.materials.set('humans', skinMaterial)
     for (let seat = 1; seat < 6; seat++) {
       const human = buildHuman(seat, this.geometry, skinMaterial); const [x, z] = SEATS[seat]
@@ -86,14 +110,10 @@ export class PokerRoom {
       this.box(chair, '#28231e', 0, 1.00, -.205, .44, .75, .065)
       for (const dx of [-.18, .18]) this.box(chair, '#292824', dx, .29, -.04, .030, .56, .03)
       this.scene.add(chair)
-      for (let i = 0; i < 2; i++) {
-        // Opponent held cards use ONLY a back texture on BOTH sides. Even a
-        // camera lean or animation cannot accidentally expose private ranks.
-        const card = new THREE.Mesh(new THREE.PlaneGeometry(.070, .103), new THREE.MeshBasicMaterial({ map: this.cardTexture(null), color: '#d0c4ae', side: THREE.DoubleSide }))
-        card.position.set((i - .5) * .031, 0, i * .002); card.rotation.z = (i - .5) * -.23; human.cards.add(card)
-      }
+      // Both sides receive only the back texture, including in the inspector.
+      human.cards.add(createHeldCardFan(() => this.cardTexture(null)).fan)
     }
-    this.hero = new FirstPerson(this.geometry, c => this.cardTexture(c)); this.camera.add(this.hero.root); this.scene.add(this.camera)
+    this.hero = new FirstPerson(this.geometry, c => this.cardTexture(c)); this.camera.add(this.hero.root); this.scene.add(this.camera, this.hero.tableProps)
     this.chips = new ChipField(SEATS); this.scene.add(this.chips.root)
     this.cardField = new CardField(SEATS, c => this.cardTexture(c)); this.scene.add(this.cardField.root)
     this.dealer = new THREE.Mesh(new THREE.CylinderGeometry(.039, .039, .012, 32), this.material('#b9af99')); this.dealer.visible = false; this.scene.add(this.dealer)
@@ -110,6 +130,17 @@ export class PokerRoom {
     // The room must stay dark rather than washing everything in a hazy filter.
     this.bloom = new UnrealBloomPass(new THREE.Vector2(1100, 800), .18, .45, 4.0); this.output = new OutputPass()
     this.composer.addPass(this.bloom); this.composer.addPass(this.output)
+    if (import.meta.env.DEV && new URLSearchParams(location.search).has('record')) {
+      this.renderer.info.autoReset = false
+      this.capture = new SceneCapture(this.renderer, () => this.visualTime, () => ({
+        poseSampleHz: 15, camera: transform(this.camera), hero: this.hero.diagnosticPose(),
+        christmasBounds: new THREE.Box3().setFromObject(this.christmas.root).min.toArray().concat(new THREE.Box3().setFromObject(this.christmas.root).max.toArray()),
+        treeBounds: this.christmas.treeBounds.min.toArray().concat(this.christmas.treeBounds.max.toArray()),
+        roomBlocks: this.roomBlocks,
+        table: { feltY: TABLE.feltY }, exposure: this.renderer.toneMappingExposure,
+      }))
+    }
+    document.addEventListener('visibilitychange', this.visibility)
     this.observer = new ResizeObserver(() => this.resize()); this.observer.observe(container); this.resize(); this.frame()
   }
   private lost = (event: Event) => { event.preventDefault(); this.onFailure() }
@@ -118,6 +149,13 @@ export class PokerRoom {
     this.pointer.set((event.clientX - bounds.left) / bounds.width - .5, (event.clientY - bounds.top) / bounds.height - .5)
   }
   private centerLook = () => this.pointer.set(0, 0)
+  private visibility = () => {
+    // A hidden retina fullscreen composer otherwise keeps hundreds of MB of
+    // multisampled half-float attachments alive. Keep CPU scene state, but shrink
+    // the offscreen buffers until this particular tab is actually visible again.
+    if (document.hidden) { this.renderer.setSize(1, 1, false); this.composer.setSize(1, 1) }
+    else this.resize()
+  }
   private material(color: string): THREE.MeshStandardMaterial {
     let m = this.materials.get(color)
     if (!m) { m = new THREE.MeshStandardMaterial({ color, roughness: .72 }); this.materials.set(color, m) }
@@ -132,7 +170,7 @@ export class PokerRoom {
     mesh.position.set(x, y, z); mesh.scale.set(sx, sy, sz); this.scene.add(mesh)
   }
   private buildRoom(): void {
-    const blocks: Block[] = []
+    const blocks: Block[] = this.roomBlocks
     const b = (color: string, x: number, y: number, z: number, sx: number, sy: number, sz: number) => blocks.push({ color, position: [x, y, z], size: [sx, sy, sz] })
     b('#151311', 0, -.06, -1, 12, .1, 13)
     for (let row = 0; row < 28; row++) for (let col = 0; col < 25; col++)
@@ -160,8 +198,11 @@ export class PokerRoom {
     b('#151719', -3.55, 2.01, -5.17, 1.35, 2.15, .15)
     for (let x = 0; x < 3; x++) for (let y = 0; y < 3; y++) {
       b('#26303d', -3.96 + x * .41, 1.34 + y * .65, -5.05, .37, .60, .05)
-      for (let r = 0; r < 6; r++) b('#354355', -4.10 + x * .41 + r * .055, 1.26 + y * .65 + Math.sin(r * 7) * .2, -5.015, .003, .12 + r * .021, .002)
     }
+    // Mullions stand in front of the bounded outdoor particles. This preserves
+    // window depth rather than letting a snow overlay pass across the timber.
+    for (const x of [-4.17, -3.755, -3.345, -2.93]) b('#28241f', x, 1.99, -4.99, .034, 1.96, .04)
+    for (const y of [1.025, 1.665, 2.315, 2.965]) b('#28241f', -3.55, y, -4.99, 1.28, .034, .04)
     for (const x of [-3, 3]) {
       b('#705232', x, 2.25, -5.04, .07, .36, .13); b('#a47d46', x, 2.30, -4.89, .26, .22, .19)
       this.glow('#ffce8d', x, 2.16, -4.90, .17, .035, .12)
@@ -196,7 +237,7 @@ export class PokerRoom {
     mesh.position.set(x, y, z); this.scene.add(mesh)
   }
   setOrbit(value: number): void { this.orbit = value; this.resize() }
-  setInspection(active: boolean): void { this.inspecting = active }
+  setInspection(active: boolean): void { this.capture?.event('inspection', { active }); this.inspecting = active }
   projectSeat(seat: number): { x: number; y: number } {
     if (seat === 0) return { x: 12, y: 83 }
     // Labels are hidden during inspection. Their resting projection must not
@@ -206,6 +247,7 @@ export class PokerRoom {
     return { x: Math.max(7, Math.min(93, (point.x + 1) * 50)), y: (-point.y + 1) * 50 }
   }
   private resize(): void {
+    this.pausedRendered = false
     const width = this.container.clientWidth, height = Math.max(1, this.container.clientHeight)
     this.camera.aspect = width / height; this.camera.position.set(this.orbit * .12, 1.43, 2.02); this.camera.lookAt(this.orbit * .3, 1.03, -.60)
     this.camera.updateProjectionMatrix(); this.camera.updateMatrixWorld(); this.renderer.setSize(width, height); this.composer.setSize(width, height)
@@ -229,10 +271,14 @@ export class PokerRoom {
     }
     const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy(); this.textures.set(key, texture); return texture
   }
-  setPlaying(playing: boolean): void { this.hero.setActive(playing) }
-  smokeCigar(): boolean { return !this.inspecting && this.hero.smokeCigar() }
+  setPlaying(playing: boolean): void { this.capture?.event('playing', { playing }); this.hero.setActive(playing) }
+  setPaused(paused: boolean): void { this.capture?.event('pause', { paused }); this.paused = paused; this.pausedRendered = false }
+  smokeCigar(): boolean { const accepted = !this.paused && !this.inspecting && this.hero.smokeCigar(); this.capture?.event('smoke', { accepted }); return accepted }
+  sipDrink(): boolean { const accepted = !this.paused && !this.inspecting && this.hero.sipDrink(); this.capture?.event('drink', { accepted }); return accepted }
   update(state: GameState): void {
-    const old = this.state, now = performance.now() / 1000
+    this.capture?.event('public-game', { hand: state.handNumber, phase: state.phase, actor: state.actor,
+      players: state.players.map(p => ({ seat: p.seat, stack: p.stack, bet: p.bet, folded: p.folded, action: p.action })) })
+    const old = this.state, now = this.visualTime
     if (old?.handNumber !== state.handNumber) { this.handTime = now; this.gestures.clear() }
     for (const p of state.players) {
       const before = old?.players[p.seat]
@@ -248,20 +294,30 @@ export class PokerRoom {
     // physical ledger still needs that revision; skipping it made the next bet
     // look like a restore and replaced the entire inventory instead of sliding
     // the existing chips. Only static card projection is signature-deduplicated.
-    this.chips.update(state)
+    this.chips.update(state, now)
     const signature = JSON.stringify([state.handNumber, state.board, state.phase, state.players.map(p => [p.hole, p.folded, p.stack, p.bet]), state.dealer])
     if (signature === this.signature) return
     this.signature = signature
     const publicShowdown = state.phase === 'showdown' || state.phase === 'complete' && state.results.some(r => r.hand)
-    this.hero.update(state.players[0].hole, state.players[0].folded || publicShowdown, state.handNumber)
-    this.cardField.update(state)
+    this.hero.update(state.players[0].hole, state.players[0].folded || publicShowdown, state.handNumber, now)
+    this.cardField.update(state, now)
     this.dealer.visible = state.dealer >= 0
     if (state.dealer >= 0) this.dealer.position.copy(dealerPosition(state.dealer, SEATS))
   }
   private frame = (): void => {
     if (!this.alive) return
-    const now = performance.now(), t = (now - this.start) / 1000
-    const dt = Math.min(.1, (now - this.lastFrame) / 1000); this.lastFrame = now
+    const wallTime = performance.now()
+    // Development commonly leaves several game tabs open. Rendering a frozen
+    // full-resolution shadow/bloom scene in every background tab starves the
+    // active inspector's GPU. Pause must stop GPU work as well as game timers.
+    if (document.hidden || this.paused && this.pausedRendered) {
+      this.measuredAt = wallTime; this.measuredFrames = 0; this.measuredCpu = 0
+      this.lastFrame = wallTime; this.raf = requestAnimationFrame(this.frame); return
+    }
+    const frameMs = wallTime - this.lastFrame
+    const dt = this.paused ? 0 : Math.min(.1, frameMs / 1000); this.lastFrame = wallTime
+    this.visualTime += dt
+    const t = this.visualTime, now = t * 1000
     // Inspection is a presentation-only lean, never a second gameplay mode.
     // Time-based damping avoids different transition speeds on 60/144Hz screens.
     this.inspectionBlend = this.reduced.matches ? Number(this.inspecting)
@@ -276,43 +332,50 @@ export class PokerRoom {
     this.hero.root.position.y = -peek * .8
     this.hero.setInspection(this.inspecting || peek > .01)
     this.cardField.setInspection(peek > .45)
-    this.people.forEach(({ root, head, leftArm, rightArm, cards, eyes, seat }) => {
-      const active = this.state?.actor === seat, player = this.state?.players[seat], gesture = this.gestures.get(seat)
-      const age = now / 1000 - (gesture?.time ?? -100), moving = !this.reduced.matches
-      const beat = age < 1.25 ? Math.sin(Math.min(1, age / 1.25) * Math.PI) : 0
-      const peek = active ? Math.max(0, Math.sin(t * 1.6 + seat)) : Math.max(0, Math.sin(t * .42 + seat * 2.1) - .75) * 2
-      const deal = THREE.MathUtils.smoothstep(now / 1000 - this.handTime, 1.0 + seat * .08, 1.7 + seat * .08)
+    this.people.forEach(human => {
+      const seat = human.seat, player = this.state?.players[seat], gesture = this.gestures.get(seat)
       const showing = this.state?.phase === 'showdown' || this.state?.phase === 'complete' && this.state.results.some(r => r.hand)
-      cards.visible = !!player?.hole.length && !player.folded && !showing && deal > .3
-      root.position.y = this.reduced.matches ? 0 : Math.sin(t * 1.05 + seat * 1.7) * .0015
-      // Distinct gaze cadence, card peeks, chip pushes and knuckle taps are tied
-      // to public actions. No gesture or facial tell depends on hidden strength.
-      const targetSeat = this.state?.actor ?? 0, targetX = SEATS[targetSeat][0]
-      head.rotation.y = moving ? Math.sin(t * .27 + seat * 1.3) * .045 + (active ? -.06 : THREE.MathUtils.clamp((targetX - SEATS[seat][0]) * .045, -.13, .13)) : 0
-      head.rotation.x = moving ? peek * .15 + (gesture?.kind === 'win' ? -beat * .06 : 0) : 0
-      leftArm.rotation.x = moving ? -.10 - peek * .23 + (1 - deal) * .35 : -.10
-      leftArm.rotation.y = moving ? Math.sin(t * .4 + seat) * .035 : 0
-      if (player?.folded || showing) leftArm.rotation.x = .42
-      if (gesture?.kind === 'fold' && age < 1.25 && moving) leftArm.rotation.x = -.18 + beat * .8
-      rightArm.rotation.y = moving && gesture?.kind === 'bet' ? -beat * .16 : 0
-      rightArm.rotation.x = moving && gesture?.kind === 'bet' ? -beat * .16 : moving && gesture?.kind === 'check' && age < .8 ? Math.sin(age * Math.PI * 6) * .045 : 0
-      rightArm.position.z = .16 + (moving && gesture?.kind === 'bet' ? beat * .012 : 0)
-      head.rotation.z = moving ? (seat === 1 ? .035 : seat === 3 ? -.025 : 0) + Math.sin(t * .35 + seat) * .012 : 0
-      eyes.scale.y = !this.reduced.matches && (t + seat * 1.73) % 5.4 < .13 ? .08 : 1
-    }); this.dust.rotation.y = this.reduced.matches ? 0 : Math.sin(t * .02) * .08
+      const targetSeat = this.state?.actor ?? 0
+      poseHuman(human, t, {
+        reduced: this.reduced.matches, active: this.state?.actor === seat, folded: !!player?.folded,
+        showing: !!showing, hasCards: !!player?.hole.length,
+        dealt: THREE.MathUtils.smoothstep(t - this.handTime, 1 + seat * .08, 1.7 + seat * .08),
+        action: gesture?.kind, actionAge: t - (gesture?.time ?? -100),
+        gaze: (SEATS[targetSeat][0] - SEATS[seat][0]) * .075,
+      })
+    })
+    this.dust.rotation.y = this.reduced.matches ? 0 : Math.sin(t * .02) * .08
+    this.christmas.frame(t, this.reduced.matches)
     this.hero.frame(now / 1000, this.reduced.matches); this.chips.frame(now / 1000, this.reduced.matches); this.cardField.frame(now / 1000, this.reduced.matches)
-    this.composer.render(); this.raf = requestAnimationFrame(this.frame)
+    if (this.stats || this.capture) this.renderer.info.reset()
+    this.composer.render()
+    this.capture?.frame(wallTime, frameMs, performance.now() - wallTime, () => ({
+      camera: transform(this.camera), hero: this.hero.diagnosticPose(), paused: this.paused, inspectionBlend: this.inspectionBlend,
+      people: this.people.map(h => ({ seat: h.seat, root: transform(h.root), drink: transform(h.drink.root),
+        rightHand: transform(h.rightRig.hand.root), shoulder: h.rightRig.shoulder.toArray(), elbow: h.rightRig.elbow.toArray(), wrist: h.rightRig.wrist.toArray() })),
+    }))
+    if (this.stats) {
+      this.measuredFrames++; this.measuredCpu += performance.now() - wallTime
+      if (wallTime - this.measuredAt > 1000) {
+        const info = this.renderer.info.render
+        this.stats.textContent = `${Math.round(this.measuredFrames * 1000 / (wallTime - this.measuredAt))} FPS · ${(this.measuredCpu / this.measuredFrames).toFixed(1)} ms CPU · ${info.calls} draws · ${(info.triangles / 1000).toFixed(0)}k triangles incl. shadows`
+        this.measuredAt = wallTime; this.measuredFrames = 0; this.measuredCpu = 0
+      }
+    }
+    this.pausedRendered = this.paused; this.raf = requestAnimationFrame(this.frame)
   }
   dispose(): void {
     this.alive = false; cancelAnimationFrame(this.raf); this.observer.disconnect(); this.renderer.domElement.removeEventListener('webglcontextlost', this.lost)
+    document.removeEventListener('visibilitychange', this.visibility)
     this.container.parentElement?.removeEventListener('pointermove', this.look); this.container.parentElement?.removeEventListener('pointerleave', this.centerLook)
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>()
     this.scene.traverse(object => {
       if (object instanceof THREE.Mesh || object instanceof THREE.Points || object instanceof THREE.Sprite) {
         geometries.add(object.geometry); for (const m of Array.isArray(object.material) ? object.material : [object.material]) materials.add(m)
         if (object instanceof THREE.InstancedMesh) object.dispose()
+        if (object instanceof THREE.SkinnedMesh) object.skeleton.dispose()
       }
     }); geometries.forEach(g => g.dispose()); materials.forEach(m => m.dispose()); this.materials.forEach(m => m.dispose()); this.textures.forEach(t => t.dispose())
-    this.hero.dispose(); this.chips.dispose(); this.bloom.dispose(); this.output.dispose(); this.composer.dispose(); this.renderer.dispose(); this.renderer.domElement.remove()
+    this.capture?.dispose(); this.hero.dispose(); this.chips.dispose(); this.christmas.dispose(); this.bloom.dispose(); this.output.dispose(); this.composer.dispose(); this.renderer.dispose(); this.renderer.domElement.remove(); this.stats?.remove()
   }
 }

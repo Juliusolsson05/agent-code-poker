@@ -1,6 +1,7 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
-Status: plan committed before this decomposition's implementation; Stage B next.
+Status: Stage B baseline captured and independently inspected; Stage C catalog
+written. Interaction/layout contracts and replacement implementation are next.
 Scope: issue #1, `feat/voxel-poker`. Existing uncommitted anatomy/Christmas work is
 provisional, not an accepted baseline. No automatic merge.
 
@@ -180,3 +181,35 @@ At every stage: verify the named artifact independently, update this status and
 issue #1, then proceed. If evidence invalidates the decomposition, revise this
 document before more implementation. The goal loop remains active through
 unfinished gates; a finite continuation limit is not completion.
+
+### Stage B evidence, 2026-09-20
+
+Two actual isolated Chrome sessions are preserved losslessly in
+`testing/fixtures/experience/`, alongside six seated images and three neutral
+four-view captures. `manifest.json` describes provenance/measurement limitations;
+`catalog.json` maps observed failures to these artifacts. The first session has
+1,122 frame samples and 500 pose samples, two accepted drinks, pause/resume,
+inspection cancellation, cigar rejection during camera settling, a successful
+cigar action and poker betting transitions. No console warnings/errors were
+observed in this source session. This is not production acceptance.
+
+Notably, hand/glass contact anchors already coincide numerically during sipping,
+but the hero wrist still reaches 1.99m from the camera with no shoulder-based
+arm. The next contract must constrain reach/body attachment, not merely anchor
+equality. Tree metadata reproduces seven conservative bar-envelope overlaps.
+Measured frame p50/p95 is 36/56ms in the instrumented interaction session, not a
+controlled benchmark. Recorded facial hair is a floating U-shaped slab. None of
+these defects is closed by the recorder or the currently passing math tests.
+
+Stage-B verification exposed a preview substrate defect before the next stage:
+`/dev/?production` has no Old Fashioned control although the freshly built
+`dist/view.js` contains it, and Chrome warns about multiple Three.js instances.
+The adapter eagerly imports source before conditionally importing the production
+bundle; Vite's transformed `dist/view.js?import` response is stale. Repair the
+preview isolation before treating any production browser run as evidence. Serve
+the exact current dist bytes through a dev-only, no-cache flat JS-only endpoint,
+and dynamically import only the selected source OR production entry. Verify
+byte identity plus visible controls and absence of the duplicate-Three warning.
+The browser additionally exposed the SDK's relative shared runtime chunk; the
+endpoint and integration test must cover every emitted JS artifact, not only
+the entry. No arbitrary paths, nested paths or non-JS files are served there.

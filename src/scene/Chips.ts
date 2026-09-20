@@ -50,8 +50,8 @@ export class ChipField {
     if (kind === 'bet') return new THREE.Vector3(x * .46, y, z * .28)
     return seat === 0 ? new THREE.Vector3(.52, y, .70) : new THREE.Vector3(x * .72 + .10, y, z * .61)
   }
-  update(state: GameState): void {
-    const now = performance.now() / 1000, next = new Map<string, Token>(), indices = new Map<string, number>()
+  update(state: GameState, now = performance.now() / 1000): void {
+    const next = new Map<string, Token>(), indices = new Map<string, number>()
     const inventory = this.ledger.sync(state).sort((a, b) => a.id - b.id)
     for (const chip of inventory) {
       const key = String(chip.id), group = chip.account, column = DENOMINATIONS.indexOf(chip.value), pileKey = `${group}:${chip.value}`

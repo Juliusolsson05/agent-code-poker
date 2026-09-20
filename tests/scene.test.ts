@@ -1,7 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import * as THREE from 'three'
-import { buildHuman, humanMaterial } from '../src/scene/Human'
 import { CardField } from '../src/scene/Cards'
 import { PokerGame } from '../src/engine/game'
 import { ChipLedger } from '../src/scene/ChipLedger'
@@ -151,19 +150,11 @@ test('reprojecting an unchanged hand preserves chip identity instead of simulati
   assert.deepEqual(ledger.sync(game.snapshot()), moved, 'duplicate projection must not cancel an in-flight bet')
 })
 
-test('articulated forearms stay in front of the chair back through their full motion envelope', () => {
-  const geometry = new THREE.BoxGeometry(), material = humanMaterial(), human = buildHuman(2, geometry, material)
-  // The chair and character share the same yaw, so this local-space check also
-  // applies to the two angled seats. Their old unrotated chairs violated that
-  // premise and passed straight through elbows during apparently harmless moves.
-  for (const arm of [human.leftArm, human.rightArm]) for (const x of [-.33, -.18, 0, .42, .62]) for (const y of [-.16, 0, .035]) {
-    arm.rotation.set(x, y, 0); human.root.updateMatrixWorld(true)
-    const bounds = new THREE.Box3().setFromObject(arm)
-    assert.ok(bounds.min.z > -.1725, `forearm clips chair at rotation ${x}, ${y}`)
-  }
-  human.root.traverse(o => { if (o instanceof THREE.InstancedMesh) { o.geometry.dispose(); o.dispose() } })
-  geometry.dispose(); material.dispose()
-})
+// Chair clearance now lives in anatomy.test.ts and samples actual deformed
+// sleeve vertices through production rest/bet/fold/sip poses, with a nonzero
+// sample assertion. The old Box3 test queried bare Bone objects after skinning
+// replaced rigid tubes: its empty box had min.z=Infinity and passed vacuously.
+// This retires a false positive, not a failing behavioral regression.
 
 test('dealing persists across decisions, private cards never use face textures, and paper cannot emit bloom', () => {
   const seen: (number | null)[] = [], textures = new Map<number | null, THREE.CanvasTexture>()
