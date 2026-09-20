@@ -1,5 +1,21 @@
 # Agent Code Poker
 
+**Current goal:** user now authorizes autonomous implementation of the full
+updated feature list, including the previously planning-only LAN/player/bank
+and keyboard-first UI additions. Continue staged contracts and verification;
+do not interpret historical planning-only notes as a permanent implementation
+ban. Keep hand-animation work paused, bank currency fictional, saves protected,
+host repo untouched and merge gated by explicit user approval. No public cloud
+or Internet relay is requested. Finish hearth/audio, then keyboard betting,
+then LAN/session/privacy and bank integration with real multi-client checks.
+
+Added UI backlog: redesign betting to be fully keyboard-controllable, with
+presets, fine/coarse amount changes, confirmation/cancel, discoverable key hints
+and safe focus/repeat handling; no dependence on slider dragging or typed
+amounts. Record and test current behavior before replacing controls. Exact
+layout/key map are still to design. Fireplace spatial ambience receives only
+a small gain increase from.035 to.045 per latest user feedback.
+
 Visibility correction: the user could not see the fireplace because it required
 the source-only query flag. The candidate and its licensed audio now appear on
 ordinary `/dev/` without flags; only production remains gated pending acceptance.

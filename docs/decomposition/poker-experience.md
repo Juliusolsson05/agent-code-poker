@@ -1,8 +1,61 @@
 # Poker experience: observed failures → explicit contacts → verified room
 
+## Authoritative full-list goal
+
+Current implementation checkpoint:85 tests and full `npm run verify` pass after
+the authored shorter bar, festive mantel,128-block layered flames and quiet
+HRTF crackle change. Live source includes these; release gating remains pending
+actual browser/listening/performance acceptance. User confirmed audible fire,
+but agent has not auditioned spatial movement. A read-only native screenshot
+showed the user's paused blurred table; do not treat it as art approval or click
+their active game. Next take a keyboard-only betting recording in isolated QA,
+then isolate the amount/key/focus contracts before replacing the current slider.
+The existing goal loop remains active; changing its prompt was rejected by the
+tool while active. This section is the durable latest full-list scope and
+supersedes old loop boilerplate about no networking/planning-only additions.
+
+User now explicitly says to implement the full updated list as the goal.
+This supersedes planning-only restrictions below for LAN/player/bank and
+keyboard-first UI. Existing exact non-hand feature list plus additions16–22
+are active implementation scope. Network architecture still needs staged
+contracts and real verification, not an ad-hoc listener or client-trusted deck.
+Use fictional bank chips/debt only; hand-animation work stays paused. No host
+repo edits, public cloud service or merge authorization. Current next order:
+finish authored hearth/spatial audio, keyboard-first betting, then LAN/identity/
+seat projection/bank with real multi-client and privacy evidence, while closing
+dealer, deliberate-look and drinking/intoxication gates. Preserve completed
+folded-card/print work and disclose visual/performance/host limitations honestly.
+
+## New UI backlog — keyboard-first betting redesign
+
+22. Rework the betting interface as a whole, not just the existing slider.
+    User reports slider/typed money entry is frustrating and wants all betting
+    controllable by keybinds. No pointer-only action and no required numeric
+    typing for routine bets. Keep optional accessible pointer controls.
+    Design visible key hints, legal bet-size presets, fine/coarse keyboard amount
+    adjustments, clear selected amount and call/raise totals, deliberate confirm
+    and cancel. Exact keys/layout remain a design step, not silently promised.
+    Protect text fields/name entry, prevent held-key repeat from submitting
+    multiple wagers, and arbitrate menus, inspection, mouse-look, pause and
+    existing game shortcuts. Engine remains the sole source of legal amounts.
+    Record current betting flow first, then isolated input/focus contracts and
+    real keyboard-only hand-play tests before replacing the UI.
+
+Audio follow-up: user heard the quieter 3D fire and asked for a small increase;
+raise ambience bus from.035 to.045 (about2.2dB), retaining distance falloff and
+HRTF camera-relative positioning. This is not a request to restore loud flat audio.
+
 ## Live visibility correction
 
 ### User rejects first fireplace art: authored composition, not clipped shelves
+
+User confirms the crackle is audible and requests location-correct 3D audio.
+Replace direct stereo media output with one MediaElementSource → HRTF Panner →
+ambience gain → master. Fireplace layout owns emitter coordinates; actual
+camera matrix owns listener position/forward/up, including deliberate look and
+inspection. No screen-space fake pan or second simultaneous playback path.
+Test lifecycle, single graph ownership, coordinate orientation and finite input;
+browser listening during head turns remains distinct from synthetic tests.
 
 The actual live screenshot shows straight candle-like flame columns and shelf
 ends sliced at the hearth bay. Replace the clipping implementation with an
