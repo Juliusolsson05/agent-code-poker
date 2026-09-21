@@ -17,7 +17,7 @@
     "test:contract": "node --test testing/contract.test.mjs",
     "test:preview": "node --test testing/preview.test.mjs",
     "verify": "npm test && npm run build && npm run test:contract && npm run test:preview",
-    "build:service": "esbuild server/service.ts --bundle --platform=node --format=cjs --outfile=dist-service/lan-host.js"
+    "build:service": "esbuild server/service.ts --bundle --platform=node --format=cjs --outfile=dist-service/lan-host.cjs --banner:js=\"var __pokerEntryFilename = typeof __filename !== \\\"undefined\\\" ? __filename : null; var __pokerEntryUrl = __pokerEntryFilename ? require(\\\"url\\\").pathToFileURL(__pokerEntryFilename).href : null\" --define:import.meta.url=__pokerEntryUrl"
   },
   "dependencies": {
     "react": "18.3.1",

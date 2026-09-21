@@ -1,3 +1,4 @@
+var __pokerEntryFilename = typeof __filename !== "undefined" ? __filename : null; var __pokerEntryUrl = __pokerEntryFilename ? require("url").pathToFileURL(__pokerEntryFilename).href : null
 "use strict";
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -1035,7 +1036,6 @@ var CheckpointStore = class {
 };
 
 // server/http.ts
-var import_meta = {};
 var HttpFailure = class extends Error {
   constructor(status, message) {
     super(message);
@@ -1089,7 +1089,7 @@ function body(request) {
 async function startLanHost(options = {}) {
   const now = options.now ?? Date.now;
   const addresses = ["127.0.0.1", ...options.lan ? Object.values((0, import_node_os.networkInterfaces)()).flatMap((list) => (list ?? []).filter((i) => i.family === "IPv4" && !i.internal && privateV4(i.address)).map((i) => i.address)) : []];
-  const built = new URL("../lan-dist/", import_meta.url);
+  const built = new URL("../lan-dist/", __pokerEntryUrl);
   const files = (await (0, import_promises.readdir)(built)).filter((file) => /^(?:index\.html|[a-zA-Z0-9_-]+\.(?:js|css))$/.test(file));
   if (!files.includes("index.html") || !files.includes("client.js")) throw new Error("Run npm run build:lan before hosting.");
   const assets = new Map(await Promise.all(files.map(async (file) => [file === "index.html" ? "/" : `/${file}`, {
@@ -1364,9 +1364,14 @@ async function startLanHost(options = {}) {
 }
 
 // server/service.ts
-var import_meta2 = {};
+function entryDirectory() {
+  const metaUrl = __pokerEntryUrl;
+  if (typeof metaUrl === "string" && metaUrl.startsWith("file:")) return (0, import_node_path2.dirname)((0, import_node_url.fileURLToPath)(metaUrl));
+  if (typeof __pokerEntryUrl === "string" && __pokerEntryUrl) return (0, import_node_path2.dirname)((0, import_node_url.fileURLToPath)(__pokerEntryUrl));
+  throw new Error("The LAN host service cannot locate its own entry directory.");
+}
 function checkpointDirectory() {
-  const here = (0, import_node_path2.dirname)((0, import_node_url.fileURLToPath)(import_meta2.url));
+  const here = entryDirectory();
   if (here.includes(`${import_node_path3.sep}extensions${import_node_path3.sep}`)) return (0, import_node_path2.resolve)(here, "../../..", ".poker-lan");
   return (0, import_node_path2.resolve)(here, "../.poker-lan");
 }
