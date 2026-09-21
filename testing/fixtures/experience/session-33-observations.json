@@ -1,0 +1,10 @@
+{
+  "kind": "recorded-matrix reconstruction plus explicitly synthetic surface sweep",
+  "date": "2026-09-20",
+  "candidate": "NPC exterior acquisition after plans3dc48c2 and2f6d8cc",
+  "baseline": "Unmodified10-29-18 wrist/glass matrices; source-assisted legacy skin reconstruction finds201 penetrating transition samples, worst14.868mm. Bone vertices were not captured; the audit explicitly does not call reconstructed skin observed pixels.",
+  "regression": "Finite triangle/cylinder test first failed at seat1 time0 with-7.810mm resting gap. Plan revised before implementation: move wrist x.20 to.17, keep glass/coaster and all hand art. Retained recorded resting and transition matrices remain negative controls.",
+  "implemented": "Single-consumer interaction/npc route raises the resting hand above the rim, forms the existing wrap there, then lowers parallel to the vessel axis; reverse after the existing return. Held interval.8-4.8s and mouth trajectory unchanged. No runtime mesh collision queries.",
+  "verified": "Synthetic dense finite-surface sweep for all5opponents passes pickup/release with no IK reach correction. Existing held-contact/mouth/cuff tests unchanged. Full verify168 tests plus source/LAN production builds,2SDK checks and1exact-byte HTTP preview passed.",
+  "open": "CUA reports browser unavailable. No fresh source/shipped motion, restored hand, exterior close-up, reduced-motion device, FPS, audio or Electron acceptance. New diagnostics include NPC phase/grip/sipAge/reachError for future actual capture. No host/session restart."
+}

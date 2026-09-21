@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "source": "poker-evidence-2026-09-20T05-52-49-020Z.json.gz",
+  "rawSha256": "632b8b84142f1ac52791c5af76ffd5fb53bac66a94a515f35e5a034b340f5d42",
+  "observed": "Nine public-game records: raise500 result, three folds, two calls, street transition to flop, two checks. Six stable seats; each record retains stack, bet, folded, action and current actor. No private cards or network data were recorded.",
+  "derived": "Replay through PokerGame with an arbitrary injected deck reconstructs public balances and actor order only. For each viewer, projection must preserve those public fields and map that viewer to display slot0 without changing authoritative seat IDs.",
+  "unsafeBaseline": "App/Room use full GameState with deck, cursor and all player hole cards. This is legitimate trusted local state, but serialization would disclose every private hand. LAN must use an explicit whitelist DTO, not GameState with some meshes hidden.",
+  "synthetic": ["private-card noninterference under alternate unseen decks", "queued mid-hand admission", "completed-hand admission before next deal", "disconnect/reconnect and bot ownership", "full table and name bounds", "duplicate, stale and malformed intents", "showdown versus uncontested disclosure", "returned object mutation"],
+  "unrecorded": ["actual LAN transport messages", "lobby code discovery", "two browser clients", "real reconnect ordering", "client-relative visual framing", "host crash and persisted LAN session"],
+  "gate": "Isolated host authority only. No listener, LAN UI or production multiplayer claim until real transport/browser integration evidence exists. No credentials/private values in diagnostic fixtures."
+}

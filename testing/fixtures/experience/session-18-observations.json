@@ -1,0 +1,26 @@
+{
+  "kind": "manual-cua-observation-log-not-a-raw-trace",
+  "date": "2026-09-20",
+  "scope": "Solo regression checks while adding an unconnected host-session layer. Not LAN integration evidence.",
+  "source": {
+    "url": "http://127.0.0.1:5191/dev/?qa=session-18&record&stats",
+    "observed": [
+      "Entered hand1 in isolated QA storage; screenshot showed five opponents, held cards/cigar, offset fireplace and bottom-right board. No human dealer.",
+      "Called20; DOM confirmed stack1980 and the public call, then Cards & chips entered inspection and disabled drink/cigar controls."
+    ],
+    "incomplete": "Capture-view/look-up/pause batch timed out and the CUA runtime reset. No new PNG or raw trace export was found in Downloads. A later source-restore tab attempt also timed out. Do not claim source pause/reload or retained trace from this attempt."
+  },
+  "production": {
+    "url": "http://127.0.0.1:5191/dev/?production&qa=session-18-prod",
+    "observed": [
+      "After initial accessibility timeout, reattached the created QA tab and entered hand1.",
+      "Screenshot showed established five-opponent seating, held cards and cigar; fireplace intentionally still source-gated.",
+      "Called76; stack changed2000 to1924. Entered and exited card/chip inspection, then paused via Pause table.",
+      "At pause: preflop, stack1924, pot1012, Juno1777/Raise223, Moss1980/Fold, Cleo1980/Fold, Rook1327/Raise673, Sol2000/Fold.",
+      "Reload returned to lobby with Return to your table. Re-entry restored that same hand/stack/pot/opponent actions and legal Call597.",
+      "Captured console warn/error query returned an empty list."
+    ],
+    "limits": "Screenshots inspected in CUA output, not exported visual goldens. No actual audio audition, controlled FPS comparison, full motion acceptance or Electron installation check."
+  },
+  "multiplayer": "No browser LAN controls or listener yet. Host authority tests are in-process; recorded public-action replay and synthetic adversarial probes are labeled separately in lan-catalog.json."
+}

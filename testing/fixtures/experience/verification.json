@@ -1,0 +1,93 @@
+{
+  "checkpoint": "Hands paused. Larger offset hearth and local CC0 fire recording now enabled on ordinary source /dev/. Read-only native CUA screenshot confirms visible opening between center and right-center guests. Production and listening acceptance remain open; mouse-look still requires source look flag.",
+  "fireplaceCheckpoint": {
+    "latestRevision": "User rejected clipped shelf/candle fire. Candidate now authors a complete shorter left bar, darker masonry, mantel greenery/stockings and128 connected flame/core/ember block instances in the same two batches. Spatial graph uses one media source,HRTF panner and quiet.045 ambience bus; actual camera matrix drives listener at30Hz. User confirms crackle audible; no agent listening/turning acceptance. Native read-only latest view was paused/blurred, so new art is not approved by that screenshot.",
+    "geometry": "2.21m wide, x1.4 rear wall; shared bay clips bar/counter/shelves without moving outer furniture. Actual recorded room is negative control; isolated rendered solids clear derived room, recorded decor and oriented chairs with3cm padding. Two mesh batches,18 flame blocks,one extra point light,no additional shadow; no measured performance approval.",
+    "audio": "Creator Assets YouTube wdCzrjcO4OU official MP3 downloaded unmodified:59.031917s,44100Hz stereo,1423119bytes. CC0 primary-source provenance and SHA256 beside asset. Single media element with gesture/pause/mute/hidden/disposal gates; synthetic lifecycle tests, not listening proof.",
+    "browser": "Extension browser disconnected/timeouts; native CUA separate qa=fireplace-native-15 window showed centered first candidate and source hand Q-clubs/8-diamonds,pot70/stack2000. Audio-playing UI indicator seen, not audible assessment. User correction moved/enlarged candidate afterward. Native window switched to user /dev/; stopped sending inputs. No new image files/raw trace retained; latest offset/source interactions and production browser checks remain open.",
+    "remaining": "Verify enlarged offset framing against future dealer, source and production playback/seam/levels, actual mouse drag, controlled performance. Enable by default only after acceptance; Electron separate. Separate ambience/effects controls and chip samples remain unfinished."
+  },
+  "cameraCheckpoint": {
+    "mode": "Source-only &look candidate; ordinary source and shipped camera unchanged",
+    "automated": "Seven controller tests: measured retained camera baseline, real inspection/pause event order with explicitly synthetic turned intent, drag cancellation/bounds/damping, one-shot contact dispatch and import isolation. Not real pointer-drag verification.",
+    "source": "Actual CUA qa=look-13 entered fresh hand8d4s and showed Recenter view. Browser disconnected before drag executed; recording not exported. No successful drag, screenshot golden or comfort claim.",
+    "production": "Fresh browser check unavailable after connection loss. Exact-byte HTTP preview and packaging pass; these are not visual/browser verification.",
+    "remaining": "Record real drag/control/menu/inspection/contact/pause/restore inputs; inspect extremes/privacy/world-label behavior and off/reduced motion; verify source and shipped before enabling by default. No performance improvement claimed."
+  },
+  "latestBrowserLimitations": "Source and shipped table actions, inspection, folds, held rest props and restoration checked through CUA. Source recovered via fresh isolated tab after reload detached debugger. No fresh console-log export, no controlled texture-cost benchmark or Electron test. Earlier contact/ablation evidence below is historical.",
+  "tableCheckpoint": {
+    "trace": "poker-evidence-2026-09-20T05-52-49-020Z.json.gz",
+    "source": "Isolated qa=table-quality-9; inspection, raise500, three folds/two calls, flop, pause. Stack1500/pot1550, six folded backs above felt. Two actual PNGs plus1151 frames/512 poses retained. After debugger detachment, fresh source tab/Return restores same flop, stack1500/pot1550 and visible folded backs; left paused.",
+    "production": "Isolated qa=table-quality-production-9; raise500 caused all five folds. Ten backs remain face-down through inspection and completed hand. Pause/reload/Return restores stack2090 and same completed hand. Screenshots inspected in CUA, not exported as raw production trace.",
+    "visual": "Felt ellipse/lettering cleaner in source comparison, chip denominations readable; actual metadata256px caps/2048x1024 felt/8x filtering. Resting held cards/cigar and bottom-right public board checked. No hand-animation iteration or final anatomy approval.",
+    "measurement": "Instrumented mixed-workload frame p50/p95 34.1/110.2ms, CPU submission5.2/9.4ms. Uneven delivery, not a controlled comparison or performance acceptance. Print memory increment estimated9.25MiB RGBA8+mips, not measured driver memory."
+  },
+  "date": "2026-09-20",
+  "automated": {
+    "command": "npm run verify",
+    "result": "passed",
+    "coverage": "Full npm run verify passes85 tests, TypeScript/build,2SDK checks and exact-byte HTTP preview. Includes complete authored bar, fireplace clearance, bounded flame buffers, synthetic HRTF graph/camera axes, quiet gain, audio lifecycle and downloaded asset hash. No listening, latest-art or production-browser acceptance implied.",
+    "limitation": "Passing tests do not approve the recorded contact, anatomy, lighting or performance defects"
+  },
+  "sourceBrowser": {
+    "url": "/dev/?qa=christmas-rig&stats&record",
+    "checked": ["enter hand", "call", "three candidate drink starts", "pause/resume mid-lift", "mid-sip inspection with safe return", "cigar retrieval after inspection", "restore after HMR"],
+    "evidence": "manifest.json baseline sessions and candidateSessions, including raw 2026-09-20T03-39-26-621Z and four paired images",
+    "console": "No warnings/errors observed in recorded source session"
+  },
+  "productionBrowser": {
+    "url": "/dev/?production&qa=evidence-production",
+    "checked": ["restore hand", "Old Fashioned interrupted during lift", "glass returned before private inspection", "immediate Look up then cigar pickup from tray", "call 66", "pause/resume", "reload/restore same turn, stack 1914 and pot 595"],
+    "previewDefectFixed": "Eager source import caused duplicate Three.js; Vite transformed dist cache served stale view. Dev-only flat JS endpoint now serves current bundle and relative SDK chunk byte-for-byte with no-store.",
+    "console": "Fresh production QA tab reports no warnings/errors before and after reload",
+    "visual": "Hero world-space arms remain connected during observed return/retrieval; poor fingers/facial hair and overlapping tree remain visible. Screenshots inspected through CUA, not saved as golden approval. NOT final art acceptance"
+  },
+  "candidateMeasurement": {
+    "trace": "poker-evidence-2026-09-20T03-39-26-621Z.json.gz",
+    "frames": 1710,
+    "poses": 569,
+    "maxActualShoulderWristMetres": 0.553774077,
+    "maxReachCorrectionMetres": 1.576e-16,
+    "frameP50Ms": 27.4,
+    "frameP95Ms": 31.8,
+    "limitation": "Different camera and interaction workload from baseline. Instrumented session with screenshots; not a controlled performance improvement or 60Hz claim. No GPU timing measured."
+  },
+  "host": "Electron installation not verified; host fullscreen explicitly deferred",
+  "surfaceCheckpoint": {
+    "trace": "poker-evidence-2026-09-20T03-53-42-707Z.json.gz",
+    "sourceBrowser": "Drink, paused lift, resume/inspection/safe return, cigar, call 55 and reload retaining turn/stack 1925/pot 326. No console warnings/errors observed.",
+    "productionBrowser": "Drink lift, inspection return, cigar retrieval, call 211, pause/resume and reload retaining river/stack 1703/pot 1249. No console warnings/errors observed.",
+    "visual": "Neutral four-view images preserve closed finger bends and removal of jaw slab. Seated source and production views inspected. Cigar pinch and glass wrap remain visibly awkward; no overall hand/anatomy signoff.",
+    "measurement": "728 instrumented frames: p50/p95 frame 28.6/31.9ms, CPU submission 5.2/7.8ms. Median 350 draws and 1233436 triangles including shadows. Not a controlled benchmark or GPU timing."
+  },
+  "orderingCheckpoint": {
+    "trace": "poker-evidence-2026-09-20T04-02-22-844Z.json.gz",
+    "source": "All four orders/sips, busy choices disabled, paused sip, inspection safe return, cigar pickup and call48. Reload preserves hand1 flop stack1952 pot254. No console warnings/errors observed.",
+    "production": "All four menu choices; ale/wine/water sip, busy gating, pause/resume, inspection return and cigar pickup. Stack2000 unchanged by orders; call20 leaves1980. Reload preserves hand1 flop stack1980 pot252. No console warnings/errors observed.",
+    "measurement": "2303 instrumented frames, 772 poses, p50/p95 frame30/33.5ms and CPU submission5.9/7.9ms. Not controlled performance acceptance.",
+    "visual": "Six recorded canvas images. Recessed tray and block drink contents visible; grips are still awkward and not signed off. Menu screenshots inspected in CUA transcript; no approved image golden."
+  },
+  "gripCheckpoint": {
+    "trace": "poker-evidence-2026-09-20T04-23-47-481Z.json.gz",
+    "source": "Paused sip, inspection safe return, cigar retrieval, call20 and reload retaining hand1 preflop stack1980 pot70. No console warnings/errors observed. A first trace download was missing; a new actual session was recorded and its raw file verified on disk.",
+    "production": "Shipped bundle sip, interrupted return/inspection, cigar pickup, legal call20, pause and reload retaining hand1 preflop stack1980 pot90. No console warnings/errors observed. QA left paused; Electron host not exercised.",
+    "measurement": "219 instrumented frames,155 poses; frame p50/p95 86.5/140.2ms, CPU submission6.2/8.5ms. Poor frame delivery; uncontrolled desktop load, no GPU timing and no performance-improvement claim.",
+    "visual": "Actual four-view hero glass/cigar and complete opponent sip images. Held contacts visibly improved; angular finger silhouette/card pose and gesture transitions remain open. CUA production screenshots inspected separately, not exported or called golden images."
+  },
+  "environmentCheckpoint": {
+    "trace": "poker-evidence-2026-09-20T04-36-26-293Z.json.gz",
+    "source": "Wide/seated camera and actual recorded decor bounds; sip/pause/inspection return/cigar/call70; reload retains hand1 preflop stack1930 pot568. No console warnings/errors observed.",
+    "production": "Warm room and held cards/cigar inspected; paused sip, safe inspection return, call20 and reload retaining hand1 preflop stack1980 pot90. No console warnings/errors observed; QA left paused.",
+    "visual": "Final seated/wide raw canvas PNGs and before-lighting reference retained. Tree/presents visibly separated from bar and wall; garland/wreath no longer buried in bottles/mirror/beam. Warm practical illumination and restrained snow; no obvious trim flash during observed lean/return, not an exhaustive camera guarantee. Character art remains provisional.",
+    "measurement": "196 frames/87 poses. Frame p50/p95 40.3/79.1ms; CPU submission5.7/9.2ms. Short instrumented mixed-camera workload, not a controlled performance comparison."
+  },
+  "renderCheckpoint": {
+    "profiles": ["poker-profile-2026-09-20T04-46-33-937Z.json.gz", "poker-profile-2026-09-20T04-50-10-044Z.json.gz"],
+    "protocol": "Fixed lobby visual time12 and centered camera, A/B/A/B with2s warmup+8s samples per window. Same2133x1104 viewport,300draws/1145166triangles. Only buffer changes2666x1380→2197x1137; retained4xMSAA,geometry,2048shadow and lights.",
+    "measurement": "Second run median pairs82.7→66.2ms and75.8→63ms, p95 pairs99.4→74.4ms and92.4→68.7ms. CPU medians6.3–6.5ms. Strong desktop drift, not general gameplay FPS. Fifteen sparse driver GPU samples101.5–220.3ms; not exclusive shader execution cost.",
+    "source": "Recorded279frames/189poses and3PNGs; sip/pause/inspection/cigar/call20, reload hand1preflop stack1980 pot110. No warnings/errors. Active trace frame70/149.9ms p50/p95 remains poor, not comparable with fixed lobby.",
+    "production": "Shipped sip/pause/inspection/cigar/call59 and reload retaining hand1/stack1941; public pot336 observed after Juno raise178. No warnings/errors. Cards/hand edges inspected; QA paused, host unverified.",
+    "limitation": "About32% fewer render pixels is an explicit resolution tradeoff, not a free quality-equivalent optimization. Readable source/production views do not approve final anatomy. Smooth active performance is NOT achieved."
+  },
+  "remaining": ["shadow/material/postprocessing isolation and smooth active performance", "opponent interaction ownership/interruption", "grip transition sweeps and card-hand silhouette", "character anatomy/face refinement", "reduced motion and visibility interaction checks (snow tested separately)", "fresh final source/production visual acceptance"]
+}

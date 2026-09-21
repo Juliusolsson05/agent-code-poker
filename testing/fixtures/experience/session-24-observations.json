@@ -1,0 +1,19 @@
+{
+  "source": "manual notes from actual CUA observations; not a raw recording or image golden",
+  "sourcePreview": {
+    "url": "http://127.0.0.1:5191/dev/?qa=lan-leisure-24",
+    "observed": ["four-choice DrinkMenu", "water selected", "sip request disables cigar and sip controls", "controls later available and own stack still2000", "call20", "table inspection with water and cards above felt", "pause/reload", "restored hand1 stack1980 pot180; drink reset to Old Fashioned"],
+    "capturedWarningsAndErrors": []
+  },
+  "shippedPreview": {
+    "url": "http://127.0.0.1:5191/dev/?production&qa=lan-leisure-24prod",
+    "observed": ["four-choice DrinkMenu", "winter ale selected", "sip request disables cigar and sip controls", "own stack2000"],
+    "incomplete": ["subsequent call20 click timed out", "tab not found; refreshed browser inventory lacked both owned QA tabs", "no final wager/inspection/reload or console result"]
+  },
+  "lan": {
+    "url": "http://127.0.0.1:5193/",
+    "observation": "ERR_BLOCKED_BY_CLIENT after refreshing only the confirmed empty QA host; no browser protections changed",
+    "liveSession5192": "untouched"
+  },
+  "limitations": ["No actual LAN UI or multi-client acceptance", "No quality approval for hand art or drinking contacts", "No FPS, Wi-Fi, listening or Electron evidence", "Owned tabs disappeared; no replacement QA tabs opened"]
+}

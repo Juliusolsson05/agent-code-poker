@@ -1,0 +1,36 @@
+{
+  "source": "manual CUA observations and original browser image; DOM measurements retained separately; not a recorded animation trace",
+  "date": "2026-09-20",
+  "plans": ["6db5720", "f1ad873"],
+  "npcReview": {
+    "url": "/dev/?studio&seat=1",
+    "subject": "Opponent right arm",
+    "action": "Drink",
+    "observedTimes": [0.5,0.8,2.6,5.4],
+    "image": "npc-exterior-held-seat1.png",
+    "sha256": "98aa8323e6192f1a85cd104671cbe954ae26099f7cf9d46dfea0276cf8add16f",
+    "observation": "Actual production geometry four-view inspection shows above-rim approach, exterior held wrap, connected arm and near-side rim/mouth contact. Release hand clears the returned vessel. Approach looks stiff; controlled sampled poses are not live motion or final hand/anatomy approval. No hand/arm edits."
+  },
+  "layoutBefore": "compact-hud-before.json",
+  "intermediateFailure": {
+    "viewport": [500,722],
+    "stack": {"bottom":638.2292175292969,"left":11.99652862548828,"right":131.92709350585938,"top":582.7431030273438},
+    "tray": {"bottom":637.6736450195312,"left":79.99566650390625,"right":419.9956970214844,"top":404.2274475097656},
+    "reason": "First compact pass still overlapped stack and wager; contract revised to share upper board/stack band during sizing."
+  },
+  "sourceAccepted": "compact-hud-source.json",
+  "productionAccepted": "compact-hud-production.json",
+  "sourceInputs": [
+    "Actual CSS viewport500x722; controls separate from table metadata, board and stack above open tray; all decision buttons in bounds.",
+    "4/Escape/B/Right/Shift-Right selects all-in, cancels, reopens minimum40 then sizes61. Stack stays2000 until Enter; accepted raise61 leaves1939/pot151.",
+    "Bank button Tab focuses partially visible Hand history; Enter opens history and pauses. Keyboard activation works, but native focus alone does not fully scroll the partially visible label into view. Horizontal scroll remains available.",
+    "Source QA closed with1939stack and preflop pot617; no user save touched."
+  ],
+  "productionInputs": [
+    "Actual CSS viewport711x800; restored source1939stack/pot617. B opens minimum283, board clears tray by22px and tools clear metadata.",
+    "Escape cancels draft; C calls111 outstanding (street total172), stack1828/pot728. Flop8D2DAH progresses to pot2988 with viewer still1828.",
+    "Cards & chips inspection shows held/table cards, persistent folded backs and unobscured bottom-right flop board. Escape exits inspection, second Escape pauses.",
+    "Warning/error logs empty before reload. Reload/Return restores hand1,stack1828,pot2988 and flop8D2DAH. Default viewport reset afterward; original full-width room/control presentation inspected."
+  ],
+  "limitations": "No FPS/listening/reduced-motion/LAN/Electron acceptance. Browser viewport requests are affected by current zoom; actual DOM CSS dimensions, not requested override sizes, are authoritative. Screenshots inspected in CUA transcript; only NPC held PNG retained as image. Tests audit recorded real rectangles, not future CSS rendering."
+}

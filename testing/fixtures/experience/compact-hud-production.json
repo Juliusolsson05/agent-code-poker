@@ -1,0 +1,12 @@
+{
+  "source": "actual CUA read-only DOM measurement, shipped /dev/?production&qa=narrow-37 after npm run verify; wager open",
+  "viewport": [711, 800],
+  "rects": {
+    "bankroll-tag":{"bottom":777.0052185058594,"left":25.99826431274414,"right":145.92882919311523,"top":714.0191040039062},
+    "betting-tray":{"bottom":715.451416015625,"left":185.55555725097656,"right":525.5555877685547,"top":482.0052185058594},
+    "community-board":{"bottom":460.0000076293946,"left":464.0364685058594,"right":699.1146087646484,"top":363.4548645019531},
+    "quick-actions":{"bottom":778.0035171508789,"left":174.0104217529297,"right":537.1007232666016,"top":724.8958740234375},
+    "room-top-right":{"bottom":132.76910781860352,"left":11.99652862548828,"right":699.114631652832,"top":100.00000762939452},
+    "table-info":{"bottom":86.55382442474365,"left":11.99652862548828,"right":280.7638931274414,"top":75.9982681274414}
+  }
+}

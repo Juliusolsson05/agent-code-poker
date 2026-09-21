@@ -1,0 +1,32 @@
+{
+  "kind": "manual-observations-not-raw-recording",
+  "date": "2026-09-20",
+  "change": "Explicit saved-seat recovery and crash-released host ownership",
+  "host": {
+    "evidence": "Actual isolated child-process SIGKILL after HTTP accepted-call response; fresh host restores private views and returns duplicate ACK. Store-only kill and interrupted staging preservation also tested.",
+    "limitations": "Deliberate crash injection on this Mac, not observed production failure or power-loss/Wi-Fi evidence. Browser key tests use synthetic Storage ports, not browser automation."
+  },
+  "lanBrowser": {
+    "url": "http://127.0.0.1:5193/",
+    "result": "Chrome ERR_BLOCKED_BY_CLIENT. User asked to open the isolated QA page manually. No protection bypass.",
+    "server": "Owned5193 QA server returned410 before replacement; no room existed. New QA host uses isolated temporary checkpoint storage. Existing5192 session untouched."
+  },
+  "source": {
+    "url": "http://127.0.0.1:5191/dev/?qa=recovery-22",
+    "actions": ["Take a seat", "Call76", "Cards & chips", "Look up", "Pause", "Reload", "Return to your table"],
+    "restored": {"hand": 1, "stack": 1924, "pot": 1224, "nextCall": 722},
+    "observed": ["held cards/cigar", "five opponents", "folded backs on felt", "source fireplace", "board bottom right"],
+    "warningErrorLog": [],
+    "recovery": "Initial ERR_CONNECTION_REFUSED; lsof confirmed preview no longer listening. Restarted npm run dev, then reloaded own tab."
+  },
+  "production": {
+    "url": "http://127.0.0.1:5191/dev/?production&qa=recovery-22prod",
+    "actions": ["Take a seat", "Call60", "Cards & chips", "Look up", "Pause", "Reload", "Return to your table"],
+    "restored": {"hand": 1, "stack": 1940, "pot": 200, "nextAction": "Check"},
+    "observed": ["held cards/cigar", "five opponents", "folded backs on felt", "board bottom right", "no fireplace in gated production"],
+    "warningErrorLog": [],
+    "recovery": "Initial AX timeout recovered by listing and reattaching the already-created owned tab."
+  },
+  "limitations": ["Screenshots viewed in tool output, not retained goldens", "No multi-client browser acceptance", "No LAN latency, disk latency, FPS or listening measurements", "No Electron-host acceptance"],
+  "cleanup": "Closed only the two owned source/shipped QA tabs; saves and user tabs preserved"
+}

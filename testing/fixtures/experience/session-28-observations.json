@@ -1,0 +1,39 @@
+{
+  "source": "manual notes from actual CUA browser observations on 2026-09-20; not a raw trace or pixel golden",
+  "implementation": "shared PokerChrome and product fireplace profile, based on 0d77577 plus the accompanying implementation diff",
+  "shippedPreview": {
+    "url": "http://127.0.0.1:5191/dev/?production&qa=shared-ui-28",
+    "observed": [
+      "Fresh lobby screenshot shows the offset back-wall fireplace, shortened left shelves, five opponents and original branded controls",
+      "Take a seat enters hand1; Call20 clicked once from stack2000",
+      "Cards and chips inspection screenshot shows own cards and stacks above felt, folded backs on tabletop and public board at bottom right",
+      "Pause shows hand1 flop, own stack1980 and pot100",
+      "Reload shows Return to your table, rather than silently resuming",
+      "Return restores hand1 flop, own stack1980, pot100 and legal Check control",
+      "Captured browser warning/error logs were empty after restoration"
+    ]
+  },
+  "sourcePreview": {
+    "url": "http://127.0.0.1:5191/dev/?qa=shared-ui-28source",
+    "observed": [
+      "Fresh lobby and Take a seat use the original UI",
+      "Call20 clicked once; Cards and chips inspection screenshot shows tabletop cards, chips and bottom-right board",
+      "Pause shows hand1 flop, own stack1980 and pot100",
+      "Reload and explicit Return restore hand1 flop, own stack1980, pot100 and legal Check control",
+      "Captured browser warning/error logs were empty after restoration"
+    ],
+    "toolLimitations": ["Two DOM observations timed out; reselecting the same tab recovered inspection without restarting the page or server"]
+  },
+  "lan": {
+    "observed": ["Both compiled bundles rebuilt and HTTP asset/CSP checks passed"],
+    "notVerified": ["No live LAN screenshot for the updated build", "No paired browser play or bank transaction", "No installed-extension hosting"],
+    "existingHosts": "Not restarted; pending user authority is not inferred from automated continuation"
+  },
+  "limitations": [
+    "Screenshots were rendered and inspected through CUA, not saved as regression image artifacts",
+    "No private cards, names, admission codes or credentials are retained in these notes",
+    "Static shared-component tests use synthetic HostTable data and do not prove visual parity",
+    "No new FPS, audio listening, separate-device LAN, Electron or anatomy-quality verification",
+    "LAN help/history, fullscreen placement and complete panels remain parity work"
+  ]
+}

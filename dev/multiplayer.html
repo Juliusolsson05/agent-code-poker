@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent Code Poker · Play with friends</title><link rel="stylesheet" href="/dev/multiplayer/style.css"><script type="module" src="/dev/multiplayer/main.ts"></script></head>
+<body><main>
+  <p class="eyebrow">♠ AGENT CODE POKER · PRIVATE LAN</p>
+  <h1>Bring your friends to the table.</h1>
+  <p>Six seats. Humans take an NPC’s seat at the next hand. Everyone plays from their own first-person view.</p>
+  <nav aria-label="Multiplayer setup"><button type="button" id="host" aria-pressed="true">Host a table</button><button type="button" id="join" aria-pressed="false">Join a friend</button></nav>
+  <section id="host-guide" aria-label="Host instructions">
+    <h2>1. Start the host on your computer</h2>
+    <p>In this game’s repository, run:</p><pre><code>npm run build
+npm run lan -- --lan</code></pre>
+    <p>This explicitly enables private-LAN connections. Keep that terminal running. This page does not start a server or change your firewall.</p>
+    <p>If the port is already in use, preserve that session. Do not stop an old memory-only host unless everyone is finished—its table would be lost.</p>
+    <h2>2. Open its lobby</h2>
+    <p>Paste the host’s printed localhost URL below. On the next page, enter your name and choose <strong>Create table on this computer</strong>. Share its private-LAN URL and lobby code with friends.</p>
+  </section>
+  <section id="join-guide" aria-label="Join instructions" hidden>
+    <h2>Join on the same network</h2>
+    <p>Ask your friend for the host’s private-LAN URL and lobby code. Paste the URL below—not localhost from their computer. On the next page enter your name and code, then choose <strong>Join table</strong>.</p>
+    <p>A code alone cannot find another computer. Public internet hosting and automatic discovery are not supported.</p>
+  </section>
+  <form id="destination"><label for="address">Host URL</label><input id="address" type="text" inputmode="url" autocomplete="off" spellcheck="false" placeholder="http://192.168.1.20:5192" aria-describedby="address-help destination-error" required><p id="address-help" class="small">Use the exact address printed by the host. Never paste a seat key, password or lobby code here.</p><p id="destination-error" role="alert"></p><button type="submit" class="primary">Open multiplayer lobby →</button></form>
+  <aside><strong>Practice chips only · Trusted LAN only</strong><p>HTTP is unencrypted. Do not port-forward the host. The current 3D multiplayer build is still under end-to-end verification.</p><p>Your solo game remains in its original tab. Close this tab to return; opening this page does not replace its save.</p></aside>
+</main></body></html>

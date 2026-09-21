@@ -1,0 +1,18 @@
+{
+  "source": "manual notes accompanying actual CUA raw input recordings on 2026-09-20",
+  "before": {
+    "trace": "poker-evidence-2026-09-20T09-55-42-159Z.json.gz",
+    "observed": ["B and fine/coarse arrows sized141 facing70", "4/Escape/Enter did not submit, but B reopened canceled all-in2000", "Native Enter on Min selected120 without wagering", "Shift-arrow and table Enter submitted140, own stack1860"],
+    "classification": "cancel/reopen all-in is a retained negative control, not expected behavior"
+  },
+  "normalSource": {
+    "url": "http://127.0.0.1:5191/dev/?qa=keys-29normal&record",
+    "trace": "poker-evidence-2026-09-20T10-00-32-431Z.json.gz",
+    "observed": ["No betkeys feature flag", "B/4/Escape/Enter/B reopens40, stack2000 unchanged", "Native Enter on Pot only selects130", "1/arrows/Shift-arrow/left sizes60 without moving chips", "Pause while sizing discards draft; resume/Enter makes no wager, B starts40", "Shift-arrow/Enter commits60", "Inspection/pause/reload/Return restores hand1 preflop, stack1940 and pot357", "Captured warning/error logs empty"]
+  },
+  "shipped": {
+    "url": "http://127.0.0.1:5191/dev/?production&qa=keys-29ship",
+    "observed": ["Normal shipped controls show Raise B", "B/2 selects half-pot65", "4/Escape/Enter does not submit", "Reopen/native Min Enter/Shift-arrow selects60 without spending", "Screenshot shows compact tray, original room/fireplace and bottom-right board", "Table Enter confirms60", "Inspection/pause/reload/Return restores hand1 flop, stack1940 and pot403", "Captured warning/error logs empty"]
+  },
+  "limitations": ["Several CUA debugger timeouts recovered by reselecting the same confirmed tab; no server restart or substitute automation", "Screenshots inspected in CUA are not UI golden artifacts", "Only the initial canvas PNG is retained", "No native repeat, narrow-layout, FPS, new LAN, listening or Electron verification", "No private card values, names or credentials retained in these notes"]
+}

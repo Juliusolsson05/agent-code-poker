@@ -1,0 +1,34 @@
+{
+  "kind": "manual-observations-not-raw-recording",
+  "date": "2026-09-20",
+  "change": "Private LAN host checkpoint and optional commit-before-ACK recovery",
+  "baseline": {
+    "kind": "actual-scripted-loopback-restart",
+    "before": {"status": 200, "phase": "ready", "seat": 0},
+    "after": {"status": 410, "error": "This test session has ended. Create a new table explicitly."},
+    "scope": "Disposable random-port servers only; no active room altered"
+  },
+  "automatedRecovery": {
+    "kind": "actual-loopback-and-temporary-filesystem-with-synthetic-fault-injection",
+    "verified": ["six seats and private card views survive graceful host replacement", "accepted call retry returns duplicate without spending twice", "restored host must explicitly resume", "explicit end persists", "injected staging failure returns503 and preserves prior bytes", "corrupt/oversized/owned checkpoints fail closed"],
+    "notVerified": ["hard process crash and stale-lock cleanup", "browser response reordering", "closed-tab credential recovery", "Wi-Fi"]
+  },
+  "source": {
+    "url": "http://127.0.0.1:5191/dev/?qa=recovery-21",
+    "actions": ["Take a seat", "Call20", "Cards & chips", "Look up", "Pause", "Reload", "Return to your table"],
+    "restored": {"hand": 1, "stack": 1980, "pot": 210, "nextCall": 55},
+    "observed": ["held cards/cigar", "folded backs on felt", "five opponents", "source fireplace"],
+    "warningErrorLog": [],
+    "recovery": "Reload accessibility timeout recovered by reattaching the same owned tab."
+  },
+  "production": {
+    "url": "http://127.0.0.1:5191/dev/?production&qa=recovery-21prod",
+    "actions": ["Take a seat", "Call117", "Cards & chips", "Look up", "Pause", "Reload", "Return to your table"],
+    "restored": {"hand": 1, "stack": 1883, "pot": 879, "nextCall": 230},
+    "observed": ["held cards/cigar", "folded backs on felt", "five opponents", "community board bottom right", "no fireplace in gated production"],
+    "warningErrorLog": [],
+    "recovery": "Initial tab creation timed out; tab inventory and reattachment recovered the created tab."
+  },
+  "limitations": ["Screenshots inspected in tool output, not retained image goldens", "No actual LAN browser restart or multi-client recording", "No disk latency or FPS measurement", "No listening or Electron-host acceptance", "Normal CLI still memory-only; active5192 unchanged"],
+  "cleanup": "Closed only the two new owned QA tabs; saves preserved"
+}

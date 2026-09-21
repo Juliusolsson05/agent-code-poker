@@ -1,0 +1,17 @@
+/* Only additive admission/session UI lives here. Poker room, typography, seats,
+ * board and wagering use src/styles.css plus the SAME website viewport adapter
+ * as /dev/. Do not reintroduce a LAN theme or copy those selectors here. */
+[hidden]{display:none!important}
+#header,#hud,#table-info,#leisure,.lan-leisure{display:contents}
+.lan-admission{max-height:calc(100dvh - 100px);overflow:auto;max-width:680px;margin:0 auto;padding:20px!important;background:#111414cf;border:1px solid #b9a07835;border-radius:6px}
+.admission-fields{display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+.admission-fields label{display:grid;gap:7px;text-align:left;font-size:11px}
+.admission-fields input,#saved-seats{font:inherit;padding:10px;border:1px solid #786b5355;border-radius:4px;background:#171a17;color:#e7dcc8}
+.row{display:flex;flex-wrap:wrap;gap:10px}.lan-admission .row{justify-content:center;margin:12px 0}
+.remember{display:flex;justify-content:center;align-items:center;gap:8px;margin:14px 0;font-size:11px;color:#b3a997}
+.remember input{width:16px;height:16px}.small{font-size:11px;line-height:1.6}
+#recovery{margin:16px 0;border-top:1px solid #b9a07835;padding-top:14px}
+#error:empty,#storage-warning:empty{display:none}
+#storage-warning{position:absolute;top:110px;left:20px;right:20px;z-index:12;background:#282314f2;color:#f1dda9;padding:10px;font-size:12px}
+#forget{position:absolute;top:160px;left:20px;z-index:13}
+#menu ol{padding-left:20px}#menu li{padding:5px 0;font-size:12px}

@@ -1,0 +1,13 @@
+{
+  "id": "agent-code-poker",
+  "name": "Agent Code Poker",
+  "description": "Take a seat in a block-built poker room. No-Limit Hold’em, five opponents, all yours.",
+  "version": "0.1.0",
+  "apiVersion": 2,
+  "entry": "dist/runtime.js",
+  "activationEvents": ["onView:agent-code-poker.open"],
+  "contributes": {
+    "commands": [{ "id": "agent-code-poker.open", "title": "Play Agent Code Poker", "keywords": ["poker", "holdem", "cards", "game", "blocks"] }],
+    "views": [{ "id": "agent-code-poker.open", "title": "Agent Code Poker", "mount": "modal", "entry": "dist/view.js" }]
+  }
+}

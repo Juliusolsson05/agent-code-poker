@@ -1,0 +1,21 @@
+{
+  "kind": "manual CUA browser observations, not a raw event recording",
+  "date": "2026-09-20",
+  "candidate": "solo-bank implementation after b438128",
+  "isolation": "qa=bank-30; source and shipped sequentially use this one disposable save; source was paused while shipped used it; both owned tabs closed afterward",
+  "source": [
+    "Opened ordinary source preview, entered a fresh hand, opened Bank: debt0 and both transfers disabled during preflop.",
+    "Resumed and used normal B/4/Enter to raise all-in2000. Actual hand1 completed with player stack0 and Cleo4030.",
+    "Rebuy button opened bank. Borrow then Cancel retained stack0/debt0. Borrow then Confirm produced stack2000/debt2000 with second borrow disabled.",
+    "Repay500 then native Enter on Confirm produced stack1500/debt1500. Reload/Return restored both1500 and same hand/board. Unpaused hand result remained Net -2000, not a loan profit.",
+    "CUA screenshots of live-hand eligibility and post-repayment panel inspected in tool transcript; original room/fireplace present. Captured warning/error logs empty."
+  ],
+  "shipped": [
+    "Opened /dev/?production&qa=bank-30 and returned to actual source save: stack1500/debt1500.",
+    "Canceled a500 repayment then confirmed one500 repayment: stack1000/debt1000.",
+    "Closed panel, explicitly resumed, dealt hand2 and inspected cards/chips. Screenshot inspected in tool transcript, original room/fireplace and compact bottom-right board present.",
+    "Paused/reloaded/returned/opened Bank: hand2 preflop stack1000/debt1000/pot30, transfers disabled during hand. Captured warning/error logs empty."
+  ],
+  "synthetic": "Legacy/corrupt checkpoint and storage-failure/retry contracts use deterministic engine replay and injected fake storage, not browser fault injection.",
+  "limits": ["No new FPS or audio listening measurement", "No Electron or LAN bank acceptance", "No browser storage-failure or blur-confirmation acceptance", "No retained raw browser trace or screenshot file for this session; actual tool observations are manually cataloged here", "Intermittent CUA accessibility timeouts recovered by reselecting the same tabs"]
+}

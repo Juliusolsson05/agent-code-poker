@@ -1,0 +1,26 @@
+{
+  "kind": "manual-cua-observations-not-raw-recording",
+  "date": "2026-09-20",
+  "scope": "Standalone HTTP transport implementation; solo regression only",
+  "lan": {
+    "url": "http://127.0.0.1:5192/",
+    "result": "Chrome reported ERR_BLOCKED_BY_CLIENT. No host/join UI acceptance, raw diagnostics or Wi-Fi test captured. No security settings changed."
+  },
+  "source": {
+    "url": "http://127.0.0.1:5191/dev/?qa=continuation19",
+    "actions": ["Take a seat", "Call 20", "Cards & chips", "Pause", "Reload", "Return to your table"],
+    "restored": {"hand": 1, "stack": 1980, "pot": 90},
+    "visible": ["five symmetric opponents", "held cards and cigar", "source fireplace", "bottom-right board"],
+    "capturedWarningsAndErrors": [],
+    "limitation": "Screenshots inspected in tool output, not retained files/goldens. Motion, listening and performance not measured."
+  },
+  "production": {
+    "url": "http://127.0.0.1:5191/dev/?production&qa=continuation19prod",
+    "actions": ["Take a seat", "Call 20", "Cards & chips", "Pause", "Reload", "Return to your table"],
+    "restored": {"hand": 1, "stack": 1980, "pot": 100},
+    "visible": ["five symmetric opponents", "held cards and cigar", "bottom-right board", "fireplace absent as expected behind production gate"],
+    "capturedWarningsAndErrors": [],
+    "limitation": "Initial accessibility and post-reload DOM calls timed out; reattaching the owned tab recovered inspection. Screenshot viewed in tool output, not a retained golden."
+  },
+  "notVerified": ["actual two-browser LAN", "separate-device LAN", "3D LAN integration", "durable LAN sessions", "FPS", "listening", "Electron host"]
+}

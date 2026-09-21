@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "semanticsSource": "Julius's reported requirements: connected arms, credible grips, no prop/furniture clipping, private cards, cozy Christmas lighting, block props, compact drink ordering and smooth performance",
+  "cases": [
+    {
+      "id": "offset-back-wall-fireplace-and-local-recording",
+      "trace": "poker-evidence-2026-09-20T04-36-26-293Z.json.gz",
+      "evidence": "Retained actual room/decor geometry proves an uncut bar intersects a new rear hearth. Native CUA source qa=fireplace-native-15 showed the first centered chimney but central opponent hid the fire. Source entered Q-clubs/8-diamonds hand, pot70/stack2000 and audio-playing indicator; no exported new trace or listening evidence. User then requested larger offset placement.",
+      "expected": "Larger fireplace on main wall between dealer and adjacent player, no furniture intersections, bounded block flames and local licensed natural recording with pause/mute/disposal safety.",
+      "status": "source-only-fireplace-flag; enlarged-offset-candidate-and-synthetic-clearance/audio-tests-pass; latest-visual-listening-production-performance-open"
+    },
+    {
+      "id": "seated-camera-parallax-not-deliberate-look",
+      "trace": "poker-evidence-2026-09-20T05-52-49-020Z.json.gz",
+      "frequency": { "seatedPoses": 325 },
+      "evidence": "Actual seated camera yaw spans only -0.01391 to0.01899rad. Code listens to parent pointermove, including controls, and uses frame-dependent .045 interpolation. Raw pointer causes were not captured in this old trace; new baseline down/up instrumentation awaits a connected browser.",
+      "expected": "Deliberate canvas-only drag, bounded retained look, explicit recenter/off, UI/focus/inspection/leisure arbitration without moving props or revealing private cards.",
+      "status": "dev-only-controller-and-controls-integrated; actual-drag-recording-and-browser-acceptance-open"
+    },
+    {
+      "id": "folded-npc-cards-disappear-on-landing",
+      "trace": "poker-evidence-2026-09-20T04-02-22-844Z.json.gz",
+      "frequency": { "observedOpponentFolds": 2 },
+      "evidence": "Retained public events at20.4149 and21.5804 seconds fold seats4 and5. Replaying those inputs through the old CardField hides each back after landing; user reports cards disappearing through felt. No claim of recorded below-felt geometry.",
+      "expected": "Face-down discards stay above felt, survive later decisions/restore, and clear only on next hand or future visible dealer collection. One flight owns each card; no private textures.",
+      "status": "recorded-replay-and-live-source-shipped-retention-and-restoration-verified",
+      "candidate": "Actual05-52-49 source trace records six settled backs after three folds through the flop. Source PNG and production CUA views show face-down paper above felt. Production five-fold hand restores ten settled backs with stack2090. Fresh source tab restores same flop/stack1500/pot1550 and six backs after debugger recovery. Dealer collection remains planned."
+    },
+    {
+      "id": "chip-and-felt-print-detail",
+      "images": ["table-lettering-before.png"],
+      "evidence": "Actual source inspection canvas at40.700s,2137x1169 pixels. Felt ellipse shows stair-stepping; player chip100 is readable but small. Source audit finds128px chip caps and1024x512 felt artwork, both at default anisotropy1 unlike cards. No same-frame comparison or FPS attribution yet.",
+      "expected": "Readable inspection lettering and stable grazing-angle print, shared textures and bounded resource cost; do not raise global framebuffer resolution or disable mipmaps.",
+      "status": "source-and-shipped-inspection-checked; controlled-sampling-cost-open",
+      "candidate": "Actual05-52-49-34.599 inspection export shares baseline hand/save/camera; felt ellipse and print are cleaner, denominations readable. Chip rotations/NPC poses differ so not a pixel golden. Raw metadata confirms256px cap/2048x1024 felt and8x filtering, with unchanged edge resolution. No measured performance-improvement claim."
+    },
+    {
+      "id": "player-mouth-contact-and-cigar-direction",
+      "trace": "poker-evidence-2026-09-20T05-26-21-152Z.json.gz",
+      "frequency": { "puffSamples": 7, "sipSamples": 11 },
+      "evidence": "Actual puff cigar axis [.95056,.01946,.30992] points partly back toward the eyes. Cigar bite [.015,1.335,1.37] and glass rim [.005,1.335,1.365] disagree and float ahead of the authored lips. Anchor-only attachment tests did not detect this.",
+      "expected": "One shared body lip landmark, outward ember, exact rim/bite contact while held, unchanged arm lengths and no reach correction. Exhalation shares the same landmark.",
+      "status": "recorded-negative-control-and-corrected-replay-pass; studio-captures-retained; fresh-live-browser-acceptance-open"
+    },
+    {
+      "id": "surface-contact-and-opponent-frame",
+      "trace": "poker-evidence-2026-09-20T04-23-47-481Z.json.gz",
+      "images": ["contact-player-glass.png", "contact-player-cigar.png", "contact-opponent-sip.png"],
+      "evidence": "Offline measurement of a661198's authored glass pose finds over 20mm penetration despite matching anchors. Applying the shared hero frame unchanged to an opposite-facing opponent fails a production-rig test with 64.829mm detachment at the reach clamp. These are explicitly synthetic measurements of real production geometry, not browser metrics.",
+      "expected": "Actual skin triangles clear voxel prop envelopes; every supporting digit remains near its surface, with opposing supports. Same grip frame transported by each vessel; all five opponents retain contact and rim/mouth alignment without arm stretching.",
+      "status": "held-surface-and-cast-contact-contracts-verified; transition-and-anatomy-art-open",
+      "candidate": "New tests check full triangle projections, not just sampled vertices or bones. Shared hand calibration plus opponent vessel rotation fixes wrong-side reaching. Fresh live trace replays 155 actual hero poses; source/production sip, interruption, cigar and saves checked. Three four-view images preserve the current angular silhouette; not final visual approval."
+    },
+    {
+      "id": "block-props-and-free-ordering",
+      "trace": "poker-evidence-2026-09-20T04-02-22-844Z.json.gz",
+      "frequency": { "orders": 4, "sips": 4 },
+      "evidence": "All four menu choices recorded in actual source usage. Six exported canvas images include lifted glasses, recessed ashtray and cigar returned to slots. Production menu and busy-state screenshots inspected through CUA. Stack stays 2000 until legal call, not orders.",
+      "expected": "Self-authored block props, actual recessed tray/rest, one owned glass, no replacement during motion, no chip debit and no abandoned GPU resources.",
+      "status": "implemented-and-browser-checked; final-grip-art-open",
+      "candidate": "Recorded production-mesh replay checks all 772 poses, sole glass, zero reach error and disposal. Asset tests check block triangle orientation, rim/grip bounds, cavity/slot raycasts and actual cigar underside clearance. Gesture surface contact remains in finger-surface-and-grip."
+    },
+    {
+      "id": "hero-drink-unbounded-reach",
+      "trace": "poker-evidence-2026-09-20T03-19-01-705Z.json.gz",
+      "events": "drink accepted at visual 17.7207 and 31.1354 seconds",
+      "frequency": { "acceptedStarts": 2, "completed": 1, "interrupted": 1 },
+      "evidence": "At visual 31.8281, right wrist world [1.086105,0.711337,0.517719], camera distance 1.988202m. Screenshot 18.065 shows disconnected hand at table. Hero has only a wrist-parented short sleeve, no shoulder/elbow chain.",
+      "expected": "Reachable drink/ashtray homes and a connected shoulder-elbow-wrist chain. Resolve prop and wrist in one frame. Do not silently clamp wrist while prop continues independently.",
+      "status": "hero-reach-contract-verified; hand-art-open",
+      "candidate": "poker-evidence-2026-09-20T03-39-26-621Z.json.gz: 569 actual poses, maximum shoulder-to-wrist 0.553774m within a 0.57m chain. Actual production bone replay verifies shoulder/elbow/wrist attachment. Source and shipped-bundle interruption/cigar pickup checked visually. Finger/prop penetration remains a separate D2 gate."
+    },
+    {
+      "id": "drink-contact-is-not-reach",
+      "trace": "poker-evidence-2026-09-20T03-19-01-705Z.json.gz",
+      "evidence": "During attached sip phases the authored hand/glass anchors agree to 4.8e-16m. The visible reach is still wrong: a contact-equality test alone would bless this bug.",
+      "expected": "Contact constraints AND reachable connected body geometry; both must pass.",
+      "status": "negative-control-preserved; visible-contact-open",
+      "candidate": "interaction-replay.test.ts preserves the old failure despite equal anchors; interaction-integration.test.ts additionally checks actual sleeve/hand attachment. These do not approve finger surfaces or glass wrap."
+    },
+    {
+      "id": "pause-inspection-ownership",
+      "trace": "poker-evidence-2026-09-20T03-19-01-705Z.json.gz",
+      "events": "Pause at visual 31.6271, resume after 5.4165s wall time at same visual time, inspection at 31.9255, look up at 38.8493",
+      "frequency": { "pauseResume": 1, "inspectionDuringDrink": 1 },
+      "evidence": "Pause correctly freezes visual time. Inspection cancels directly to homes, without an explicit return phase; cigar request at 39.1742 is rejected during residual inspection blend although the UI button is enabled.",
+      "expected": "Pause preserves pose; inspection has an explicit safe interruption/return policy and UI availability matches interaction availability.",
+      "status": "hero-return-and-ui-availability-verified",
+      "candidate": "Fresh source recording captures mid-sip inspection returning the glass before inspectionReady, with cigar left on tray. Production reproduces return and accepts cigar after Look up. Pause/idempotence and sparse-frame replay pass. D2 publishes resolved availability on transitions: cigar/sip and all replacement choices disable during reach/sip/return; the read-only menu remains accessible."
+    },
+    {
+      "id": "tree-bar-clearance",
+      "trace": "poker-evidence-2026-09-20T03-21-27-774Z.json.gz",
+      "image": "poker-evidence-2026-09-20T03-19-01-705Z-54.010.png",
+      "frequency": { "observedLayouts": 1 },
+      "evidence": "Actual pre-batching tree AABB [2.235315,-0.002,-4.375988,4.084685,2.45,-2.524012] intersects recorded bar body, panels, counter and foot rail. Seven block-envelope overlaps. No side/back-wall overlap in this recorded camera/layout; user's broader wall report remains an additional clearance requirement.",
+      "expected": "Tree including branches/ornaments/presents has positive furniture/wall clearance, verified against production geometry. AABBs are conservative, not proof that every overlapping envelope is a triangle intersection.",
+      "status": "production-clearance-and-browser-views-verified",
+      "candidate": "2026-09-20T04-36-26-293Z records the actual corrected room/decor bounds and seated/wide images. Shared RoomPlan preserves every baseline furniture block; the full tree/presents occupy the clear right bay at 84% scale with >12cm clearance. Garland and wreath also clear all room blocks with >2cm margins. Separate actual-browser-bounds regression ensures the renderer uses the tested plan. Warm lighting and sparse snow were visually checked; controlled performance stays open."
+    },
+    {
+      "id": "facial-hair-flat-slab",
+      "image": "poker-rig-opponent-face-seat1-idle-0.png",
+      "frequency": { "closeupSubjects": 1 },
+      "evidence": "Front/side/top views show a dark U-shaped slab separated from the rounded jaw. The current beard volume adds a rectangular shell rather than coloring/sculpting the actual facial surface.",
+      "expected": "Restrained facial hair follows the jaw/upper-lip surface, without floating edges or squared-off cheek growth.",
+      "status": "slab-removed; overall-face-art-open",
+      "candidate": "surface-beard-seat1.png shows short facial hair following the existing jaw from four angles. Surface painting preserves occupied volume and tested area/bounds; production seated capture also shows seats 1 and 4 without the U-shaped plate. Eye/face realism remains unaccepted."
+    },
+    {
+      "id": "finger-surface-and-grip",
+      "images": ["poker-rig-player-cards-idle-0.png", "poker-rig-player-cigar-idle-0.png"],
+      "frequency": { "fourViewPoses": 2 },
+      "evidence": "Finger envelopes look like thin angular ribbons at bends; cigar is balanced across fingers instead of convincingly pinched. Existing no-paper-intersection test is not anatomy/contact signoff. Inspect greedy mesh T-junctions under skinning before adding more volume.",
+      "expected": "Closed, connected, naturally proportioned finger surfaces through bending; stable visible support/pinch without paper/cigar penetration.",
+      "status": "closed-surface-verified; grip-shape-open",
+      "candidate": "Actual hand topology regression failed at 1,492 unpaired edges before the fix; conforming voxel faces now have zero unpaired edges through cards/cigar/glass/rest/push poses. Sleeve bends and color seams also pass. topology-player-cards.png and topology-player-cigar.png retain remaining awkward poses/pinch. Each 2.5mm hand has 24,872 vertices/12,436 triangles; each sleeve 32,600/16,300. Performance gate remains open."
+    },
+    {
+      "id": "frame-budget",
+      "trace": "poker-evidence-2026-09-20T03-19-01-705Z.json.gz",
+      "frequency": { "frames": 1122 },
+      "evidence": "2133x1166 CSS viewport, 2666x1458 drawing buffer, DPR cap 1.25: frame p50 36ms/p95 56ms; CPU submission p50 6.9ms/p95 9.4ms. Screenshots and diagnostics add overhead; GPU time not measured.",
+      "expected": "Measure comparable uninstrumented and instrumented warm runs, identify CPU/GPU/resource bottlenecks, preserve visual quality while approaching a stable 16.7ms frame budget on this machine.",
+      "status": "bounded-resolution-improvement-measured; frame-budget-still-open",
+      "candidate": "E1 retains two fixed-pose A/B/A/B exports and a real active-play trace. Buffer area reduced about32% with unchanged geometry, shadows and4xMSAA. Second run median pairs82.7→66.2ms and75.8→63ms improve, but repeated baseline drift and poor active p50/p95 70/149.9ms preclude smooth-play acceptance. Next isolate shadow, material and postprocessing costs; do not remove conforming hand topology."
+    }
+  ],
+  "notYetRecorded": ["reduced-motion interaction", "visibility interruption mid-sip", "browser frame skip across ownership boundaries (synthetic sparse replay only)", "shadow/material/postprocessing ablation and smooth active-play performance", "all five opponent grip/face closeups (cast contacts tested separately)"]
+}

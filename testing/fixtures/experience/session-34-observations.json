@@ -1,0 +1,11 @@
+{
+  "kind": "retained actual camera/image baseline plus synthetic projection and lifecycle checks",
+  "date": "2026-09-20",
+  "checkpoint": "visible bounded window snow after plan e2abdff",
+  "actualBaseline": "10-29-18 raw metadata contains1994x1253buffer and seated camera matrix; retained51.215PNG was inspected and shows tiny sparse window dots. No new candidate screenshot was captured.",
+  "calculation": "Pinned Three r169 points shader and WebGLMaterials scale size by bufferHeight/2/viewDepth. At the recorded seated camera and window center, old.010size projects to.9948996buffer pixels; candidate.044 to4.3775584. This calculation is not a rendered-pixel measurement.",
+  "candidate": "Original84seeds, aperture, depth, drift, texture and24Hz clock retained; size.044, opacity.65. One Points draw with no shadows, reusable position buffer and reduced-motion freeze. Isolated WindowSnow removes/disposes its resources before Room shared sweep; repeat disposal does nothing.",
+  "verification": "Full npm run verify170 tests, production/LAN builds,2SDK contracts and1exact-byte HTTP preview pass. New tests first failed at subpixel size. Existing decor/window bounds remain passing. No dependency or lockfile changes.",
+  "browserAttempts": "Source /dev/?qa=gameplay-33&record opened a dedicated tab and exposed only fullscreen shell; following AX read timed out. Shipped /dev/?production&qa=gameplay-34ship attempt reported browser unavailable. User tabs/hosts were not controlled or restarted.",
+  "open": "Actual normal source/shipped mouse-look, NPC exterior pickup/sip/return, snow visibility/motion, restored gameplay, listening, controlled performance and Electron acceptance remain open. No new FPS or perceptual claim."
+}

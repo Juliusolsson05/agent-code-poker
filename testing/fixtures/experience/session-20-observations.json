@@ -1,0 +1,26 @@
+{
+  "kind": "manual-cua-observations-not-raw-recording",
+  "date": "2026-09-20",
+  "change": "Private presentation boundary and compiled3D LAN candidate",
+  "source": {
+    "url": "http://127.0.0.1:5191/dev/?qa=multiplayer-boundary20",
+    "actions": ["Take a seat", "Call48", "Cards & chips", "Pause", "Reload", "Return to your table"],
+    "restored": {"hand": 1, "stack": 1952, "pot": 126},
+    "observed": ["five symmetric opponents", "held cards/cigar", "folded backs on table", "source fireplace"],
+    "warningErrorLog": []
+  },
+  "production": {
+    "url": "http://127.0.0.1:5191/dev/?production&qa=multiplayer-boundary20prod",
+    "actions": ["Take a seat", "Resume after focus pause", "Call48", "Cards & chips", "Pause", "Reload", "Return to your table"],
+    "restored": {"hand": 1, "stack": 1952, "pot": 126},
+    "observed": ["five symmetric opponents", "held cards/cigar", "folded backs on table", "no production fireplace as expected"],
+    "warningErrorLog": [],
+    "recovery": "Initial AX timeout recovered by reattaching owned tab. First Call click found pause had hidden controls; explicit resume preceded successful call."
+  },
+  "lan": {
+    "candidateUrl": "http://127.0.0.1:5193/",
+    "result": "Chrome ERR_BLOCKED_BY_CLIENT; no actual3D multi-client acceptance",
+    "existing5192": "Read-only credentialless request returned401, indicating active session. Host left untouched; restart approval requested asynchronously."
+  },
+  "limitations": ["Screenshots inspected in tool output, not retained image goldens", "No LAN browser recording", "No Wi-Fi evidence", "No FPS/listening measurement", "No Electron host acceptance"]
+}

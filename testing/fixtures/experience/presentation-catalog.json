@@ -1,0 +1,12 @@
+{
+  "recordings": ["poker-evidence-2026-09-20T04-02-22-844Z.json.gz", "poker-evidence-2026-09-20T05-52-49-020Z.json.gz"],
+  "observed": ["public folds", "raise500 and calls", "street transition", "unchanged checks", "folded paper retained above felt"],
+  "currentConsumers": {
+    "Room": ["actor and player seat indices", "hero hole values", "public showdown", "gesture deltas"],
+    "Cards": ["private deck comparison for deal reset", "hole length and faces", "fold transition", "local seat0 inspection"],
+    "ChipLedger": ["engine revision adjacency", "private deck equality for replacement detection", "public stacks/bets/commitments and total"]
+  },
+  "boundary": "Only RoomProjection resolves trusted solo state or redacted viewer state to display seats. The authority never receives display seats as wager ownership.",
+  "unrecorded": ["multi-browser3D seat rotations", "network reconnect animation", "real LAN latency and revision gaps"],
+  "syntheticContracts": ["all six viewer rotations", "queued hidden hero", "public showdown", "same-hand game replacement"]
+}
