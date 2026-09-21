@@ -3,3 +3,6 @@ test-results/
 .DS_Store
 *.log
 .poker-lan/
+testing/fixtures/experience/*.png
+!testing/fixtures/experience/poker-fixed-2026-09-20T14-12-39-305Z.png
+!testing/fixtures/experience/poker-fixed-2026-09-20T14-13-19-540Z.png
