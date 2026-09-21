@@ -69,11 +69,21 @@ function record(path, status, data) {
     players: v.players.map(p => ({ seat: p.seat, displaySeat: p.displaySeat, kind: p.kind, stack: p.stack,
       bet: p.bet, folded: p.folded, cards: p.cards.kind, connected: p.connected })) } : {}) })
 }
+// The website calls its own origin with fetch. The Agent Code extension view
+// installs an adapter first (service proxy when hosting, brokered net.fetch
+// when joining a friend) so admission, polling and poker actions flow through
+// ONE seam without the client knowing which world it runs in.
+let apiTransport = null
+export function setApiTransport(transport) { apiTransport = transport }
 async function api(path, body) {
   const request = responses.begin()
   let response, data
   try {
-    response = await fetch(path, { method: body === undefined ? 'GET' : 'POST', cache: 'no-store',
+    response = apiTransport ? await apiTransport({
+      path, method: body === undefined ? 'GET' : 'POST',
+      headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    }) : await fetch(path, { method: body === undefined ? 'GET' : 'POST', cache: 'no-store',
       headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(5000) })
     data = await response.json()

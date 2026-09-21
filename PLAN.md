@@ -612,3 +612,32 @@ Actual source trace/PNGs and source/shipped action-inspection-restoration checks
 are retained;71 tests/build/SDK/exact-byte preview pass. Hand work stays paused.
 Mouse-look, fireplace/audio, warmer glow,
 noticeable snow and measured active-play performance remain open in D4-D7/E.
+
+## In-app LAN hosting on the extension services SDK — 2026-09-21
+
+Upstream shipped: Agent Code main implements service.run, service.transport,
+net.listen and net.connect (Juliusolsson05/agent-code#1109/#1112); SDK v0.9.0
+(defineService/runService) released; the reported-modal-width ceiling rose to
+1920 (#1116) so the 1600x1000 stage reports fully.
+
+This branch (feat/extension-lan-host): manifest declares the
+agent-code-poker.lan-host utilityProcess service plus the four network
+permissions; server/service.ts adapts startLanHost to the service contract
+(loopback bind, ready endpoints, shutdown flush; checkpoints resolve OUTSIDE
+the hashed bundle dir); the built bundle is CJS with banner-defined
+import.meta.url so asset and checkpoint paths resolve from the installed
+location; a new modal view (agent-code-poker.lan) mounts the real multiplayer
+client with one transport seam — proxy adapter when hosting, brokered
+net.fetch adapter when joining a validated private literal IPv4 origin.
+
+Evidence ledger, tiered honestly:
+- Unit (green, 186 + 2 contract + 1 preview via npm run verify): transport
+  adapters (namespace routing, Response-surface mapping, absolute-URL
+  smuggling refusal); website default transport byte-compatible.
+- Built-bundle smoke under plain Node (NOT utilityProcess evidence): ready/port
+  envelope, 410 unauthenticated /api/state, connection refused after stop,
+  isolated lease directory beside the entry.
+- OPEN gates: real browser pass of the built LAN view; real Electron
+  acceptance inside the installed app (start from the UI without a terminal,
+  expose, second browser joins, deal/pause/reconnect); separate-device LAN.
+  No screenshot, listening or performance claim is made for the in-app path.
