@@ -11,7 +11,7 @@ button, input, select { outline-offset: 4px; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #d9eab4; }
 button { transition: background .16s, border-color .16s, transform .16s; }
 button:not(:disabled):active { transform: translateY(1px); }
-.poker { width: 1100px; height: 800px; position: relative; overflow: hidden; background: #14251e; color: #f3ebd7; border-radius: 10px; outline: none; --cream: #f3ebd7; --dim: #a5b2a4; --gold: #d6bd80; --green: #c1db9c; font-size: 13px; }
+.poker { width: 1600px; height: 1000px; position: relative; overflow: hidden; background: #14251e; color: #f3ebd7; border-radius: 10px; outline: none; --cream: #f3ebd7; --dim: #a5b2a4; --gold: #d6bd80; --green: #c1db9c; font-size: 13px; }
 .header { height: 60px; display: flex; align-items: center; gap: 24px; padding: 0 25px; background: #16261f; border-bottom: 1px solid #ffffff13; position: relative; z-index: 3; }
 .brand { display: flex; align-items: center; gap: 11px; color: var(--cream); background: none; border: 0; padding: 0; letter-spacing: 2px; font-size: 10px; text-align: left; }
 .brand b { display: block; font-size: 17px; letter-spacing: 5px; margin-top: 1px; }
@@ -67,7 +67,7 @@ h1 { font-family: Georgia, 'Times New Roman', serif; font-size: 60px; font-weigh
 .enter-button span { font-size: 22px; }
 .lobby-details { display: flex; gap: 16px; margin-top: 23px; font-size: 7px; letter-spacing: 1.1px; color: #aab69b; }
 .lobby-bottom { position: absolute; left: 50px; right: 30px; bottom: 20px; display: flex; justify-content: space-between; color: #acb699; font-size: 8px; letter-spacing: 1px; }
-.poker:has(.lobby) .room { height: 646px; }
+.poker:has(.lobby) .room { height: 808px; }
 .poker:has(.lobby) .lobby-copy { padding-top: 115px; }
 .poker:has(.lobby) h1 { font-size: 69px; }
 .lobby-footer { display: flex; align-items: center; gap: 24px; height: 94px; padding: 0 34px; background: #17291f; color: #afbda5; font-family: Georgia, serif; font-size: 16px; }
@@ -154,7 +154,9 @@ h2 { font-family: Georgia, serif; font-size: 33px; font-weight: 400; letter-spac
 
 /* The room is the experience, not a picture above a dashboard. Overlay a quiet
  * HUD on the full-height seated view; warm brass replaces the prototype's toy
- * green palette. Host intrinsic sizing remains stable at 1100 by 800. */
+ * green palette. Host intrinsic sizing: a generous 1600 by 1000 stage — the host modal fits it
+ * and CSS-scales the whole surface down on smaller windows, so the room always
+ * fills what the viewport can give instead of a fixed small box. */
 .poker { background: #0c0d0e; --cream: #e7dcc8; --dim: #99978f; --gold: #bca175; --green: #bca175; border-radius: 7px; }
 .header { position: absolute; inset: 0 0 auto; height: 54px; background: linear-gradient(#0c0d0ef0, #0c0d0e90); border-bottom: 1px solid #c5a87818; }
 .brand-mark { background: #26211a; border-color: #7b694c; }
@@ -162,7 +164,7 @@ h2 { font-family: Georgia, serif; font-size: 33px; font-weight: 400; letter-spac
 .header-location i, .live-dot, .eyebrow>span { background: #c3a875; box-shadow: 0 0 10px #c3a87544; }
 .header-tools button { border-color: #a2917030; color: #b7aa94; }
 .header-tools button:hover { background: #50453344; }
-.room, .poker:has(.lobby) .room { position: absolute; inset: 0; height: 800px; }
+.room, .poker:has(.lobby) .room { position: absolute; inset: 0; height: 1000px; }
 .room-vignette { background: linear-gradient(#06070a24, transparent 22%, transparent 65%, #070809aa); box-shadow: inset 0 0 110px #0007; }
 .table-info { top: 76px; color: #bbb2a0; }
 .room-top-right { top: 69px; }

@@ -10,7 +10,28 @@
       "rawSha256": "77e78b2ed1e48f9d89e65a40f19b514db3acb3bd7630ec7a42b8221cff27ed73",
       "expectedWindows": 5,
       "provenance": "Actual CUA Chrome fixed-lobby pass ablation on9a0c697, canonical pose/camera,1994x1253 buffer; original download losslessly compressed. Baseline/no-bloom/no-shadows/direct/baseline,4s warmup6s sample each.",
-      "frameP50P95Ms": [[16.7,18.5],[16.7,18.5],[16.7,18.4],[16.7,18.7],[16.7,18.6]],
+      "frameP50P95Ms": [
+        [
+          16.7,
+          18.5
+        ],
+        [
+          16.7,
+          18.5
+        ],
+        [
+          16.7,
+          18.4
+        ],
+        [
+          16.7,
+          18.7
+        ],
+        [
+          16.7,
+          18.6
+        ]
+      ],
       "limitations": "Repeated-baseline drift passes. Sparse asynchronous GPU measurements remain distinct from rAF delivery. Does not prove active-game60FPS, canvas-AA speedup or exclusive shader cost. Second candidate profile export missing, not retained."
     },
     {
@@ -18,7 +39,28 @@
       "rawSha256": "4d5a9ae8197bcda53993cb54ddd2cee0a8f7c22ceafee193f69e3de593df6d6f",
       "expectedWindows": 5,
       "provenance": "Actual Chrome five-window render-pass ablation, 4s warmup/6s measurements each, identical 2137x1169 buffer; unmodified download compressed losslessly.",
-      "frameP50P95Ms": [[16.7,18.7],[16.7,18.6],[16.7,35.2],[24.3,67.7],[82.6,127.7]],
+      "frameP50P95Ms": [
+        [
+          16.7,
+          18.7
+        ],
+        [
+          16.7,
+          18.6
+        ],
+        [
+          16.7,
+          35.2
+        ],
+        [
+          24.3,
+          67.7
+        ],
+        [
+          82.6,
+          127.7
+        ]
+      ],
       "limitations": "Baseline drift16.7 to82.6ms rejects comparative conclusions. No bloom/shadow removal adopted. Not a performance acceptance."
     },
     {
@@ -32,15 +74,49 @@
       "file": "poker-profile-2026-09-20T04-46-33-937Z.json.gz",
       "rawSha256": "ddde2345ef90a9f85e5153e4b661e5caf8de5fd5d126e4190489d993fe8278c5",
       "provenance": "Actual Chrome fixed-lobby A/B/A/B, E1 diagnostics on ffdb197, unmodified JSON download compressed losslessly. Same viewport2133x1104, pose time12, centered camera, 300draws/1145166triangles each measured frame. 2s warmup and8s sampling per window. No GPU queries in this run.",
-      "frameP50P95Ms": [[92.7,97.1],[76.8,85.7],[77.5,99.1],[65.1,91.6]],
+      "frameP50P95Ms": [
+        [
+          92.7,
+          97.1
+        ],
+        [
+          76.8,
+          85.7
+        ],
+        [
+          77.5,
+          99.1
+        ],
+        [
+          65.1,
+          91.6
+        ]
+      ],
       "limitations": "Same-session controlled camera/workload, not an isolated desktop or gameplay benchmark. Strong drift between repeated baseline windows; quality differs only in buffer area2666x1380 versus2197x1137. Not 60Hz acceptance."
     },
     {
       "file": "poker-profile-2026-09-20T04-50-10-044Z.json.gz",
       "rawSha256": "44d5a2bc786854e1b4ecace80d19433f65540bc9f8d2eba47068bf7e690dd2a8",
       "provenance": "Second actual Chrome fixed-lobby A/B/A/B after sparse asynchronous GPU queries were added. Same viewport/camera/pose and draw/triangle counts; raw download compressed losslessly. Extension available,15 GPU elapsed samples total.",
-      "frameP50P95Ms": [[82.7,99.4],[66.2,74.4],[75.8,92.4],[63,68.7]],
-      "limitations": "CPU submission medians6.3–6.5ms; sparse driver elapsed queries101.5–220.3ms are distinct from frame intervals and affected by shared GPU scheduling/instrumentation. Do not infer exclusive shader cost or promise FPS. Queries are now separately opt-in via &gpu."
+      "frameP50P95Ms": [
+        [
+          82.7,
+          99.4
+        ],
+        [
+          66.2,
+          74.4
+        ],
+        [
+          75.8,
+          92.4
+        ],
+        [
+          63,
+          68.7
+        ]
+      ],
+      "limitations": "CPU submission medians6.3\u20136.5ms; sparse driver elapsed queries101.5\u2013220.3ms are distinct from frame intervals and affected by shared GPU scheduling/instrumentation. Do not infer exclusive shader cost or promise FPS. Queries are now separately opt-in via &gpu."
     }
   ],
   "sessions": [
@@ -56,20 +132,14 @@
       "cpuSubmissionMsP50": 6.900000000372529,
       "cpuSubmissionMsP95": 9.400000000372529,
       "limitations": "Includes real pause and screenshot-export overhead. CPU time is submission time, not GPU completion. Not an isolated benchmark. Pose sampling is 15 Hz, frame timing is full rate.",
-      "images": [
-        "poker-evidence-2026-09-20T03-19-01-705Z-18.065.png",
-        "poker-evidence-2026-09-20T03-19-01-705Z-31.485.png",
-        "poker-evidence-2026-09-20T03-19-01-705Z-32.248.png",
-        "poker-evidence-2026-09-20T03-19-01-705Z-39.513.png",
-        "poker-evidence-2026-09-20T03-19-01-705Z-54.010.png"
-      ]
+      "images": []
     },
     {
       "file": "poker-evidence-2026-09-20T03-21-27-774Z.json.gz",
       "provenance": "Actual restored Chrome QA session after adding production room-block and pre-batching tree-bound metadata; untouched JSON download losslessly gzip-compressed",
       "frameCount": 169,
       "poseCount": 65,
-      "images": ["poker-evidence-2026-09-20T03-21-27-774Z-6.417.png"]
+      "images": []
     }
   ],
   "timingNegativeControls": [
@@ -79,7 +149,10 @@
       "provenance": "Actual opt-in source CUA: two accepted primary canvas drags, retained angles, turned drink request dispatched after centering, inspection, recenter and rejected drag with betting tray open. Call48 then pause.",
       "frameCount": 3289,
       "poseCount": 833,
-      "images": ["poker-evidence-2026-09-20T10-29-18-052Z-18.649.png", "poker-evidence-2026-09-20T10-29-18-052Z-51.215.png"],
+      "images": [
+        "poker-evidence-2026-09-20T10-29-18-052Z-18.649.png",
+        "poker-evidence-2026-09-20T10-29-18-052Z-51.215.png"
+      ],
       "limitations": "One actual look-leisure-start/frame timestamp reversal retained unchanged. Real delta replay protects behavior, not performance or final shoulder/hand art approval. Canvas images omit fixed DOM HUD."
     },
     {
@@ -99,7 +172,7 @@
       "provenance": "Actual normal source CUA: public audio cues, independent levels, effects-off interval, call20/call44/fold, look drag/recenter/Off rejection, Old Fashioned sip, inspection, completion and pause. Untouched download; monotonic timestamps.",
       "frameCount": 3065,
       "poseCount": 762,
-      "images": ["poker-evidence-2026-09-20T14-00-40-788Z-53.177.png", "poker-evidence-2026-09-20T14-00-40-788Z-67.617.png", "poker-evidence-2026-09-20T14-00-40-788Z-93.349.png"],
+      "images": [],
       "limitations": "Audio event is a Web Audio submission, not a speaker/listening capture. Instrumented shared-device workload, not a controlled benchmark. Candidate NPC transition transforms recorded; skin reconstruction is separately labeled. Source/shipped screenshots show visible snow and preserved UI, not final hand-art approval."
     },
     {
@@ -108,7 +181,7 @@
       "provenance": "Actual source CUA after receipt timestamp-order correction: restore hand1 stack1980, completed Old Fashioned sip with exactly one receipt and opacity.015, later pause. All recorded timestamps monotonic.",
       "frameCount": 930,
       "poseCount": 231,
-      "images": ["poker-evidence-2026-09-20T10-22-27-476Z-32.955.png"],
+      "images": [],
       "limitations": "Canvas export excludes CSS effect and HUD; whole-UI screenshot inspected separately in CUA. Not a golden, contact approval or controlled performance comparison."
     },
     {
@@ -126,18 +199,21 @@
       "provenance": "Actual CUA source keyboard candidate on c89c6a1. Untouched downloaded trace compressed losslessly;10 real betting-input events, including native preset Enter and explicit raise140.",
       "frameCount": 1009,
       "poseCount": 501,
-      "images": ["poker-evidence-2026-09-20T09-55-42-159Z-42.326.png"],
+      "images": [],
       "limitations": "Cancel/reopen retaining all-in2000 is a negative control, not accepted behavior. Image is canvas-only, not UI. No benchmark, key-repeat, narrow viewport, shipped or Electron claim."
     },
     {
       "file": "poker-evidence-2026-09-20T05-52-49-020Z.json.gz",
       "rawSha256": "632b8b84142f1ac52791c5af76ffd5fb53bac66a94a515f35e5a034b340f5d42",
       "provenance": "Actual source Chrome CUA session, isolated qa=table-quality-9. Inspection, raise to500, three folds, two calls, flop, pause and export. Unmodified download losslessly compressed.",
-      "frameCount": 1151, "poseCount": 512,
-      "frameMsP50": 34.1, "frameMsP95": 110.2,
-      "cpuSubmissionMsP50": 5.2, "cpuSubmissionMsP95": 9.4,
+      "frameCount": 1151,
+      "poseCount": 512,
+      "frameMsP50": 34.1,
+      "frameMsP95": 110.2,
+      "cpuSubmissionMsP50": 5.2,
+      "cpuSubmissionMsP95": 9.4,
       "limitations": "Instrumented mixed-camera workload, not a controlled performance comparison. Metadata confirms actual print sizes/filtering. Six folded backs remain above felt through later decisions. Inspection before/after shares save/camera but not chip rotations or NPC poses; not a pixel golden. No fresh console-log export.",
-      "images": ["poker-evidence-2026-09-20T05-52-49-020Z-34.599.png", "poker-evidence-2026-09-20T05-52-49-020Z-57.382.png"]
+      "images": []
     },
     {
       "file": "poker-evidence-2026-09-20T05-26-21-152Z.json.gz",
@@ -160,9 +236,12 @@
       "file": "poker-evidence-2026-09-20T04-43-40-879Z.json.gz",
       "rawSha256": "3f9d520171ff5b03f3a21618001db4a2d0ab384b81d204baeb81e75ffa50255b",
       "provenance": "Actual warm Chrome lobby before E1 render budget implementation, parent ffdb197. Raw download losslessly compressed.",
-      "frameCount": 383, "poseCount": 102,
-      "frameMsP50": 21.5, "frameMsP95": 30.3,
-      "cpuSubmissionMsP50": 4.4, "cpuSubmissionMsP95": 6.3,
+      "frameCount": 383,
+      "poseCount": 102,
+      "frameMsP50": 21.5,
+      "frameMsP95": 30.3,
+      "cpuSubmissionMsP50": 4.4,
+      "cpuSubmissionMsP95": 6.3,
       "limitations": "Uncontrolled animated lobby baseline, not comparable to later fixed-pose windows or active gameplay. Viewport2133x1104; buffer2666x1380.",
       "images": []
     },
@@ -170,11 +249,14 @@
       "file": "poker-evidence-2026-09-20T04-52-11-274Z.json.gz",
       "rawSha256": "ea3549642fccf5749ddc47ccd125ce4fe19cc41a22811e9760d624393f6198bc",
       "provenance": "Actual source QA using 2.5M pixel budget: enter hand, sip/pause/resume/inspection return, cigar and call20. Raw download losslessly compressed.",
-      "frameCount": 279, "poseCount": 189,
-      "frameMsP50": 70, "frameMsP95": 149.9,
-      "cpuSubmissionMsP50": 5.1, "cpuSubmissionMsP95": 8.3,
+      "frameCount": 279,
+      "poseCount": 189,
+      "frameMsP50": 70,
+      "frameMsP95": 149.9,
+      "cpuSubmissionMsP50": 5.1,
+      "cpuSubmissionMsP95": 8.3,
       "limitations": "Poor active frame delivery remains open. Includes pause, camera changes and screenshots; not a performance comparison. Buffer2197x1137. Images preserve provisional hands/characters, not visual acceptance.",
-      "images": ["poker-evidence-2026-09-20T04-52-11-274Z-16.430.png", "poker-evidence-2026-09-20T04-52-11-274Z-18.625.png", "poker-evidence-2026-09-20T04-52-11-274Z-27.999.png"]
+      "images": []
     },
     {
       "file": "poker-evidence-2026-09-20T04-36-26-293Z.json.gz",
@@ -187,7 +269,7 @@
       "cpuSubmissionMsP50": 5.7,
       "cpuSubmissionMsP95": 9.2,
       "limitations": "Short instrumented mixed-camera/motion session, not a controlled performance comparison. Wide view is an explicit dev-only camera, not a replacement player perspective. Geometry bounds and snow-budget tests do not establish 60Hz or final character-art quality.",
-      "images": ["poker-evidence-2026-09-20T04-36-26-293Z-14.616.png", "poker-evidence-2026-09-20T04-36-26-293Z-15.305.png"]
+      "images": []
     },
     {
       "file": "poker-evidence-2026-09-20T04-23-47-481Z.json.gz",
@@ -213,14 +295,7 @@
       "cpuSubmissionMsP50": 5.9,
       "cpuSubmissionMsP95": 7.9,
       "limitations": "Instrumented interaction workload, not a controlled benchmark. Menu screenshots inspected in CUA transcript; exported images show canvas only. Surface contacts/hand appearance remain under refinement.",
-      "images": [
-        "poker-evidence-2026-09-20T04-02-22-844Z-37.759.png",
-        "poker-evidence-2026-09-20T04-02-22-844Z-48.017.png",
-        "poker-evidence-2026-09-20T04-02-22-844Z-49.793.png",
-        "poker-evidence-2026-09-20T04-02-22-844Z-62.148.png",
-        "poker-evidence-2026-09-20T04-02-22-844Z-74.429.png",
-        "poker-evidence-2026-09-20T04-02-22-844Z-86.292.png"
-      ]
+      "images": []
     },
     {
       "file": "poker-evidence-2026-09-20T03-53-42-707Z.json.gz",
@@ -235,11 +310,7 @@
       "drawsP50": 350,
       "trianglesIncludingShadowsP50": 1233436,
       "limitations": "Instrumented real interaction capture, not a controlled benchmark or 60Hz acceptance. No GPU timing. Closed topology is verified separately from still-imperfect finger/prop contact and anatomy.",
-      "images": [
-        "poker-evidence-2026-09-20T03-53-42-707Z-9.680.png",
-        "poker-evidence-2026-09-20T03-53-42-707Z-12.231.png",
-        "poker-evidence-2026-09-20T03-53-42-707Z-15.650.png"
-      ]
+      "images": []
     },
     {
       "file": "poker-evidence-2026-09-20T03-39-26-621Z.json.gz",
@@ -252,35 +323,20 @@
       "frameMsP50": 27.40000000037253,
       "frameMsP95": 31.800000000745058,
       "limitations": "Different camera calibration and real interaction sequence; not a controlled performance comparison. Finger/glass mesh contact and broader art defects remain unaccepted.",
-      "images": [
-        "poker-evidence-2026-09-20T03-39-26-621Z-18.205.png",
-        "poker-evidence-2026-09-20T03-39-26-621Z-37.184.png",
-        "poker-evidence-2026-09-20T03-39-26-621Z-50.001.png",
-        "poker-evidence-2026-09-20T03-39-26-621Z-64.461.png"
-      ]
+      "images": []
     }
   ],
   "rigImages": [
-    { "file": "npc-exterior-held-seat1.png", "subject": "Actual seat1 exterior ale grip at held sip", "url": "/dev/?studio&seat=1", "action": "drink", "seconds": 2.6, "candidate": "Original CUA-operated four-view studio export, production geometry with neutral light and joint markers. SHA25698aa8323e6192f1a85cd104671cbe954ae26099f7cf9d46dfea0276cf8add16f. Exterior contact visible, connected arm and mouth rim; controlled pose, not live motion or final anatomy approval." },
-    { "file": "poker-fixed-2026-09-20T14-12-39-305Z.png", "subject": "Canonical lobby canvas-AA baseline", "candidate": "Actual CUA Chrome fixed-view export,1994x1253 on9a0c697. Exact PNG SHA256 ce448b9f3961d9ef7567b8784236dc9a017d1ec0f516908fae9f03e8b2ad9bcd. Same canonical rest pose/time12 and camera as candidate; not motion approval." },
-    { "file": "poker-fixed-2026-09-20T14-13-19-540Z.png", "subject": "Canonical lobby resolved-canvas candidate", "candidate": "Actual CUA Chrome &resolved-canvas-aa fixed-view export,1994x1253. Byte-identical to14-12-39; no pixel processing/resizing. Context metadata and active-play checks are separate gates; no FPS claim." },
-    { "file": "table-lettering-before.png", "url": "/dev/?qa=table-quality-9&record&stats", "subject": "Actual inspection view before lettering candidate", "seconds": 40.700, "candidate": "Actual Chrome canvas export poker-evidence-2026-09-20T05-43-43-579Z-40.700.png,2137x1169. No raw session export retained before hot reload/browser disconnect. Not a fixed-pose golden or performance benchmark." },
-    { "file": "thumb-cigar-side-rest.png", "subject": "Player cigar", "action": "idle", "seconds": 0, "candidate": "Actual source studio four-view export after thumb side-rest correction. User subsequently rejected overall hand naturalness and paused further hand-animation work. NOT approved art." },
-    { "file": "player-contact-puff.png", "subject": "Player contact rig", "action": "smoke", "seconds": 1.3, "candidate": "Actual source studio export including sleeves and orange authored lip marker. Controlled pose, not live motion or final anatomy approval." },
-    { "file": "player-contact-sip.png", "subject": "Player contact rig", "action": "drink", "seconds": 2.6, "candidate": "Actual source studio export including sleeves and shared lip marker. Controlled pose, not live motion or final anatomy approval." },
-    { "file": "user-thumb-silhouette-before.png", "subject": "User-reported cigar thumb silhouette", "candidate": "Actual user screenshot supplied during continuation8. Bulky hooked thumb over palm; failing baseline, not art approval. No renderer timing or exact capture time supplied." },
-    { "file": "poker-fixed-2026-09-20T05-06-31-602Z.png", "subject": "Legacy canvas AA fixed-time lobby", "candidate": "Rejected pixel comparison baseline: old sampler still inherited NPC sip history. Preserve as diagnostic negative control, not visual golden." },
-    { "file": "poker-fixed-2026-09-20T05-09-06-358Z.png", "subject": "No canvas AA fixed-time lobby", "candidate": "Rejected comparison candidate: differences around two NPC arms/glasses reflect stateful scheduling. Canonical rest-pose pair still required; no equivalence or speed claim." },
-    { "file": "christmas-before-lighting.png", "url": "/dev/?qa=christmas-clearance&stats&record", "subject": "Seated room before lighting pass", "candidate": "Actual browser canvas export 2026-09-20T04-32-10-582Z at 9.961s, after tree placement but before illumination/decor mounting corrections. Raw trace not retained. Different animated frame; not a pixel-aligned golden pair." },
-    { "file": "contact-player-glass.png", "url": "/dev/?studio&seat=1", "subject": "Player drink grip", "action": "drink", "seconds": 2.6, "candidate": "Actual production hand and glass together; opposing thumb and outside finger wrap. Isolated sleeve; geometry clearance independently tested. Not overall anatomy approval." },
-    { "file": "contact-player-cigar.png", "url": "/dev/?studio&seat=1", "subject": "Player cigar", "action": "idle", "seconds": 0, "candidate": "Surface-fitted index/middle pinch and less curled ring/little fingers. Finger silhouette remains angular." },
-    { "file": "contact-opponent-sip.png", "url": "/dev/?studio&seat=1", "subject": "Opponent whole rig", "action": "drink", "seconds": 2.6, "candidate": "Complete attached arm, near-side glass contact and rim at animated mouth; all five seats separately tested at 81 held-phase samples." },
-    { "file": "poker-evidence-2026-09-20T04-21-56-692Z-25.247.png", "url": "/dev/?qa=grip-surface&stats&record", "subject": "Seated paused sip", "candidate": "Actual canvas-only export; first session trace download was missing and is not claimed as retained evidence." },
-    { "file": "topology-player-cards.png", "url": "/dev/?studio&seat=1", "subject": "Player cards", "action": "idle", "seconds": 0, "candidate": "Conforming topology after 245afad; sleeves hidden explicitly for hand close-up; not approved grip anatomy" },
-    { "file": "topology-player-cigar.png", "url": "/dev/?studio&seat=1", "subject": "Player cigar", "action": "idle", "seconds": 0, "candidate": "Conforming topology; fingers still do not convincingly pinch the cigar" },
-    { "file": "surface-beard-seat1.png", "url": "/dev/?studio&seat=1", "subject": "Opponent face", "action": "idle", "seconds": 0, "candidate": "Short facial hair painted on occupied jaw; floating U-shaped plate removed" },
-    { "file": "poker-rig-player-cards-idle-0.png", "url": "/dev/?studio", "subject": "Player cards", "action": "idle", "seconds": 0 },
-    { "file": "poker-rig-player-cigar-idle-0.png", "url": "/dev/?studio", "subject": "Player cigar", "action": "idle", "seconds": 0 },
-    { "file": "poker-rig-opponent-face-seat1-idle-0.png", "url": "/dev/?studio&seat=1", "subject": "Opponent face", "action": "idle", "seconds": 0 }
-  ]
+    {
+      "file": "poker-fixed-2026-09-20T14-12-39-305Z.png",
+      "subject": "Canonical lobby canvas-AA baseline",
+      "candidate": "Actual CUA Chrome fixed-view export,1994x1253 on9a0c697. Exact PNG SHA256 ce448b9f3961d9ef7567b8784236dc9a017d1ec0f516908fae9f03e8b2ad9bcd. Same canonical rest pose/time12 and camera as candidate; not motion approval."
+    },
+    {
+      "file": "poker-fixed-2026-09-20T14-13-19-540Z.png",
+      "subject": "Canonical lobby resolved-canvas candidate",
+      "candidate": "Actual CUA Chrome &resolved-canvas-aa fixed-view export,1994x1253. Byte-identical to14-12-39; no pixel processing/resizing. Context metadata and active-play checks are separate gates; no FPS claim."
+    }
+  ],
+  "evidenceNote": "Session PNG screenshots were untracked from the repository to fit the 32 MB extension install ceiling; recorded traces, profiles and the canonical post-processing pair remain the machine-checked corpus. Human-readable evidence history lives in verification.json."
 }
