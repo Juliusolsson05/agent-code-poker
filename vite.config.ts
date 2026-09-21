@@ -6,6 +6,6 @@ import { extensionViteConfig } from 'agent-code-extension-api'
 // build/define keys revives the dev-transform/production-React mismatch in a host
 // frame, where no downstream bundler exists to repair the emitted module.
 export default defineConfig({
-  ...extensionViteConfig({ entries: { runtime: 'src/runtime.ts', view: 'src/view.tsx' } }) as UserConfig,
+  ...extensionViteConfig({ entries: { runtime: 'src/runtime.ts', view: 'src/view.tsx', lanView: 'src/lanView.tsx' } }) as UserConfig,
   plugins: [react()],
 })

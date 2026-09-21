@@ -5,6 +5,6 @@ function i(e) {
   return e;
 }
 export {
-  i as a,
-  n as d
+  n as a,
+  i as d
 };
