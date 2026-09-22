@@ -71,7 +71,7 @@
       {
         "id": "agent-code-poker.lan-host",
         "title": "LAN table host",
-        "entry": "dist-service/lan-host.cjs"
+        "entry": "dist-service/lan-host.mjs"
       }
     ]
   }
