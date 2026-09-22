@@ -61,14 +61,25 @@ export default defineView({
         <form id="lan-join" class="row"><input id="lan-address" placeholder="http://192.168.1.42:5192" autocomplete="off" spellcheck="false" style="flex:1;padding:10px;border:1px solid #786b5355;border-radius:4px;background:#171a17;color:#e7dcc8">
           <button class="secondary" type="submit">Join friend</button></form>
         <p id="lan-error" role="alert" style="color:#e2a79c;min-height:1em"></p>
-        <p id="lan-share" role="status" hidden></p>
         <p class="small">Practice chips only · trusted local network only.</p>
       </aside>`
     const entry = element.querySelector('#entry')
     entry?.append(overlay)
 
     const errorText = overlay.querySelector('#lan-error') as HTMLElement
-    const shareLine = overlay.querySelector('#lan-share') as HTMLElement
+    // Created on demand: an empty #lan-share that exists before adoption would
+    // read as "host running, no port" to the frame harness (and to users).
+    const shareLine: HTMLElement = document.createElement('p')
+    shareLine.id = 'lan-share'
+    shareLine.setAttribute('role', 'status')
+    shareLine.style.color = '#c1db9c'
+    const share = (text: string): void => {
+      // Appending on first use (not at markup build) so the element's EXISTENCE
+      // means "a live host state arrived" — what the frame harness and a human
+      // both wait for; an ever-present empty node would read as no-signal.
+      if (!shareLine.isConnected) overlay.querySelector('.side-panel')!.append(shareLine)
+      shareLine.textContent = text
+    }
     const services = (context.api as { services?: ServicesLike }).services
     const net = (context.api as { net?: NetLike }).net
     let booting = false
@@ -81,18 +92,18 @@ export default defineView({
     // observable that runtime state reaches a mounted view.
     const adoptRuntimeHost = async (port: number, at: number): Promise<void> => {
       if (adoptedRuntimeHost) {
-        shareLine.textContent = `Friends join at http://<this-computer’s-Wi-Fi-IP>:${port} · updated ${new Date(at).toLocaleTimeString()}`
+        share(`Friends join at http://<this-computer’s-Wi-Fi-IP>:${port} · updated ${new Date(at).toLocaleTimeString()}`)
         return
       }
       adoptedRuntimeHost = true
       booting = true
       try {
+        // Say the port BEFORE the heavy client import: an observer (human or
+        // harness) must never wait on the 3D bundle to learn hosting is live.
+        share(`Friends join at http://<this-computer’s-Wi-Fi-IP>:${port} · updated ${new Date(at).toLocaleTimeString()}`)
         const { setApiTransport } = await import('../server/client/client.js')
         setApiTransport(proxyTransport())
         overlay.hidden = true
-        shareLine.hidden = false
-        shareLine.style.color = '#c1db9c'
-        shareLine.textContent = `Friends join at http://<this-computer’s-Wi-Fi-IP>:${port} · updated ${new Date(at).toLocaleTimeString()}`
         booting = false
       } catch (error) {
         booting = false
@@ -138,9 +149,7 @@ export default defineView({
           overlay.hidden = true
           // The LAN address of THIS machine is deliberately not exposed to
           // sandboxed views; name the share shape the way the CLI host does.
-          shareLine.hidden = false
-          shareLine.style.color = '#c1db9c'
-          shareLine.textContent = `Friends join at http://<this-computer’s-Wi-Fi-IP>:${exposure.port} — then use Create table below.`
+          share(`Friends join at http://<this-computer’s-Wi-Fi-IP>:${exposure.port} — then use Create table below.`)
         } catch (error) {
           booting = false
           fail(error instanceof Error ? error.message : String(error))
