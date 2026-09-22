@@ -2,7 +2,7 @@
   "id": "agent-code-poker",
   "name": "Agent Code Poker",
   "description": "Take a seat in a block-built poker room. No-Limit Hold'em, five opponents, all yours.",
-  "version": "0.2.0-beta.1",
+  "version": "0.2.0-beta.2",
   "apiVersion": 2,
   "entry": "dist/runtime.js",
   "activationEvents": [
