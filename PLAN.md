@@ -641,3 +641,38 @@ Evidence ledger, tiered honestly:
   acceptance inside the installed app (start from the UI without a terminal,
   expose, second browser joins, deal/pause/reconnect); separate-device LAN.
   No screenshot, listening or performance claim is made for the in-app path.
+
+## Real-Electron acceptance of the in-app LAN flow — 2026-09-21
+
+Host harness (`agent-code` scripts/check-extension-frames.mjs`, real Electron
+app, isolated state, consent auto-approved) against this repository folder:
+
+    node scripts/check-extension-frames.mjs \
+      --external-extension <this repo> \
+      --external-view 'agent-code-poker.lan=#lan-host' \
+      --external-background-command agent-code-poker.host-lan \
+      --external-background-view 'agent-code-poker.lan=#lan-share'
+
+RESULT: **Extension Electron integration checks passed.** What that genuinely
+proves, tier by tier:
+
+- Install: the real manifest (services + four network permissions) validated
+  and installed by a real host build; view mounted, closed and REOPENED in
+  fresh sandbox documents.
+- REAL utilityProcess hosting: the background host-lan command spawned
+  dist-service/lan-host.mjs as an actual host-owned process, which bound
+  loopback, reported ready, and was exposed through the host-owned net.listen
+  listener (anonymous LAN port bound on this machine during the run).
+- Runtime→view liveness: heartbeat state advanced #lan-share (port + ms
+  heartbeat) while no view was mounted — the harness's own assertion.
+
+Host defects this exposed and their fixes (both small, both separate PRs —
+merged/mergeable in agent-code): runtime transport schema rejected service.*
+calls (PR #1124) and utilityProcess messages were unwrapped with MessagePort
+{data} semantics (same PR). Emission moved .cjs→.mjs because the host entry
+schema accepts only .js/.mjs (this repo, commit history).
+
+Still open and NOT claimed: interactive two-human play through the modal
+(deal/pause/reconnect driven by a person), and separate-device acceptance.
+Node-tier smokes (isolated .mjs start/ready/stop; transport adapters) and the
+website-mode byte-compatibility tests remain in npm run verify (186/2/1).
