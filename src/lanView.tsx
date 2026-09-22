@@ -25,6 +25,12 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
 #app{width:1600px;height:1000px}
 `
 
+const shareText = (port: number, at: number): string => {
+  const time = new Date(at)
+  const ms = String(time.getMilliseconds()).padStart(3, '0')
+  return `Friends join at http://<this-computer’s-Wi-Fi-IP>:${port} · live ${time.toLocaleTimeString()}.${ms}`
+}
+
 const markup = pageMarkup.slice(pageMarkup.indexOf('<main'), pageMarkup.indexOf('</main>') + '</main>'.length)
 
 type ServicesLike = {
@@ -92,7 +98,7 @@ export default defineView({
     // observable that runtime state reaches a mounted view.
     const adoptRuntimeHost = async (port: number, at: number): Promise<void> => {
       if (adoptedRuntimeHost) {
-        share(`Friends join at http://<this-computer’s-Wi-Fi-IP>:${port} · updated ${new Date(at).toLocaleTimeString()}`)
+        share(shareText(port, at))
         return
       }
       adoptedRuntimeHost = true
@@ -100,7 +106,7 @@ export default defineView({
       try {
         // Say the port BEFORE the heavy client import: an observer (human or
         // harness) must never wait on the 3D bundle to learn hosting is live.
-        share(`Friends join at http://<this-computer’s-Wi-Fi-IP>:${port} · updated ${new Date(at).toLocaleTimeString()}`)
+        share(shareText(port, at))
         const { setApiTransport } = await import('../server/client/client.js')
         setApiTransport(proxyTransport())
         overlay.hidden = true
