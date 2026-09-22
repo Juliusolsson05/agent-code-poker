@@ -22,17 +22,11 @@ import { startLanHost } from './http'
  *  Installed layout: <extensions>/<id>/<generation>/dist-service/ → checkpoint
  *  at <id>/.poker-lan (survives app restarts, dies with the extension). Repo
  *  layout falls back to the same .poker-lan the CLI uses. */
-// esbuild's CJS output empties import.meta (import.meta.url becomes undefined),
-// so the bundled entry resolves its own file through a banner-provided CJS
-// global instead. Source runs (tsx/tests) always have a real import.meta.url.
-declare const __pokerEntryUrl: string | null | undefined
+// ESM bundle (.mjs): import.meta.url is native and always a real file URL —
+// the earlier CJS build needed a banner shim for this, which the host's
+// .js/.mjs-only entry schema rejected anyway.
 function entryDirectory(): string {
-  // Bundled CJS: the build banner defines import.meta.url from __filename.
-  // Source runs (tsx/tests): native import.meta.url. Both are real file URLs.
-  const metaUrl: unknown = import.meta.url
-  if (typeof metaUrl === 'string' && metaUrl.startsWith('file:')) return dirname(fileURLToPath(metaUrl))
-  if (typeof __pokerEntryUrl === 'string' && __pokerEntryUrl) return dirname(fileURLToPath(__pokerEntryUrl))
-  throw new Error('The LAN host service cannot locate its own entry directory.')
+  return dirname(fileURLToPath(import.meta.url))
 }
 function checkpointDirectory(): string {
   const here = entryDirectory()

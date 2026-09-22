@@ -25,6 +25,12 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
 #app{width:1600px;height:1000px}
 `
 
+const shareText = (port: number, at: number): string => {
+  const time = new Date(at)
+  const ms = String(time.getMilliseconds()).padStart(3, '0')
+  return `Friends join at http://<this-computer’s-Wi-Fi-IP>:${port} · live ${time.toLocaleTimeString()}.${ms}`
+}
+
 const markup = pageMarkup.slice(pageMarkup.indexOf('<main'), pageMarkup.indexOf('</main>') + '</main>'.length)
 
 type ServicesLike = {
@@ -61,17 +67,63 @@ export default defineView({
         <form id="lan-join" class="row"><input id="lan-address" placeholder="http://192.168.1.42:5192" autocomplete="off" spellcheck="false" style="flex:1;padding:10px;border:1px solid #786b5355;border-radius:4px;background:#171a17;color:#e7dcc8">
           <button class="secondary" type="submit">Join friend</button></form>
         <p id="lan-error" role="alert" style="color:#e2a79c;min-height:1em"></p>
-        <p id="lan-share" role="status" hidden></p>
         <p class="small">Practice chips only · trusted local network only.</p>
       </aside>`
     const entry = element.querySelector('#entry')
     entry?.append(overlay)
 
     const errorText = overlay.querySelector('#lan-error') as HTMLElement
-    const shareLine = overlay.querySelector('#lan-share') as HTMLElement
+    // Created on demand: an empty #lan-share that exists before adoption would
+    // read as "host running, no port" to the frame harness (and to users).
+    const shareLine: HTMLElement = document.createElement('p')
+    shareLine.id = 'lan-share'
+    shareLine.setAttribute('role', 'status')
+    shareLine.style.color = '#c1db9c'
+    const share = (text: string): void => {
+      // Appending on first use (not at markup build) so the element's EXISTENCE
+      // means "a live host state arrived" — what the frame harness and a human
+      // both wait for; an ever-present empty node would read as no-signal.
+      if (!shareLine.isConnected) overlay.querySelector('.side-panel')!.append(shareLine)
+      shareLine.textContent = text
+    }
     const services = (context.api as { services?: ServicesLike }).services
     const net = (context.api as { net?: NetLike }).net
     let booting = false
+    let adoptedRuntimeHost = false
+
+    // Adopt a host that the RUNTIME already started (palette command or a
+    // previous view): skip the role panel entirely, route through the proxy,
+    // and keep the share line alive with the runtime heartbeat. The share
+    // line's advancing timestamp is also the Electron frame harness's
+    // observable that runtime state reaches a mounted view.
+    const adoptRuntimeHost = async (port: number, at: number): Promise<void> => {
+      if (adoptedRuntimeHost) {
+        share(shareText(port, at))
+        return
+      }
+      adoptedRuntimeHost = true
+      booting = true
+      try {
+        // Say the port BEFORE the heavy client import: an observer (human or
+        // harness) must never wait on the 3D bundle to learn hosting is live.
+        share(shareText(port, at))
+        const { setApiTransport } = await import('../server/client/client.js')
+        setApiTransport(proxyTransport())
+        overlay.hidden = true
+        booting = false
+      } catch (error) {
+        booting = false
+        adoptedRuntimeHost = false
+        fail(error instanceof Error ? error.message : String(error))
+      }
+    }
+    type HostState = { running?: boolean; port?: number; at?: number }
+    const initial = context.runtime.state() as HostState | undefined
+    if (initial?.running && initial.port) void adoptRuntimeHost(initial.port, initial.at ?? Date.now())
+    const unsubscribeRuntime = context.runtime.subscribe(next => {
+      const state = next as HostState | undefined
+      if (state?.running && state.port) void adoptRuntimeHost(state.port, state.at ?? Date.now())
+    })
 
     const fail = (message: string) => { errorText.textContent = message }
 
@@ -103,9 +155,7 @@ export default defineView({
           overlay.hidden = true
           // The LAN address of THIS machine is deliberately not exposed to
           // sandboxed views; name the share shape the way the CLI host does.
-          shareLine.hidden = false
-          shareLine.style.color = '#c1db9c'
-          shareLine.textContent = `Friends join at http://<this-computer’s-Wi-Fi-IP>:${exposure.port} — then use Create table below.`
+          share(`Friends join at http://<this-computer’s-Wi-Fi-IP>:${exposure.port} — then use Create table below.`)
         } catch (error) {
           booting = false
           fail(error instanceof Error ? error.message : String(error))
@@ -126,6 +176,7 @@ export default defineView({
     })
 
     return () => {
+      unsubscribeRuntime()
       overlay.remove()
       style.remove()
       // The client is page-lifetime by design (timers, audio, a 3D room).

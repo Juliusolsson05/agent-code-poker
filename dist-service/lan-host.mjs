@@ -1,39 +1,14 @@
-var __pokerEntryFilename = typeof __filename !== "undefined" ? __filename : null; var __pokerEntryUrl = __pokerEntryFilename ? require("url").pathToFileURL(__pokerEntryFilename).href : null
-"use strict";
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __export = (target, all) => {
-  for (var name in all)
-    __defProp(target, name, { get: all[name], enumerable: true });
-};
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-
 // server/service.ts
-var service_exports = {};
-__export(service_exports, {
-  lanHostService: () => lanHostService
-});
-module.exports = __toCommonJS(service_exports);
-var import_node_path2 = require("node:path");
-var import_node_url = require("node:url");
-var import_node_path3 = require("node:path");
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { sep } from "node:path";
 
 // node_modules/agent-code-extension-api/dist/service.js
-function defineService(module2) {
-  return module2;
+function defineService(module) {
+  return module;
 }
 var errorText = (error) => String(error?.message ?? error).slice(0, 2e3);
-function runService(module2) {
+function runService(module) {
   const port = globalThis.process?.parentPort;
   if (!port)
     throw new Error("runService() requires an Agent Code service process (process.parentPort).");
@@ -86,23 +61,23 @@ function runService(module2) {
       stopping = true;
       void (async () => {
         try {
-          await module2.stop?.();
+          await module.stop?.();
         } catch {
         }
         port.postMessage({ kind: "stopped", id });
       })();
     }
   });
-  void Promise.resolve(module2.start(context)).catch((error) => {
+  void Promise.resolve(module.start(context)).catch((error) => {
     context.log(`service start failed: ${errorText(error)}`);
   });
 }
 
 // server/http.ts
-var import_node_http = require("node:http");
-var import_node_crypto2 = require("node:crypto");
-var import_promises = require("node:fs/promises");
-var import_node_os = require("node:os");
+import { createServer } from "node:http";
+import { randomBytes, timingSafeEqual } from "node:crypto";
+import { readFile, readdir } from "node:fs/promises";
+import { networkInterfaces } from "node:os";
 
 // src/engine/cards.ts
 var rank = (card) => card % 13 + 2;
@@ -918,10 +893,10 @@ var HostTable = class _HostTable {
 };
 
 // server/persistence/CheckpointStore.ts
-var import_node_fs = require("node:fs");
-var import_node_path = require("node:path");
-var import_node_crypto = require("node:crypto");
-var import_node_sqlite = require("node:sqlite");
+import { closeSync, constants, fchmodSync, fsyncSync, fstatSync, lstatSync, mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+import { DatabaseSync } from "node:sqlite";
 var LIMIT = 256 * 1024;
 var absent = (error) => error.code === "ENOENT";
 var CheckpointStore = class {
@@ -931,22 +906,22 @@ var CheckpointStore = class {
   #failed = false;
   constructor(directory) {
     this.#directory = directory;
-    (0, import_node_fs.mkdirSync)(directory, { recursive: true, mode: 448 });
+    mkdirSync(directory, { recursive: true, mode: 448 });
     try {
-      (0, import_node_fs.lstatSync)((0, import_node_path.join)(directory, "host.lock"));
+      lstatSync(join(directory, "host.lock"));
       throw new Error("Host checkpoint is already owned by a legacy writer; preserve its lock.");
     } catch (error) {
       if (!absent(error)) throw error;
     }
-    const lease = (0, import_node_path.join)(directory, "host-lease.sqlite");
+    const lease = join(directory, "host-lease.sqlite");
     try {
-      (0, import_node_fs.writeFileSync)(lease, "", { flag: "wx", mode: 384 });
+      writeFileSync(lease, "", { flag: "wx", mode: 384 });
     } catch (error) {
       if (error.code !== "EEXIST") throw error;
     }
-    const stat = (0, import_node_fs.lstatSync)(lease);
+    const stat = lstatSync(lease);
     if (!stat.isFile() || stat.isSymbolicLink() || (stat.mode & 63) !== 0) throw new Error("Invalid private host checkpoint lease.");
-    this.#lock = new import_node_sqlite.DatabaseSync(lease);
+    this.#lock = new DatabaseSync(lease);
     try {
       this.#lock.exec("BEGIN EXCLUSIVE");
     } catch {
@@ -954,16 +929,16 @@ var CheckpointStore = class {
       throw new Error("Host checkpoint is already owned or locked. Close the other host before retrying.");
     }
     try {
-      const pending = (0, import_node_path.join)(directory, "table.pending");
+      const pending = join(directory, "table.pending");
       let staged;
       try {
-        staged = (0, import_node_fs.lstatSync)(pending);
+        staged = lstatSync(pending);
       } catch (error) {
         if (!absent(error)) throw error;
       }
       if (staged) {
         if (!staged.isFile() || staged.isSymbolicLink() || staged.size > LIMIT || (staged.mode & 63) !== 0) throw new Error("Unknown checkpoint staging entry.");
-        (0, import_node_fs.renameSync)(pending, (0, import_node_path.join)(directory, `interrupted-${(0, import_node_crypto.randomUUID)()}.json`));
+        renameSync(pending, join(directory, `interrupted-${randomUUID()}.json`));
       }
     } catch {
       this.#lock.close();
@@ -974,52 +949,52 @@ var CheckpointStore = class {
     this.#assertOpen();
     let fd;
     try {
-      fd = (0, import_node_fs.openSync)((0, import_node_path.join)(this.#directory, "table.json"), import_node_fs.constants.O_RDONLY | import_node_fs.constants.O_NOFOLLOW);
+      fd = openSync(join(this.#directory, "table.json"), constants.O_RDONLY | constants.O_NOFOLLOW);
     } catch (error) {
       if (absent(error)) return null;
       throw new Error("Host checkpoint cannot be read; original data preserved.");
     }
     try {
-      const stat = (0, import_node_fs.fstatSync)(fd);
+      const stat = fstatSync(fd);
       if (!stat.isFile() || stat.size > LIMIT) throw new Error("Invalid checkpoint size.");
-      return JSON.parse((0, import_node_fs.readFileSync)(fd, "utf8"));
+      return JSON.parse(readFileSync(fd, "utf8"));
     } catch {
       this.#failed = true;
       throw new Error("Invalid host checkpoint; original data preserved.");
     } finally {
-      (0, import_node_fs.closeSync)(fd);
+      closeSync(fd);
     }
   }
   commit(value) {
     this.#assertOpen();
-    const pending = (0, import_node_path.join)(this.#directory, "table.pending");
+    const pending = join(this.#directory, "table.pending");
     let fd, created = false;
     try {
       const bytes = JSON.stringify(value);
       if (bytes === void 0 || Buffer.byteLength(bytes) > LIMIT) throw new Error("Invalid checkpoint size.");
-      fd = (0, import_node_fs.openSync)(pending, "wx", 384);
+      fd = openSync(pending, "wx", 384);
       created = true;
-      (0, import_node_fs.fchmodSync)(fd, 384);
-      (0, import_node_fs.writeFileSync)(fd, bytes);
-      (0, import_node_fs.fsyncSync)(fd);
-      (0, import_node_fs.closeSync)(fd);
+      fchmodSync(fd, 384);
+      writeFileSync(fd, bytes);
+      fsyncSync(fd);
+      closeSync(fd);
       fd = void 0;
-      (0, import_node_fs.renameSync)(pending, (0, import_node_path.join)(this.#directory, "table.json"));
+      renameSync(pending, join(this.#directory, "table.json"));
       created = false;
-      const directory = (0, import_node_fs.openSync)(this.#directory, import_node_fs.constants.O_RDONLY);
+      const directory = openSync(this.#directory, constants.O_RDONLY);
       try {
-        (0, import_node_fs.fsyncSync)(directory);
+        fsyncSync(directory);
       } finally {
-        (0, import_node_fs.closeSync)(directory);
+        closeSync(directory);
       }
     } catch {
       this.#failed = true;
       throw new Error("Host checkpoint could not be committed. Hosting is stopped to protect the table.");
     } finally {
-      if (fd !== void 0) (0, import_node_fs.closeSync)(fd);
+      if (fd !== void 0) closeSync(fd);
       if (created) {
         try {
-          (0, import_node_fs.unlinkSync)(pending);
+          unlinkSync(pending);
         } catch {
         }
       }
@@ -1088,16 +1063,16 @@ function body(request) {
 }
 async function startLanHost(options = {}) {
   const now = options.now ?? Date.now;
-  const addresses = ["127.0.0.1", ...options.lan ? Object.values((0, import_node_os.networkInterfaces)()).flatMap((list) => (list ?? []).filter((i) => i.family === "IPv4" && !i.internal && privateV4(i.address)).map((i) => i.address)) : []];
-  const built = new URL("../lan-dist/", __pokerEntryUrl);
-  const files = (await (0, import_promises.readdir)(built)).filter((file) => /^(?:index\.html|[a-zA-Z0-9_-]+\.(?:js|css))$/.test(file));
+  const addresses = ["127.0.0.1", ...options.lan ? Object.values(networkInterfaces()).flatMap((list) => (list ?? []).filter((i) => i.family === "IPv4" && !i.internal && privateV4(i.address)).map((i) => i.address)) : []];
+  const built = new URL("../lan-dist/", import.meta.url);
+  const files = (await readdir(built)).filter((file) => /^(?:index\.html|[a-zA-Z0-9_-]+\.(?:js|css))$/.test(file));
   if (!files.includes("index.html") || !files.includes("client.js")) throw new Error("Run npm run build:lan before hosting.");
   const assets = new Map(await Promise.all(files.map(async (file) => [file === "index.html" ? "/" : `/${file}`, {
-    bytes: await (0, import_promises.readFile)(new URL(file, built)),
+    bytes: await readFile(new URL(file, built)),
     type: file.endsWith(".js") ? "text/javascript" : file.endsWith(".css") ? "text/css" : "text/html"
   }])));
   let room = null, port = 0, closed = false;
-  const generation = (0, import_node_crypto2.randomBytes)(16).toString("hex");
+  const generation = randomBytes(16).toString("hex");
   const store = options.checkpointDirectory ? new CheckpointStore(options.checkpointDirectory) : void 0;
   let committed = "null", storageFailed = false;
   const checkpoint = () => room ? {
@@ -1155,8 +1130,8 @@ async function startLanHost(options = {}) {
     bucket.tokens--;
   };
   const credential = (name, nonce) => ({
-    id: (0, import_node_crypto2.randomBytes)(16).toString("hex"),
-    token: (0, import_node_crypto2.randomBytes)(32).toString("base64url"),
+    id: randomBytes(16).toString("hex"),
+    token: randomBytes(32).toString("base64url"),
     name,
     nonce,
     seen: now(),
@@ -1214,7 +1189,7 @@ async function startLanHost(options = {}) {
     r.nextTick = at + 1e3;
     persist();
   };
-  const server = (0, import_node_http.createServer)({ requestTimeout: 5e3, headersTimeout: 5e3, keepAliveTimeout: 2e3, maxHeaderSize: 8192 }, (request, response) => {
+  const server = createServer({ requestTimeout: 5e3, headersTimeout: 5e3, keepAliveTimeout: 2e3, maxHeaderSize: 8192 }, (request, response) => {
     response.setHeader("Cache-Control", "no-store");
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("Referrer-Policy", "no-referrer");
@@ -1257,7 +1232,7 @@ async function startLanHost(options = {}) {
         const table = new HostTable({ id: c2.id, name: a.name });
         room = {
           table,
-          code: (0, import_node_crypto2.randomBytes)(5).toString("hex").toUpperCase(),
+          code: randomBytes(5).toString("hex").toUpperCase(),
           host: c2,
           credentials: /* @__PURE__ */ new Map([[c2.token, c2]]),
           paused: false,
@@ -1270,7 +1245,7 @@ async function startLanHost(options = {}) {
       if (route === "/api/join") {
         const a = admission(input, true), r2 = current();
         const code = Buffer.from(a.code), expected = Buffer.from(r2.code);
-        if (code.length !== expected.length || !(0, import_node_crypto2.timingSafeEqual)(code, expected)) fail(403, "Lobby code is not valid.");
+        if (code.length !== expected.length || !timingSafeEqual(code, expected)) fail(403, "Lobby code is not valid.");
         const existing = [...r2.credentials.values()].find((c3) => c3.nonce === a.nonce);
         if (existing) {
           if (existing.name !== a.name) fail(409, "Admission retry changed the name.");
@@ -1365,15 +1340,12 @@ async function startLanHost(options = {}) {
 
 // server/service.ts
 function entryDirectory() {
-  const metaUrl = __pokerEntryUrl;
-  if (typeof metaUrl === "string" && metaUrl.startsWith("file:")) return (0, import_node_path2.dirname)((0, import_node_url.fileURLToPath)(metaUrl));
-  if (typeof __pokerEntryUrl === "string" && __pokerEntryUrl) return (0, import_node_path2.dirname)((0, import_node_url.fileURLToPath)(__pokerEntryUrl));
-  throw new Error("The LAN host service cannot locate its own entry directory.");
+  return dirname(fileURLToPath(import.meta.url));
 }
 function checkpointDirectory() {
   const here = entryDirectory();
-  if (here.includes(`${import_node_path3.sep}extensions${import_node_path3.sep}`)) return (0, import_node_path2.resolve)(here, "../../..", ".poker-lan");
-  return (0, import_node_path2.resolve)(here, "../.poker-lan");
+  if (here.includes(`${sep}extensions${sep}`)) return resolve(here, "../../..", ".poker-lan");
+  return resolve(here, "../.poker-lan");
 }
 var host = null;
 var lanHostService = defineService({
@@ -1388,7 +1360,6 @@ var lanHostService = defineService({
   }
 });
 if (process.env.AGENT_CODE_POKER_SERVICE_ENTRY !== "0") runService(lanHostService);
-// Annotate the CommonJS export names for ESM import in node:
-0 && (module.exports = {
+export {
   lanHostService
-});
+};
