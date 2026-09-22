@@ -5,19 +5,74 @@
   "version": "0.2.0-beta.1",
   "apiVersion": 2,
   "entry": "dist/runtime.js",
-  "activationEvents": ["onView:agent-code-poker.open", "onCommand:agent-code-poker.lan", "onView:agent-code-poker.lan"],
-  "permissions": ["service.run", "service.transport", "net.listen", "net.connect"],
+  "activationEvents": [
+    "onView:agent-code-poker.open",
+    "onCommand:agent-code-poker.lan",
+    "onView:agent-code-poker.lan",
+    "onCommand:agent-code-poker.host-lan"
+  ],
+  "permissions": [
+    "service.run",
+    "service.transport",
+    "net.listen",
+    "net.connect"
+  ],
   "contributes": {
     "commands": [
-      { "id": "agent-code-poker.open", "title": "Play Agent Code Poker", "keywords": ["poker", "holdem", "cards", "game", "blocks"] },
-      { "id": "agent-code-poker.lan", "title": "Play Agent Code Poker with friends (LAN)", "keywords": ["poker", "lan", "multiplayer", "friends", "host", "join"] }
+      {
+        "id": "agent-code-poker.open",
+        "title": "Play Agent Code Poker",
+        "keywords": [
+          "poker",
+          "holdem",
+          "cards",
+          "game",
+          "blocks"
+        ]
+      },
+      {
+        "id": "agent-code-poker.lan",
+        "title": "Play Agent Code Poker with friends (LAN)",
+        "keywords": [
+          "poker",
+          "lan",
+          "multiplayer",
+          "friends",
+          "host",
+          "join"
+        ]
+      },
+      {
+        "id": "agent-code-poker.host-lan",
+        "title": "Host an Agent Code Poker LAN table",
+        "keywords": [
+          "poker",
+          "lan",
+          "host",
+          "multiplayer"
+        ]
+      }
     ],
     "views": [
-      { "id": "agent-code-poker.open", "title": "Agent Code Poker", "mount": "modal", "entry": "dist/view.js" },
-      { "id": "agent-code-poker.lan", "title": "Agent Code Poker · LAN", "mount": "modal", "entry": "dist/lanView.js" }
+      {
+        "id": "agent-code-poker.open",
+        "title": "Agent Code Poker",
+        "mount": "modal",
+        "entry": "dist/view.js"
+      },
+      {
+        "id": "agent-code-poker.lan",
+        "title": "Agent Code Poker \u00b7 LAN",
+        "mount": "modal",
+        "entry": "dist/lanView.js"
+      }
     ],
     "services": [
-      { "id": "agent-code-poker.lan-host", "title": "LAN table host", "entry": "dist-service/lan-host.cjs" }
+      {
+        "id": "agent-code-poker.lan-host",
+        "title": "LAN table host",
+        "entry": "dist-service/lan-host.cjs"
+      }
     ]
   }
 }

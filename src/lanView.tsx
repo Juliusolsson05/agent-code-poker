@@ -72,6 +72,41 @@ export default defineView({
     const services = (context.api as { services?: ServicesLike }).services
     const net = (context.api as { net?: NetLike }).net
     let booting = false
+    let adoptedRuntimeHost = false
+
+    // Adopt a host that the RUNTIME already started (palette command or a
+    // previous view): skip the role panel entirely, route through the proxy,
+    // and keep the share line alive with the runtime heartbeat. The share
+    // line's advancing timestamp is also the Electron frame harness's
+    // observable that runtime state reaches a mounted view.
+    const adoptRuntimeHost = async (port: number, at: number): Promise<void> => {
+      if (adoptedRuntimeHost) {
+        shareLine.textContent = `Friends join at http://<this-computer’s-Wi-Fi-IP>:${port} · updated ${new Date(at).toLocaleTimeString()}`
+        return
+      }
+      adoptedRuntimeHost = true
+      booting = true
+      try {
+        const { setApiTransport } = await import('../server/client/client.js')
+        setApiTransport(proxyTransport())
+        overlay.hidden = true
+        shareLine.hidden = false
+        shareLine.style.color = '#c1db9c'
+        shareLine.textContent = `Friends join at http://<this-computer’s-Wi-Fi-IP>:${port} · updated ${new Date(at).toLocaleTimeString()}`
+        booting = false
+      } catch (error) {
+        booting = false
+        adoptedRuntimeHost = false
+        fail(error instanceof Error ? error.message : String(error))
+      }
+    }
+    type HostState = { running?: boolean; port?: number; at?: number }
+    const initial = context.runtime.state() as HostState | undefined
+    if (initial?.running && initial.port) void adoptRuntimeHost(initial.port, initial.at ?? Date.now())
+    const unsubscribeRuntime = context.runtime.subscribe(next => {
+      const state = next as HostState | undefined
+      if (state?.running && state.port) void adoptRuntimeHost(state.port, state.at ?? Date.now())
+    })
 
     const fail = (message: string) => { errorText.textContent = message }
 
@@ -126,6 +161,7 @@ export default defineView({
     })
 
     return () => {
+      unsubscribeRuntime()
       overlay.remove()
       style.remove()
       // The client is page-lifetime by design (timers, audio, a 3D room).
