@@ -146,6 +146,26 @@ smokes (which are therefore never evidence of a remote action). Recorded
 two-browser acceptance: `testing/lan-two-browser.mjs` and
 `testing/fixtures/lan-leisure/`. Treats (E) stay local-only: other players
 do not see them.
+
+**Chat and voices (LAN).** Press **T** (or **Chat**) on the table, type one
+line (up to 200 characters) and press Enter; Esc closes the box. The line
+appears as a bubble over your name label for everyone and in the chat log,
+which screen readers announce. Chat works while the table is paused. The host
+switches **Spoken voices** and **Treats** in **Table menu**; both start Off and
+reset to Off when the host restarts. With voices on, a player who saved an
+ElevenLabs API key and voice ID under **Table menu → Your voice** hears their
+own line immediately, and the table hears it from that player's seat. Your own
+app calls ElevenLabs with your own key. The table host never sees your key; it
+only relays the finished audio in memory, for up to 90 seconds after the line
+was sent. On the website
+the key is kept in this browser's local storage; in Agent Code it is encrypted
+with the computer's keychain. **Test voice** checks your key. If ElevenLabs
+refuses a line (bad key, used-up quota, network), that line stays text-only
+and the reason is shown. Sound Off (M) silences voices too. While the host's
+Treats switch is Off, LAN clients hide the treat section of the Drinks menu and
+the treat button, and E does nothing, including for a treat ordered before the
+host switched them off. Live ElevenLabs speech has not yet
+been heard end to end (no key was available during development).
 The table menu includes a **Practice bank** candidate: busted players may
 borrow2,000 fictional chips between hands, with explicit confirmation and
 matching debt. Repay500 or the available maximum between hands; no interest,

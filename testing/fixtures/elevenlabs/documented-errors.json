@@ -1,0 +1,18 @@
+{
+  "source": "CONSTRUCTED, not recorded. Each body follows the error shape documented at https://elevenlabs.io/docs/developers/resources/errors (fetched 2026-09-23): detail.{type, code, message, status, request_id}. missing_permissions and detected_unusual_activity are 401 statuses reported by a real user's key on 2026-09-23; the body text here is a stand-in, since only the status identifier is read. The rest come from the documented code table. request_id values are placeholders.",
+  "responses": [
+    { "expect": "missing-permissions", "status": 401, "body": {"detail":{"type":"authentication_error","code":"unauthorized","message":"The API key you used is missing the permission text_to_speech to execute this operation.","status":"missing_permissions","request_id":"placeholder"}} },
+    { "expect": "unusual-activity", "status": 401, "body": {"detail":{"type":"authentication_error","code":"unauthorized","message":"Unusual activity detected. Free Tier usage disabled.","status":"detected_unusual_activity","request_id":"placeholder"}} },
+    { "expect": "invalid-key", "status": 401, "body": {"detail":{"type":"authentication_error","code":"missing_api_key","message":"No API key was provided in the request.","request_id":"placeholder"}} },
+    { "expect": "missing-permissions", "status": 403, "body": {"detail":{"type":"authorization_error","code":"insufficient_permissions","message":"You do not have the required permissions for this action.","request_id":"placeholder"}} },
+    { "expect": "plan", "status": 403, "body": {"detail":{"type":"authorization_error","code":"voice_access_denied","message":"You do not have access to this voice.","request_id":"placeholder"}} },
+    { "expect": "plan", "status": 403, "body": {"detail":{"type":"authorization_error","code":"subscription_required","message":"A paid subscription is required to access this feature.","request_id":"placeholder"}} },
+    { "expect": "quota", "status": 402, "body": {"detail":{"type":"payment_required","code":"insufficient_credits","message":"Your account does not have enough credits for this operation.","request_id":"placeholder"}} },
+    { "expect": "quota", "status": 401, "body": {"detail":{"type":"authentication_error","code":"unauthorized","message":"This request exceeds your quota.","status":"quota_exceeded","request_id":"placeholder"}} },
+    { "expect": "voice-not-found", "status": 404, "body": {"detail":{"type":"not_found","code":"voice_not_found","message":"The specified voice ID does not exist.","request_id":"placeholder"}} },
+    { "expect": "busy", "status": 429, "body": {"detail":{"type":"rate_limit_error","code":"concurrent_limit_exceeded","message":"Maximum number of concurrent requests exceeded.","request_id":"placeholder"}} },
+    { "expect": "busy", "status": 503, "body": {"detail":{"type":"service_unavailable","code":"maintenance","message":"The service is undergoing scheduled maintenance.","request_id":"placeholder"}} },
+    { "expect": "refused", "status": 401, "body": {"detail":{"type":"authentication_error","code":"unauthorized","message":"Some future reason.","status":"some_future_status","request_id":"placeholder"}} },
+    { "expect": "refused", "status": 403, "body": {"detail":{"type":"authorization_error","code":"forbidden","message":"Access to this resource is forbidden.","request_id":"placeholder"}} }
+  ]
+}

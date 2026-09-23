@@ -1,3 +1,4 @@
+import { applyListenerMatrix } from './listener'
 /** One locally bundled recording, not a timer spawning crackle oscillators.
  * Intentionally independent of poker state/graphics so lifecycle races can be
  * tested without pretending a fake audio device verifies listening quality.
@@ -180,16 +181,11 @@ export class FireAmbience {
   }
 
   setListenerMatrix(matrix: ArrayLike<number>): void {
-    // Called every rendered frame: AudioParam writes only, no allocation.
-    if (!this.graph?.panner || matrix.length !== 16) return
-    for (let i = 0; i < 16; i++) if (!Number.isFinite(matrix[i])) return
-    const listener = this.graph.context.listener, at = this.graph.context.currentTime
-    // Three/Web Audio share right-handed world coordinates. Matrix column2 is
-    // camera-backward, hence its NEGATION is forward; screen-space panning or
-    // an un-negated Z flips left/right as the player looks around.
-    listener.positionX.setTargetAtTime(matrix[12], at, .04); listener.positionY.setTargetAtTime(matrix[13], at, .04); listener.positionZ.setTargetAtTime(matrix[14], at, .04)
-    listener.forwardX.setTargetAtTime(-matrix[8], at, .04); listener.forwardY.setTargetAtTime(-matrix[9], at, .04); listener.forwardZ.setTargetAtTime(-matrix[10], at, .04)
-    listener.upX.setTargetAtTime(matrix[4], at, .04); listener.upY.setTargetAtTime(matrix[5], at, .04); listener.upZ.setTargetAtTime(matrix[6], at, .04)
+    // Called every rendered frame: AudioParam writes only, no allocation. The
+    // math is shared with the chat voices (PokerAudio drives the same
+    // listener), so both agree on left and right.
+    if (!this.graph?.panner) return
+    applyListenerMatrix(this.graph.context, matrix)
   }
   setActive(active: boolean): void { this.active = active; this.sync() }
   setMuted(muted: boolean): void { this.muted = muted; this.sync() }

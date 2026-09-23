@@ -5,7 +5,9 @@ import baseStyles from './styles.css?inline'
 import previewStyles from '../dev/preview.css?inline'
 import clientStyles from '../server/client/style.css?inline'
 import { privateHostDestination } from '../dev/multiplayer/hostDestination'
-import { SERVICE_ID, proxyTransport, brokeredGuestTransport, lanShareText, lanShareUrls, type NetFetchInit } from '../server/client/inAppTransport'
+import { SERVICE_ID, proxyTransport, brokeredGuestTransport, lanShareText, lanShareUrls, type LanTransport, type NetFetchInit } from '../server/client/inAppTransport'
+import { agentCodeVoiceSettingsStore, type AgentCodeStorageApi } from './voice/settingsStore'
+import { brokeredVoiceHttp, type BrokeredNetFetch } from './voice/transports'
 
 /** In-extension LAN view: the real multiplayer client, mounted inside the
  *  extension's own frame with its API seam re-routed.
@@ -40,7 +42,9 @@ type ServicesLike = {
   expose(id: string, lan: boolean): Promise<{ lan: boolean; port?: number }>
   invoke(id: string, name: string): Promise<unknown>
 }
-type NetLike = { fetch(url: string, init?: NetFetchInit): Promise<{ status: number; contentType: string; body: string }> }
+// responseType/bodyEncoding exist on hosts with agent-code#1151 (binary
+// bodies for the ElevenLabs voice); older hosts ignore the one and omit the other.
+type NetLike = { fetch(url: string, init?: NetFetchInit & { responseType?: 'text' | 'base64' }): Promise<{ status: number; contentType: string; body: string; bodyEncoding?: 'text' | 'base64' }> }
 
 export default defineView({
   mount(element, context) {
@@ -94,6 +98,23 @@ export default defineView({
     let booting = false
     let adoptedRuntimeHost = false
 
+    // Every path into the shared client goes through here, so the voice
+    // environment can never be left on the website default (localStorage +
+    // browser fetch, which the frame's CSP would block anyway). Inside Agent
+    // Code the ElevenLabs key lives in the host's per-extension secret store
+    // and ElevenLabs is reached only through the host broker, under the
+    // manifest's declared networkOrigins + net.origins consent.
+    const installClient = async (transport: LanTransport): Promise<void> => {
+      const client = await import('../server/client/client.js')
+      client.setVoiceEnvironment({
+        store: agentCodeVoiceSettingsStore(context.api as unknown as AgentCodeStorageApi),
+        http: brokeredVoiceHttp(net
+          ? (url, init) => net.fetch(url, init) as ReturnType<BrokeredNetFetch>
+          : async () => { throw new Error('This Agent Code build does not support brokered fetch.') }),
+      })
+      client.setApiTransport(transport)
+    }
+
     // Adopt a host that the RUNTIME already started (palette command or a
     // previous view): skip the role panel entirely, route through the proxy,
     // and keep the share line alive with the runtime heartbeat. The share
@@ -110,8 +131,7 @@ export default defineView({
         // Say the port BEFORE the heavy client import: an observer (human or
         // harness) must never wait on the 3D bundle to learn hosting is live.
         share(shareText(urls, port, at))
-        const { setApiTransport } = await import('../server/client/client.js')
-        setApiTransport(proxyTransport())
+        await installClient(proxyTransport())
         overlay.hidden = true
         booting = false
       } catch (error) {
@@ -161,8 +181,7 @@ export default defineView({
           const exposure = await services.expose(SERVICE_ID, true)
           if (!exposure.lan || !exposure.port) throw new Error('LAN exposure was not granted.')
           const urls = lanShareUrls(await services.invoke(SERVICE_ID, 'status'), exposure.port)
-          const { setApiTransport } = await import('../server/client/client.js')
-          setApiTransport(proxyTransport())
+          await installClient(proxyTransport())
           overlay.hidden = true
           // This view can't see network interfaces; the service can, and its
           // status answer supplies the addresses (see lanShareUrls).
@@ -181,9 +200,8 @@ export default defineView({
       let origin: string
       try { origin = privateHostDestination(input.value) } catch (reason) { fail(reason instanceof Error ? reason.message : 'Invalid host address.'); return }
       void boot(async () => {
-        const { setApiTransport } = await import('../server/client/client.js')
         // Pass init THROUGH (see brokeredGuestTransport).
-        setApiTransport(brokeredGuestTransport(net, origin))
+        await installClient(brokeredGuestTransport(net, origin))
       })
     })
 

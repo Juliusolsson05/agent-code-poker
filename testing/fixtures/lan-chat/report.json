@@ -1,0 +1,378 @@
+{
+ "elevenlabsRequests": [
+  {
+   "browser": "A",
+   "url": "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM?output_format=mp3_22050_32",
+   "method": "POST",
+   "headers": {
+    "Origin": "http://127.0.0.1:5305",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "accept": "audio/mpeg",
+    "content-type": "application/json",
+    "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "xi-api-key": "<fake key A>"
+   },
+   "body": "{\"text\":\"This is how I sound at the table.\",\"model_id\":\"eleven_flash_v2_5\"}"
+  },
+  {
+   "browser": "A",
+   "url": "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM?output_format=mp3_22050_32",
+   "method": "POST",
+   "headers": {
+    "Origin": "http://127.0.0.1:5305",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+    "accept": "audio/mpeg",
+    "content-type": "application/json",
+    "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"macOS\"",
+    "xi-api-key": "<fake key A>"
+   },
+   "body": "{\"text\":\"Raise you <b>twenty</b> 🂡\",\"model_id\":\"eleven_flash_v2_5\"}"
+  }
+ ],
+ "hostRequests": {
+  "A": [
+   {
+    "url": "/",
+    "method": "GET",
+    "carriedKey": false,
+    "headers": {
+     "Upgrade-Insecure-Requests": "1",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "sec-ch-ua-mobile": "?0",
+     "sec-ch-ua-platform": "\"macOS\""
+    }
+   },
+   {
+    "url": "/client.js",
+    "method": "GET",
+    "carriedKey": false,
+    "headers": {
+     "Origin": "http://127.0.0.1:5305",
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "sec-ch-ua-mobile": "?0"
+    }
+   },
+   {
+    "url": "/index.css",
+    "method": "GET",
+    "carriedKey": false,
+    "headers": {
+     "Origin": "http://127.0.0.1:5305",
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "sec-ch-ua-mobile": "?0"
+    }
+   },
+   {
+    "url": "/api/join",
+    "method": "POST",
+    "carriedKey": false,
+    "headers": {
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "Content-Type": "application/json",
+     "sec-ch-ua-mobile": "?0"
+    },
+    "postData": "{\"name\":\"Ari\",\"nonce\":\"2d032c92bb23cd79139663abbba2d17a8885dd5e5205ea39cb037f1b1c09df4d\",\"code\":\"A0440-6E7FA\"}"
+   },
+   {
+    "url": "/api/leisure",
+    "method": "POST",
+    "carriedKey": false,
+    "headers": {
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Authorization": "<bearer redacted>",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "Content-Type": "application/json",
+     "sec-ch-ua-mobile": "?0"
+    },
+    "postData": "{\"action\":\"order\",\"kind\":\"old-fashioned\"}"
+   },
+   {
+    "url": "/api/chat",
+    "method": "POST",
+    "carriedKey": false,
+    "headers": {
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Authorization": "<bearer redacted>",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "Content-Type": "application/json",
+     "sec-ch-ua-mobile": "?0"
+    },
+    "postData": "{\"text\":\"Raise you <b>twenty</b> 🂡\"}"
+   },
+   {
+    "url": "/api/voice",
+    "method": "POST",
+    "carriedKey": false,
+    "headers": {
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Authorization": "<bearer redacted>",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "Content-Type": "application/json",
+     "sec-ch-ua-mobile": "?0"
+    },
+    "postData": "{\"seq\":766179254,\"mime\":\"audio/mpeg\",\"data\":\"//NAxAAL0CpUFnvYAGbl1FWMR8iwjhwBIWVZmHElw+UBB0uf9kEAz6jk51k5T/V/9f/yf/TyjqW…"
+   },
+   {
+    "url": "/api/chat",
+    "method": "POST",
+    "carriedKey": false,
+    "headers": {
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Authorization": "<bearer redacted>",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "Content-Type": "application/json",
+     "sec-ch-ua-mobile": "?0"
+    },
+    "postData": "{\"text\":\"quiet now\"}"
+   }
+  ],
+  "B": [
+   {
+    "url": "/",
+    "method": "GET",
+    "carriedKey": false,
+    "headers": {
+     "Upgrade-Insecure-Requests": "1",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "sec-ch-ua-mobile": "?0",
+     "sec-ch-ua-platform": "\"macOS\""
+    }
+   },
+   {
+    "url": "/client.js",
+    "method": "GET",
+    "carriedKey": false,
+    "headers": {
+     "Origin": "http://127.0.0.1:5305",
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "sec-ch-ua-mobile": "?0"
+    }
+   },
+   {
+    "url": "/index.css",
+    "method": "GET",
+    "carriedKey": false,
+    "headers": {
+     "Origin": "http://127.0.0.1:5305",
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "sec-ch-ua-mobile": "?0"
+    }
+   },
+   {
+    "url": "/api/create",
+    "method": "POST",
+    "carriedKey": false,
+    "headers": {
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "Content-Type": "application/json",
+     "sec-ch-ua-mobile": "?0"
+    },
+    "postData": "{\"name\":\"Bea\",\"nonce\":\"c669138d18ea4bbb344c21b5b2449819bb6f74966ca42910973895bc0c874d70\"}"
+   },
+   {
+    "url": "/api/leisure",
+    "method": "POST",
+    "carriedKey": false,
+    "headers": {
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Authorization": "<bearer redacted>",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "Content-Type": "application/json",
+     "sec-ch-ua-mobile": "?0"
+    },
+    "postData": "{\"action\":\"order\",\"kind\":\"old-fashioned\"}"
+   },
+   {
+    "url": "/api/features",
+    "method": "POST",
+    "carriedKey": false,
+    "headers": {
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Authorization": "<bearer redacted>",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "Content-Type": "application/json",
+     "sec-ch-ua-mobile": "?0"
+    },
+    "postData": "{\"voices\":true,\"treats\":false}"
+   },
+   {
+    "url": "/api/start",
+    "method": "POST",
+    "carriedKey": false,
+    "headers": {
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Authorization": "<bearer redacted>",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "Content-Type": "application/json",
+     "sec-ch-ua-mobile": "?0"
+    },
+    "postData": "{\"revision\":1}"
+   },
+   {
+    "url": "/api/voice/766179254",
+    "method": "GET",
+    "carriedKey": false,
+    "headers": {
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Authorization": "<bearer redacted>",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "sec-ch-ua-mobile": "?0"
+    }
+   },
+   {
+    "url": "/api/features",
+    "method": "POST",
+    "carriedKey": false,
+    "headers": {
+     "sec-ch-ua-platform": "\"macOS\"",
+     "Authorization": "<bearer redacted>",
+     "Referer": "",
+     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+     "sec-ch-ua": "\"Google Chrome\";v=\"153\", \"Not_A Brand\";v=\"8\", \"Chromium\";v=\"153\"",
+     "Content-Type": "application/json",
+     "sec-ch-ua-mobile": "?0"
+    },
+    "postData": "{\"voices\":false,\"treats\":false}"
+   }
+  ]
+ },
+ "checks": [
+  {
+   "name": "A saved voice settings",
+   "ok": true
+  },
+  {
+   "name": "B saved voice settings",
+   "ok": true
+  },
+  {
+   "name": "guest sees read-only switches",
+   "ok": true
+  },
+  {
+   "name": "host turned voices on; guest sees it",
+   "ok": true
+  },
+  {
+   "name": "test voice works",
+   "ok": true
+  },
+  {
+   "name": "test voice decoded the clip locally",
+   "ok": true
+  },
+  {
+   "name": "T opens the chat box focused",
+   "ok": true
+  },
+  {
+   "name": "B sees A's bubble over A's label, as text",
+   "ok": true,
+   "detail": [
+    "Raise you <b>twenty</b> 🂡"
+   ]
+  },
+  {
+   "name": "B's bubble contains no parsed markup",
+   "ok": true
+  },
+  {
+   "name": "B's chat log is a polite live region with the line",
+   "ok": true
+  },
+  {
+   "name": "A's log labels its own line \"You\"",
+   "ok": true
+  },
+  {
+   "name": "B fetched and decoded A's relayed clip",
+   "ok": true,
+   "detail": {
+    "decodesBefore": 0,
+    "decodesAfter": 1,
+    "seconds": 1.5150833333333333
+   }
+  },
+  {
+   "name": "B fetched the clip from the host relay",
+   "ok": true
+  },
+  {
+   "name": "A uploaded its clip to the relay",
+   "ok": true
+  },
+  {
+   "name": "voices off: no ElevenLabs call for the next line",
+   "ok": true
+  },
+  {
+   "name": "voices off: the line still arrives as text",
+   "ok": true
+  },
+  {
+   "name": "no request to the LAN host carried either key",
+   "ok": true,
+   "detail": {
+    "hostRequests": 103
+   }
+  },
+  {
+   "name": "every ElevenLabs request carried only its own browser's key",
+   "ok": true
+  },
+  {
+   "name": "ElevenLabs request shape",
+   "ok": true,
+   "detail": [
+    {
+     "url": "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM?output_format=mp3_22050_32",
+     "body": "{\"text\":\"This is how I sound at the table.\",\"model_id\":\"eleven_flash_v2_5\"}"
+    },
+    {
+     "url": "https://api.elevenlabs.io/v1/text-to-speech/21m00Tcm4TlvDq8ikWAM?output_format=mp3_22050_32",
+     "body": "{\"text\":\"Raise you <b>twenty</b> 🂡\",\"model_id\":\"eleven_flash_v2_5\"}"
+    }
+   ]
+  }
+ ]
+}

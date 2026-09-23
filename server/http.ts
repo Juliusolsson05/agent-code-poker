@@ -4,9 +4,17 @@ import { readFile, readdir } from 'node:fs/promises'
 import { networkInterfaces } from 'node:os'
 import { HostTable } from '../src/session/HostTable'
 import { CheckpointStore } from './persistence/CheckpointStore'
+import { VoiceRelay } from './VoiceRelay'
+import { MAX_VOICE_BYTES, VOICE_MIME, base64ToBytes, bytesToBase64 } from '../src/voice/audioClip'
 
 type Credential = { id: string; token: string; nonce: string; name: string; seen: number; connected: boolean }
-type Room = { table: HostTable; code: string; host: Credential; credentials: Map<string, Credential>; paused: boolean; nextTick: number; observation: number }
+/** Host-controlled switches, the second host-only setting after `paused` and
+ * shaped the same way: transport state, set by the host token, reflected in
+ * every envelope, NOT checkpointed. Both default OFF (user decision) and come
+ * back OFF after a restart: a host who restarts has to opt in again, which is
+ * the quiet failure direction for a feature that plays other people's audio. */
+type Features = { voices: boolean; treats: boolean }
+type Room = { table: HostTable; code: string; host: Credential; credentials: Map<string, Credential>; paused: boolean; nextTick: number; observation: number; features: Features; voices: VoiceRelay }
 /** `agentCodeHost`: this process is the extension's service behind Agent Code's
  *  proxy and listener, so its transport markers are read (see resolveCaller).
  *  Only server/service.ts sets it; the standalone CLI never does. */
@@ -104,15 +112,21 @@ function admission(value: unknown, joining: boolean) {
     joining && (typeof value.code !== 'string' || value.code.length > 24)) fail(400, 'Invalid admission request.')
   return { name: value.name as string, nonce: value.nonce as string, code: joining ? String(value.code).trim().toUpperCase().replaceAll('-', '') : '' }
 }
-function body(request: IncomingMessage): Promise<unknown> {
+/** Every command is a few hundred bytes; 4 KB is the cap everywhere EXCEPT the
+ * voice upload, which gets its own larger cap derived from the clip limit.
+ * Keeping one reader with a parameter (instead of a second reader) means the
+ * voice route inherits the same streaming abort, JSON-only rule and error
+ * shapes rather than a hand-rolled copy that could drift. */
+const VOICE_BODY_LIMIT = Math.ceil(MAX_VOICE_BYTES / 3) * 4 + 256
+function body(request: IncomingMessage, limit = 4096): Promise<unknown> {
   if (request.headers['content-type']?.split(';')[0].trim().toLowerCase() !== 'application/json') fail(415, 'Use application/json.')
-  if (Number(request.headers['content-length'] ?? 0) > 4096) { request.resume(); fail(413, 'Request is too large.') }
+  if (Number(request.headers['content-length'] ?? 0) > limit) { request.resume(); fail(413, 'Request is too large.') }
   return new Promise((resolve, reject) => {
     let size = 0, rejected = false
     const chunks: Buffer[] = []
     request.on('data', (chunk: Buffer) => {
       size += chunk.length
-      if (size > 4096) { rejected = true; chunks.length = 0; reject(new HttpFailure(413, 'Request is too large.')); return }
+      if (size > limit) { rejected = true; chunks.length = 0; reject(new HttpFailure(413, 'Request is too large.')); return }
       if (!rejected) chunks.push(chunk)
     })
     request.on('end', () => {
@@ -175,7 +189,8 @@ export async function startLanHost(options: Options = {}) {
       if (!host || privateState.members.some(m => !m.leaving && !ids.has(m.id))) throw new Error()
       // No saved lease remains live; no action/bot resumes until the host
       // reconnects AND explicitly unpauses. This protects an unattended restart.
-      room = { table, code: saved.code, host, credentials, paused: true, nextTick: now() + 1000, observation: 0 }
+      room = { table, code: saved.code, host, credentials, paused: true, nextTick: now() + 1000, observation: 0,
+        features: { voices: false, treats: false }, voices: new VoiceRelay(now) }
       committed = JSON.stringify(saved)
     }
   } catch {
@@ -213,8 +228,12 @@ export async function startLanHost(options: Options = {}) {
   // Response order can differ from processing order. Transport observation is
   // distinct from wager revision: pause/lease responses also need an ordering
   // guard so a late poll cannot visually undo an acknowledged pause or action.
-  const envelope = (r: Room, c: Credential) => ({ generation, observation: ++r.observation, view: r.table.view(c.id), isHost: c === r.host,
+  const envelope = (r: Room, c: Credential) => ({ generation, observation: ++r.observation,
+    // A line is "voiced" only while voices are on AND the relay holds its clip,
+    // so a guest never tries to fetch audio the host would refuse.
+    view: r.table.view(c.id, { voiced: seq => r.features.voices && r.voices.has(seq) }), isHost: c === r.host,
     paused: r.paused || !r.host.connected, hostConnected: r.host.connected, durable: !!store,
+    features: { voices: r.features.voices, treats: r.features.treats },
     ...(c === r.host ? { code: r.code } : {}) })
   const send = (response: ServerResponse, status: number, value: unknown) => {
     // The synchronous commit finishes before ANY API response is published.
@@ -246,7 +265,12 @@ export async function startLanHost(options: Options = {}) {
     // The licensed fireplace recording is embedded in the compiled client as a
     // data URL. Allow only that media scheme, not arbitrary remote audio or a
     // broader connect-src exception; all poker traffic stays same-origin.
-    response.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; media-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+    // ONE public origin, for ONE purpose (user decision 2026-09-23, backlog §5
+    // option 1): each player's own browser calls ElevenLabs text-to-speech with
+    // that player's own key. The host process itself makes no outbound request;
+    // this header only permits the page it serves. Voice clips come back to
+    // the page as bytes and are decoded by Web Audio, so media-src stays data:.
+    response.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' https://api.elevenlabs.io; media-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
     void (async () => {
       const caller = resolveCaller(request, options.agentCodeHost === true, `127.0.0.1:${port}`)
       const peer = caller.peer
@@ -276,9 +300,23 @@ export async function startLanHost(options: Options = {}) {
       if (request.method === 'GET' && route === '/api/state') {
         const { r, c } = authorize(request); send(response, 200, envelope(r, c)); return
       }
-      if (request.method !== 'POST' || !['/api/create', '/api/join', '/api/start', '/api/action', '/api/leisure', '/api/pause', '/api/leave'].includes(route)) fail(404, 'Not found.')
+      // Seq in the path, never a query string (tokens and ids stay out of
+      // URLs by the rule above; a seq is not secret but the router stays exact).
+      const voiceRoute = request.method === 'GET' ? /^\/api\/voice\/([1-9][0-9]{0,15})$/.exec(route) : null
+      if (voiceRoute) {
+        const { r } = authorize(request)
+        // Voices off answers exactly like an expired clip: a guest learns
+        // nothing extra, and the envelope already told it voices are off.
+        const clip = r.features.voices ? r.voices.get(Number(voiceRoute[1])) : null
+        if (!clip) fail(404, 'No voice clip for that message.')
+        // JSON + base64, not raw audio/mpeg: an Agent Code guest reads through
+        // brokered net.fetch, whose default response is text. One format works
+        // for the browser, the service proxy and the broker alike.
+        send(response, 200, { mime: VOICE_MIME, data: bytesToBase64(clip!) }); return
+      }
+      if (request.method !== 'POST' || !['/api/create', '/api/join', '/api/start', '/api/action', '/api/leisure', '/api/chat', '/api/voice', '/api/features', '/api/pause', '/api/leave'].includes(route)) fail(404, 'Not found.')
       if (route === '/api/create' || route === '/api/join') rate('admission')
-      const input = await body(request)
+      const input = await body(request, route === '/api/voice' ? VOICE_BODY_LIMIT : 4096)
       if (closed || storageFailed) fail(503, 'Host closed or storage failed; table frozen.')
       // Do not keep a pre-await room reference: another request may have closed
       // or replaced it while this body was arriving. Admission and mutations
@@ -295,7 +333,8 @@ export async function startLanHost(options: Options = {}) {
         const c = credential(a.name, a.nonce)
         const table = new HostTable({ id: c.id, name: a.name }, { now })
         room = { table, code: randomBytes(5).toString('hex').toUpperCase(), host: c,
-          credentials: new Map([[c.token, c]]), paused: false, nextTick: now() + 1000, observation: 0 }
+          credentials: new Map([[c.token, c]]), paused: false, nextTick: now() + 1000, observation: 0,
+          features: { voices: false, treats: false }, voices: new VoiceRelay(now) }
         send(response, 201, { token: c.token, code: room.code }); return
       }
       if (route === '/api/join') {
@@ -323,6 +362,33 @@ export async function startLanHost(options: Options = {}) {
         shape(input, ['paused']); if (typeof input.paused !== 'boolean') fail(400, 'Invalid pause state.')
         r.paused = input.paused as boolean; r.nextTick = now() + 1000
         send(response, 200, envelope(r, c)); return
+      }
+      if (route === '/api/features') {
+        // Host-only, like pause. Settable before a hand, mid-hand and while
+        // paused: none of it touches poker state or the revision.
+        if (c !== r.host) fail(403, 'Only the host changes table features.')
+        shape(input, ['voices', 'treats'])
+        if (typeof input.voices !== 'boolean' || typeof input.treats !== 'boolean') fail(400, 'Invalid features.')
+        r.features = { voices: input.voices as boolean, treats: input.treats as boolean }
+        if (!r.features.voices) r.voices.clear()
+        send(response, 200, envelope(r, c)); return
+      }
+      if (route === '/api/chat') {
+        // Bare receipt for the same ordering reason as leisure (below). Chat
+        // is allowed while paused; HostTable decides everything else.
+        const receipt = r.table.chat(c.id, input)
+        send(response, receipt.ok ? 200 : 409, { receipt }); return
+      }
+      if (route === '/api/voice') {
+        if (!r.features.voices) fail(409, 'The host has turned voices off.')
+        shape(input, ['seq', 'mime', 'data'])
+        // The declared type is checked AND the bytes are checked (VoiceRelay):
+        // the mime field is a claim, the magic bytes are the fact.
+        if (!Number.isSafeInteger(input.seq) || Number(input.seq) < 1 || input.mime !== VOICE_MIME || typeof input.data !== 'string') fail(400, 'Invalid voice clip.')
+        const bytes = base64ToBytes(input.data as string)
+        if (!bytes) fail(400, 'Invalid voice clip.')
+        const seq = Number(input.seq), code = r.voices.put(seq, c.id, r.table.chatSender(seq), bytes!)
+        send(response, code === 'stored' ? 200 : code === 'not-sender' ? 403 : 409, { voice: code }); return
       }
       if (route === '/api/leisure') {
         // Same token, origin, 4KB body cap, global rate bucket and pause rule

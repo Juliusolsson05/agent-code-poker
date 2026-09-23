@@ -6,6 +6,19 @@ Write generous WHY comments around rules, lifecycle, persistence and rendering t
 
 Commit production `dist/` artifacts and the dependency lockfile. GitHub installation loads source archives without building. Use the entire pinned SDK Vite preset, bundle all dependencies and inject CSS from the view. No external assets. The view and runtime never open sockets; LAN traffic goes only through Agent Code's permission-gated service, listener and brokered-fetch APIs (see README, LAN inside the extension).
 
+**One recorded exception (user decision 2026-09-23, backlog §5 option 1):** LAN
+chat voices. Each player's OWN app calls ElevenLabs text-to-speech
+(`https://api.elevenlabs.io`, nothing else) with that player's OWN key and voice
+ID. Only `src/voice/` builds those requests. The key never leaves that player's
+machine: never to the LAN host, other players, logs, saves, diagnostics or PR
+text. In Agent Code the key lives in the host's per-extension secret store and
+the call goes through the host broker under the manifest's declared
+`networkOrigins` + `net.origins` consent; on the standalone website it lives in
+that browser's local storage and the page CSP allows exactly that one origin.
+Only finished audio travels, through the LAN host's in-memory relay, and only
+while the host has voices switched on. Any further external origin needs a new
+explicit decision.
+
 The user subsequently authorized website-first LAN multiplayer. Networking is
 confined to the `server/` process: the standalone CLI, or the extension's
 declared LAN service, which Agent Code runs on loopback and exposes on the LAN.
