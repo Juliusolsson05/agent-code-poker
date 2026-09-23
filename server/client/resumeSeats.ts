@@ -26,5 +26,24 @@ export async function resumeSeats(candidates: readonly SeatKey[], attempt: (key:
  * stays the way to choose a different saved player. */
 export function seatsForCreate(saved: readonly SeatKey[], typedName: string): SeatKey[] {
   const name = typedName.trim()
-  return name ? saved.filter(key => key.name.trim() === name) : []
+  return name ? saved.filter(key => sameName(key.name, name)) : []
 }
+
+/** Seats "Resume saved seat" may try: the one the player selected, then only
+ * other seats saved under that SAME name (in saved()'s newest-first order).
+ *
+ * The fallback exists because one player collects several saved seats with
+ * the same name across host restarts and cannot tell which one is live (#24).
+ * It must not cross identities: the first version appended EVERY saved seat,
+ * so selecting Alice's expired seat on a shared browser forgot it and then
+ * silently resumed Bob's valid seat, chips and all (#27). A different name is
+ * a different person until the player explicitly picks it. Names compare
+ * trimmed, exactly like seatsForCreate, so both entry points agree on who
+ * "the same player" is. */
+export function seatsForResume(selected: SeatKey, saved: readonly SeatKey[]): SeatKey[] {
+  return [selected, ...saved.filter(key => key.nonce !== selected.nonce && sameName(key.name, selected.name))]
+}
+
+// A saved name is a label, not an identity proof (the host checks only the
+// token). It is still the only thing that says which PERSON a seat is for.
+function sameName(a: string, b: string): boolean { return a.trim() === b.trim() }
