@@ -136,7 +136,7 @@ export function lanShareUrls(status: unknown, port: number): string[] {
     .map(address => `http://${address}:${port}`)
 }
 
-/** The share-line wording, shared by the view's Host button and runtime adoption. */
+/** The share-line wording shown after the view's Host button starts the table. */
 export function lanShareText(urls: readonly string[], port: number): string {
   // No private IPv4 interface (offline, or on a public/IPv6-only network): say
   // the shape honestly rather than invent an address.

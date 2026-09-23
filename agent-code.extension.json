@@ -8,8 +8,7 @@
   "activationEvents": [
     "onView:agent-code-poker.open",
     "onCommand:agent-code-poker.lan",
-    "onView:agent-code-poker.lan",
-    "onCommand:agent-code-poker.host-lan"
+    "onView:agent-code-poker.lan"
   ],
   "permissions": [
     "service.run",
@@ -44,16 +43,6 @@
           "friends",
           "host",
           "join"
-        ]
-      },
-      {
-        "id": "agent-code-poker.host-lan",
-        "title": "Host an Agent Code Poker LAN table",
-        "keywords": [
-          "poker",
-          "lan",
-          "host",
-          "multiplayer"
         ]
       }
     ],
