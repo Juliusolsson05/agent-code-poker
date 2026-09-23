@@ -363,7 +363,11 @@ export function createSurroundPlan() {
     box(blocks, '#6a3220', x, y + .08 * s, z, .16 * s, .16 * s, .16 * s)
     for (let i = 0; i < 7; i++) {
       const a = i / 7 * Math.PI * 2, r = .07 * s
-      box(blocks, i % 2 ? '#a3161f' : '#c11d27', x + Math.cos(a) * r, y + .19 * s, z + Math.sin(a) * r, .1 * s, .02 * s, .05 * s, { rot: -a })
+      // Neighbouring yawed bracts overlap in slivers. With one shared top
+      // plane, the two reds z-fought there at grazing angles (review of #11).
+      // Odd bracts (the darker red) sit 1mm higher, so every overlapping pair
+      // has distinct depths; i=6 and i=0 meet at the same, even, colour.
+      box(blocks, i % 2 ? '#a3161f' : '#c11d27', x + Math.cos(a) * r, y + .19 * s + (i % 2 ? .001 : 0), z + Math.sin(a) * r, .1 * s, .02 * s, .05 * s, { rot: -a })
       box(blocks, '#1f4a2c', x + Math.cos(a + .45) * r * .8, y + .175 * s, z + Math.sin(a + .45) * r * .8, .08 * s, .02 * s, .045 * s, { rot: -a - .45 })
     }
     box(blocks, '#e0b84a', x, y + .205 * s, z, .03 * s, .02 * s, .03 * s)

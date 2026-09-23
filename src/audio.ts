@@ -25,8 +25,11 @@ export class PokerAudio {
   private listenerMatrix: ArrayLike<number> | null = null
   // Optional QA hook reports attempted audible cues, not proof of device output.
   onCue?: (kind:SoundKind)=>void
+  // `fireSource` is the build-time inlined MP3 (Vite `?inline`). It is decoded
+  // as bytes inside Web Audio, never loaded as a media URL: the Agent Code
+  // extension frame CSP has no media-src (see FireAmbience).
   constructor(fireSource?: string, private firePosition?: readonly number[]) {
-    if (fireSource) this.fire = new FireAmbience(new Audio(fireSource))
+    if (fireSource) this.fire = new FireAmbience(fireSource)
   }
   setAmbienceActive(active: boolean): void { this.fire?.setActive(active); if(!active)this.stopEffects() }
   setListenerMatrix(matrix: ArrayLike<number>): void {
@@ -63,7 +66,9 @@ export class PokerAudio {
         this.master.connect(this.context.destination)
         this.chips=new ChipFoley(this.context,this.master)
       }
-      if (this.firePosition) this.fire?.connectSpatial(this.context, this.firePosition)
+      // Idempotent: the first gesture builds the fire bus and starts the one-off
+      // decode; later gestures only re-run the gates via fire.unlock().
+      this.fire?.attach(this.context, this.firePosition)
       this.fire?.unlock()
       void this.context.resume().catch(() => {})
     } catch { /* Silent play stays available on hosts without audio. */ }

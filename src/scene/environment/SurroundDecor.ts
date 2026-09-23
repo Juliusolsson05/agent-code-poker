@@ -123,7 +123,8 @@ export class SurroundDecor {
     this.root.add(this.windows.root)
     // Clock pendulum: rod + brass bob swinging in the case's plane.
     for (const pend of this.plan.pendulums) {
-      const pivot = new THREE.Group(); pivot.position.set(...pend.pivot)
+      // Named so the clearance test can sweep the real swing envelope.
+      const pivot = new THREE.Group(); pivot.name = 'surround-pendulum'; pivot.position.set(...pend.pivot)
       const metal = new THREE.MeshStandardMaterial({ color: '#b08a48', metalness: .75, roughness: .32 })
       const rod = new THREE.Mesh(cube, metal); rod.scale.set(.008, pend.length, .008); rod.position.y = -pend.length / 2
       const bob = new THREE.Mesh(new THREE.CylinderGeometry(.055, .055, .012, 20), metal); bob.rotation.z = Math.PI / 2; bob.position.y = -pend.length

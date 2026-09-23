@@ -15,11 +15,93 @@ type Credential = { id: string; token: string; nonce: string; name: string; seen
  * the quiet failure direction for a feature that plays other people's audio. */
 type Features = { voices: boolean; treats: boolean }
 type Room = { table: HostTable; code: string; host: Credential; credentials: Map<string, Credential>; paused: boolean; nextTick: number; observation: number; features: Features; voices: VoiceRelay }
-type Options = { port?: number; lan?: boolean; now?: () => number; automaticTicks?: boolean; checkpointDirectory?: string }
+/** `agentCodeHost`: this process is the extension's service behind Agent Code's
+ *  proxy and listener, so its transport markers are read (see resolveCaller).
+ *  Only server/service.ts sets it; the standalone CLI never does. */
+type Options = { port?: number; lan?: boolean; now?: () => number; automaticTicks?: boolean; checkpointDirectory?: string; agentCodeHost?: boolean }
 class HttpFailure extends Error { constructor(readonly status: number, message: string) { super(message) } }
 const fail = (status: number, message: string): never => { throw new HttpFailure(status, message) }
 const isLoopback = (address?: string) => address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1'
 const privateV4 = (s: string) => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(s)
+
+/** The machine's private IPv4 LAN addresses — the only addresses a friend can
+ *  dial. Shared by the standalone --lan bind list and the in-extension
+ *  service's `status` answer: the sandboxed view cannot enumerate interfaces,
+ *  so the service (a normal Node process) reports them for the share line. */
+export const lanAddresses = (): string[] => Object.values(networkInterfaces()).flatMap(list =>
+  (list ?? []).filter(i => i.family === 'IPv4' && !i.internal && privateV4(i.address)).map(i => i.address))
+
+/** Host-set marker from Agent Code (src/main/extensions/serviceTransport.ts,
+ *  TRANSPORT_ATTESTATION_HEADER): `service` = this extension's own frame via
+ *  the service proxy; `lan` = a LAN peer via the host's net.listen listener. */
+const TRANSPORT_HEADER = 'x-agent-code-transport'
+/** A forwarded Host must be `a.b.c.d:port`, nothing else. */
+const literalHost = /^(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5})$/
+
+/** `via` names the path the request took: a direct socket, the host player's
+ *  own frame through the Agent Code service proxy, or a LAN peer through the
+ *  host's listener. */
+type Caller = { peer: string | undefined; host: string | undefined; via: 'direct' | 'service' | 'lan' }
+
+/**
+ * Resolve WHO is asking before any rule runs. Every security rule below (peer,
+ * Host, same-origin, loopback-only create) reads this, never the raw socket.
+ *
+ * Standalone website (the CLI, `agentCodeHost` off): the socket peer, the Host
+ * header and the browser's Origin. Markers are never read, so those rules are
+ * byte-for-byte what they were.
+ *
+ * Inside Agent Code (`agentCodeHost`, set only by server/service.ts) the server
+ * binds loopback only, and every request arrives from the host app's main
+ * process on 127.0.0.1. Taken at face value that would make every LAN guest
+ * "local", free to take the host seat via /api/create. And the host player's
+ * own frame, whose Origin never reaches us, could not create at all. The host
+ * therefore marks each request (agent-code#1147):
+ *
+ * - `lan`: the forwarded peer and Host become the caller. This DOWNGRADES trust
+ *   from loopback to "a LAN guest", and it wins over any other claim. The
+ *   listener sets these values from its socket and request line and never
+ *   copies a peer's own, so a guest can neither forge nor strip them. It is
+ *   trusted ONLY with the raw Host the listener always dials with,
+ *   `127.0.0.1:<our port>`. A DNS-rebound page (Host: evil.example:<port>) is
+ *   same-origin with itself, so it could attach the marker without any
+ *   preflight; without this rule its `lan` claim would skip the exact Host
+ *   allow-list below.
+ * - `service`: the host player's own frame. The host already checked the grant
+ *   and the running service, and the frame's CSP is `connect-src 'self'`. The
+ *   marker then stands in for the same-origin proof. A cross-origin page can't
+ *   send it: a custom header needs a CORS preflight, and this server never
+ *   answers one (OPTIONS is a 404 without CORS headers). NEVER add CORS here;
+ *   doing so would make this marker forgeable by any website. A rebound page
+ *   can send it, but its Host then fails the exact allow-list.
+ *
+ * Markers only count on a loopback socket. Agent Code's net.fetch refuses both
+ * the marker headers and loopback service ports, so no other extension can
+ * send them. Any LOCAL PROGRAM still can, including every extension's service
+ * child, which is ordinary Node. Loopback callers are therefore local-user
+ * trust, and that is all `service` or a loopback forwarded peer grants: a
+ * same-machine client dialing the listener on 127.x arrives as a loopback
+ * `lan` peer and may create, exactly like the host computer's own browser.
+ */
+function resolveCaller(request: IncomingMessage, agentCodeHost: boolean, ownHost: string): Caller {
+  const socketPeer = request.socket.remoteAddress?.replace(/^::ffff:/, '')
+  const marker = agentCodeHost && isLoopback(socketPeer) ? request.headers[TRANSPORT_HEADER] : undefined
+  if (marker === 'lan') {
+    if (request.headers.host !== ownHost) fail(403, 'Unrecognized host.')
+    const peer = request.headers['x-forwarded-for']
+    const host = request.headers['x-forwarded-host']
+    // We don't know the listener's OS-chosen port or which interface the guest
+    // dialed, so an exact Host allow-list (the standalone rule) is impossible.
+    // A private or loopback IPv4 LITERAL is the DNS-rebinding defence for the
+    // GUEST's browser instead: rebinding needs a hostname, and a hostname can
+    // never match this. IPv6 guests are refused here and by the peer rule, as
+    // on the standalone server: IPv4 only (the share line shows IPv4 too).
+    const literal = typeof host === 'string' ? literalHost.exec(host) : null
+    if (!literal || !(privateV4(literal[1]) || literal[1] === '127.0.0.1')) fail(403, 'Unrecognized host.')
+    return { peer: typeof peer === 'string' ? peer.replace(/^::ffff:/, '') : undefined, host: host as string, via: 'lan' }
+  }
+  return { peer: socketPeer, host: request.headers.host, via: marker === 'service' ? 'service' : 'direct' }
+}
 const object = (value: unknown): value is Record<string, unknown> => !!value && typeof value === 'object' && !Array.isArray(value)
 function shape(value: unknown, fields: string[]): asserts value is Record<string, unknown> {
   if (!object(value) || Object.keys(value).length !== fields.length || fields.some(f => !Object.hasOwn(value, f))) fail(400, 'Invalid request fields.')
@@ -67,8 +149,7 @@ function body(request: IncomingMessage, limit = 4096): Promise<unknown> {
  */
 export async function startLanHost(options: Options = {}) {
   const now = options.now ?? Date.now
-  const addresses = ['127.0.0.1', ...(options.lan ? Object.values(networkInterfaces()).flatMap(list =>
-    (list ?? []).filter(i => i.family === 'IPv4' && !i.internal && privateV4(i.address)).map(i => i.address)) : [])]
+  const addresses = ['127.0.0.1', ...(options.lan ? lanAddresses() : [])]
   const built = new URL('../lan-dist/', import.meta.url)
   const files = (await readdir(built)).filter(file => /^(?:index\.html|[a-zA-Z0-9_-]+\.(?:js|css))$/.test(file))
   if (!files.includes('index.html') || !files.includes('client.js')) throw new Error('Run npm run build:lan before hosting.')
@@ -191,13 +272,23 @@ export async function startLanHost(options: Options = {}) {
     // the page as bytes and are decoded by Web Audio, so media-src stays data:.
     response.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' https://api.elevenlabs.io; media-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
     void (async () => {
-      const peer = request.socket.remoteAddress?.replace(/^::ffff:/, '')
+      const caller = resolveCaller(request, options.agentCodeHost === true, `127.0.0.1:${port}`)
+      const peer = caller.peer
       if (!isLoopback(peer) && (!peer || !privateV4(peer))) fail(403, 'Private-network peers only.')
+      // A LAN caller's forwarded Host was already held to the literal rule in
+      // resolveCaller; every other caller still meets the exact allow-list.
       const allowed = new Set(addresses.map(address => `${address}:${port}`))
-      if (!request.headers.host || !allowed.has(request.headers.host)) fail(403, 'Unrecognized host.')
-      const origin = `http://${request.headers.host}`
-      if (request.headers.origin && request.headers.origin !== origin || request.headers['sec-fetch-site'] === 'cross-site') fail(403, 'Foreign origin rejected.')
-      if (request.method === 'POST' && request.headers.origin !== origin) fail(403, 'Same-origin request required.')
+      if (!caller.host || caller.via !== 'lan' && !allowed.has(caller.host)) fail(403, 'Unrecognized host.')
+      // The same-origin proof: a browser's Origin must name the address it
+      // dialed. The host's `service` attestation replaces it for the host
+      // player's own frame (resolveCaller explains why it can be trusted).
+      // Chromium may add its own Origin/Sec-Fetch-* to that main-process fetch,
+      // so the browser-shaped checks are skipped for it rather than trusted.
+      if (caller.via !== 'service') {
+        const origin = `http://${caller.host}`
+        if (request.headers.origin && request.headers.origin !== origin || request.headers['sec-fetch-site'] === 'cross-site') fail(403, 'Foreign origin rejected.')
+        if (request.method === 'POST' && request.headers.origin !== origin) fail(403, 'Same-origin request required.')
+      }
       rate('request')
       // Match the raw path exactly: encoded traversal and token-bearing query
       // strings are not aliases for an allowed asset or API route.
@@ -231,7 +322,9 @@ export async function startLanHost(options: Options = {}) {
       // or replaced it while this body was arriving. Admission and mutations
       // below execute synchronously against one current room.
       if (route === '/api/create') {
-        if (!isLoopback(request.socket.remoteAddress)) fail(403, 'Create the table on the host computer.')
+        // The RESOLVED peer, not the socket: inside Agent Code every guest's
+        // socket is loopback, and only the forwarded peer tells them apart.
+        if (!isLoopback(peer)) fail(403, 'Create the table on the host computer.')
         const a = admission(input, false)
         if (room) {
           if (room.host.nonce !== a.nonce || room.host.name !== a.name) fail(409, 'A table already exists.')

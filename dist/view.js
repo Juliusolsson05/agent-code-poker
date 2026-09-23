@@ -1,7 +1,7 @@
-import { C as $, e as ye, P as Q, r as i, a as st, f as at, T as ot, F as Be, j as e, b as lt, c as it, D as ct, d as dt, g as ut, i as ht, S as ft, h as bt, k as pt, l as Re, B as mt, m as xt, n as kt, o as yt } from "./BankControls-aTpI6qRT.js";
+import { C as $, e as ye, P as Q, r as i, a as st, f as at, T as ot, F as Be, j as e, b as lt, c as it, D as ct, d as dt, g as ut, i as ht, S as ft, h as bt, k as pt, l as Re, B as mt, m as xt, n as kt, o as yt } from "./BankControls-CgH75kin.js";
 import { d as gt } from "./runtime-XLX8az2X.js";
-import { s as jt } from "./styles-DJYLcAU6.js";
-function vt(r, a) {
+import { s as vt } from "./styles-DJYLcAU6.js";
+function jt(r, a) {
   const l = r.actor;
   return {
     seat: l,
@@ -20,20 +20,20 @@ function wt(r, a, l = 56) {
   let k = 0;
   for (let f = 0; f < l; f++) {
     const c = [...d], L = 5 - r.board.length + r.opponents * 2;
-    for (let v = 0; v < L; v++) {
-      const E = v + Math.floor(a() * (c.length - v));
-      [c[v], c[E]] = [c[E], c[v]];
+    for (let j = 0; j < L; j++) {
+      const E = j + Math.floor(a() * (c.length - j));
+      [c[j], c[E]] = [c[E], c[j]];
     }
     let b = 5 - r.board.length;
-    const w = [...r.board, ...c.slice(0, b)], j = ye([...r.hole, ...w]).score;
+    const w = [...r.board, ...c.slice(0, b)], v = ye([...r.hole, ...w]).score;
     let U = 1, p = !1;
-    for (let v = 0; v < r.opponents; v++) {
+    for (let j = 0; j < r.opponents; j++) {
       const E = ye([c[b++], c[b++], ...w]).score;
-      if (E > j) {
+      if (E > v) {
         p = !0;
         break;
       }
-      E === j && U++;
+      E === v && U++;
     }
     p || (k += 1 / U);
   }
@@ -47,14 +47,14 @@ function Et(r, a = Math.random) {
   }
   return r.legal.check ? { type: "check" } : d >= k + (l === "tight" ? 0.08 : 0.015) || r.legal.call <= r.bigBlind && d > 0.14 ? { type: "call" } : { type: "fold" };
 }
-const ve = 1e6, ge = 2e3, Ie = 256, H = (r) => Number.isSafeInteger(r) && Number(r) >= 0 && Number(r) <= ve, De = (r) => typeof r == "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(r), Ae = (r) => !!r && typeof r == "object" && !Array.isArray(r), Oe = (r, a) => Object.keys(r).length === a.length && a.every((l) => Object.hasOwn(r, l));
+const je = 1e6, ge = 2e3, Ie = 256, H = (r) => Number.isSafeInteger(r) && Number(r) >= 0 && Number(r) <= je, De = (r) => typeof r == "string" && /^[a-zA-Z0-9_-]{1,128}$/.test(r), Ae = (r) => !!r && typeof r == "object" && !Array.isArray(r), Oe = (r, a) => Object.keys(r).length === a.length && a.every((l) => Object.hasOwn(r, l));
 function Fe(r) {
   if (!H(r) || r === 0) throw new Error("Invalid bank starting chips.");
-  return { version: 1, base: r, reserve: ve - r, accounts: [] };
+  return { version: 1, base: r, reserve: je - r, accounts: [] };
 }
-function je(r, a) {
+function ve(r, a) {
   const l = () => new Error("Invalid bank checkpoint. Saved data has been preserved.");
-  if (!Ae(r) || !Oe(r, ["version", "base", "reserve", "accounts"]) || r.version !== 1 || !H(r.base) || r.base === 0 || !H(r.reserve) || !H(a) || r.reserve + a !== ve || !Array.isArray(r.accounts) || r.accounts.length > Ie) throw l();
+  if (!Ae(r) || !Oe(r, ["version", "base", "reserve", "accounts"]) || r.version !== 1 || !H(r.base) || r.base === 0 || !H(r.reserve) || !H(a) || r.reserve + a !== je || !Array.isArray(r.accounts) || r.accounts.length > Ie) throw l();
   const n = /* @__PURE__ */ new Set(), d = [];
   let k = 0;
   for (const f of r.accounts) {
@@ -65,7 +65,7 @@ function je(r, a) {
   return { version: 1, base: r.base, reserve: r.reserve, accounts: d };
 }
 function Ke(r, a, l, n) {
-  const d = je(r, n.tableTotal);
+  const d = ve(r, n.tableTotal);
   if (!De(a) || !H(n.stack)) throw new Error("Invalid bank player.");
   if (n.phase !== "ready" && n.phase !== "complete") throw new Error("Bank transfers are only available between hands.");
   const k = d.accounts.find((L) => L.id === a);
@@ -81,7 +81,7 @@ function Ke(r, a, l, n) {
     f = -l.amount;
   } else throw new Error("Invalid bank operation.");
   const c = (k?.debt ?? 0) + f;
-  return d.accounts = d.accounts.filter((L) => L.id !== a), c > 0 && d.accounts.push({ id: a, debt: c }), d.reserve -= f, { bank: je(d, n.tableTotal + f), delta: f };
+  return d.accounts = d.accounts.filter((L) => L.id !== a), c > 0 && d.accounts.push({ id: a, debt: c }), d.reserve -= f, { bank: ve(d, n.tableTotal + f), delta: f };
 }
 const ae = "solo-player";
 function St(r) {
@@ -95,7 +95,7 @@ function St(r) {
   return { game: n, bank: d, muted: a.muted, speed: a.speed };
 }
 function we(r, a) {
-  const l = je(r, a);
+  const l = ve(r, a);
   if (l.accounts.some((n) => n.id !== ae)) throw new Error("Invalid solo bank owner. Saved data has been preserved.");
   return l;
 }
@@ -124,7 +124,7 @@ function Tt(r, a, l, n) {
 }
 const He = "poker.table.v1", q = (r) => r.toLocaleString("en-US"), ke = (r) => r instanceof HTMLElement && !!r.closest("button, input, select, textarea, a, [contenteditable]"), Me = (r) => r instanceof HTMLElement && !!r.closest("input, select, textarea, [contenteditable]");
 function Lt({ api: r }) {
-  const [a, l] = i.useState(null), n = i.useRef(null), d = i.useRef(null), [k, f] = i.useState(!0), [c, L] = i.useState(!0), [b, w] = i.useState(!1), [j, U] = i.useState(!1), [p, v] = i.useState(""), [E, oe] = i.useState(!1), [m, le] = i.useState(!1), [_, Ee] = i.useState(!1), [X, Ye] = i.useState(1), [Z, $e] = i.useState(1), [ie, Se] = i.useState("relaxed"), [h, G] = i.useState(null), [g, M] = i.useState(!1), [V, ce] = i.useState(!1), J = i.useRef(null), [C, I] = i.useState(!1), [O, D] = i.useState(!1), [N, Ue] = i.useState({ kind: "old-fashioned", available: !1, treat: null, canConsume: !1 }), F = i.useRef(!1), [de, _e] = i.useState(0), [ee, Ge] = i.useState(!0), [ue, Ve] = i.useState("normal"), [P, he] = i.useState(0), Ce = i.useRef(null), S = i.useRef(null), x = i.useRef(null), y = i.useRef(null), z = i.useRef(!0), R = i.useRef(!1), te = i.useRef({ muted: !1, speed: "relaxed" });
+  const [a, l] = i.useState(null), n = i.useRef(null), d = i.useRef(null), [k, f] = i.useState(!0), [c, L] = i.useState(!0), [b, w] = i.useState(!1), [v, U] = i.useState(!1), [p, j] = i.useState(""), [E, oe] = i.useState(!1), [m, le] = i.useState(!1), [_, Ee] = i.useState(!1), [X, Ye] = i.useState(1), [Z, $e] = i.useState(1), [ie, Se] = i.useState("relaxed"), [h, G] = i.useState(null), [g, M] = i.useState(!1), [V, ce] = i.useState(!1), J = i.useRef(null), [C, I] = i.useState(!1), [O, D] = i.useState(!1), [N, Ue] = i.useState({ kind: "old-fashioned", available: !1, treat: null, canConsume: !1 }), F = i.useRef(!1), [de, _e] = i.useState(0), [ee, Ge] = i.useState(!0), [ue, Ve] = i.useState("normal"), [P, he] = i.useState(0), Ce = i.useRef(null), S = i.useRef(null), x = i.useRef(null), y = i.useRef(null), z = i.useRef(!0), R = i.useRef(!1), te = i.useRef({ muted: !1, speed: "relaxed" });
   i.useEffect(() => {
     z.current = !0, y.current = new st(
       ot.fireplace ? at : void 0,
@@ -140,7 +140,7 @@ function Lt({ api: r }) {
         f(!1);
       }
     }).catch((s) => {
-      t && (v(s instanceof Error ? s.message : "Could not read saved progress."), oe(!0), f(!1));
+      t && (j(s instanceof Error ? s.message : "Could not read saved progress."), oe(!0), f(!1));
     }), () => {
       t = !1, z.current = !1, y.current?.dispose(), y.current = null;
     };
@@ -171,8 +171,8 @@ function Lt({ api: r }) {
     x.current?.setPlaying(!c);
   }, [c, P]), i.useEffect(() => {
     const t = () => y.current?.setAmbienceActive(!document.hidden && !c && !b && !h && !g && !p && !m), s = () => y.current?.setAmbienceActive(!1);
-    return document.addEventListener("visibilitychange", t), window.addEventListener("blur", s), t(), () => {
-      document.removeEventListener("visibilitychange", t), window.removeEventListener("blur", s);
+    return document.addEventListener("visibilitychange", t), window.addEventListener("blur", s), window.addEventListener("focus", t), t(), () => {
+      document.removeEventListener("visibilitychange", t), window.removeEventListener("blur", s), window.removeEventListener("focus", t);
     };
   }, [r, c, b, h, g, p, m]), i.useEffect(() => {
     y.current?.setLevels(X, Z);
@@ -216,9 +216,9 @@ function Lt({ api: r }) {
   const re = async (t) => {
     R.current = !0, U(!0);
     try {
-      await r.storage.set(He, Ct(t, d.current, te.current)), z.current && (v(""), oe(!1));
+      await r.storage.set(He, Ct(t, d.current, te.current)), z.current && (j(""), oe(!1));
     } catch {
-      z.current && (v("Your last action is still on this table, but could not be saved. Retry saving to continue."), w(!0));
+      z.current && (j("Your last action is still on this table, but could not be saved. Retry saving to continue."), w(!0));
     } finally {
       R.current = !1, z.current && U(!1);
     }
@@ -230,24 +230,24 @@ function Lt({ api: r }) {
     try {
       return y.current?.unlock(), n.current.act(0, t), S.current?.focus({ preventScroll: !0 }), K(), !0;
     } catch (s) {
-      return v(s instanceof Error ? s.message : "That action is unavailable."), !1;
+      return j(s instanceof Error ? s.message : "That action is unavailable."), !1;
     }
   };
   i.useEffect(() => {
-    if (!a || c || b || h || j || p || m || k) return;
+    if (!a || c || b || h || v || p || m || k) return;
     const { phase: t, actor: s } = a;
     if (t === "complete" || t === "ready" || t === "betting" && s === 0) return;
     const u = ie === "brisk" ? t === "betting" ? 500 : 850 : t === "betting" ? 1150 : 1450, A = window.setTimeout(() => {
       const W = n.current;
       if (!(!W || R.current))
         try {
-          t === "betting" && s !== null ? W.act(s, Et(vt(W.snapshot(), W.legal()))) : W.advance(), K();
+          t === "betting" && s !== null ? W.act(s, Et(jt(W.snapshot(), W.legal()))) : W.advance(), K();
         } catch (Le) {
-          v(Le instanceof Error ? Le.message : "The table needs attention."), w(!0);
+          j(Le instanceof Error ? Le.message : "The table needs attention."), w(!0);
         }
     }, u);
     return () => window.clearTimeout(A);
-  }, [a, c, b, h, j, p, m, k, ie]), i.useEffect(() => {
+  }, [a, c, b, h, v, p, m, k, ie]), i.useEffect(() => {
     const t = () => {
       n.current && !c && w(!0);
     }, s = () => {
@@ -262,7 +262,7 @@ function Lt({ api: r }) {
   const We = () => {
     k || R.current || m || E || (y.current?.unlock(), n.current || (n.current = new Q(), d.current = Pe(n.current), n.current.startHand(), K(), y.current?.play("card")), L(!1), w(!1), S.current?.focus({ preventScroll: !0 }));
   }, qe = () => {
-    R.current || k || m || (n.current = new Q(), d.current = Pe(n.current), n.current.startHand(), y.current?.resetEvents(), x.current?.endNight(), M(!1), G(null), v(""), oe(!1), w(!1), L(!1), y.current?.unlock(), y.current?.play("card"), S.current?.focus({ preventScroll: !0 }), K());
+    R.current || k || m || (n.current = new Q(), d.current = Pe(n.current), n.current.startHand(), y.current?.resetEvents(), x.current?.endNight(), M(!1), G(null), j(""), oe(!1), w(!1), L(!1), y.current?.unlock(), y.current?.play("card"), S.current?.focus({ preventScroll: !0 }), K());
   }, Qe = () => {
     R.current || !n.current || a?.phase !== "complete" || (n.current.startHand(), S.current?.focus({ preventScroll: !0 }), K());
   }, Y = (t) => {
@@ -273,13 +273,13 @@ function Lt({ api: r }) {
       const u = Tt(n.current, d.current, t, s);
       return n.current = u.game, d.current = u.bank, K(), !0;
     } catch (u) {
-      return v(u instanceof Error ? u.message : "Bank transfer unavailable."), !1;
+      return j(u instanceof Error ? u.message : "Bank transfer unavailable."), !1;
     }
   }, fe = () => {
     if (R.current || k || E) return;
     const t = !_;
     Ee(t), te.current.muted = t, y.current?.setMuted(t), t || y.current?.unlock(), re(n.current?.snapshot() ?? null);
-  }, o = a, be = n.current?.legal() ?? { fold: !1, check: !1, call: 0, raise: !1, min: 0, max: 0, shortOnly: !1 }, B = o?.players[0], ne = o?.phase === "betting" && o.actor === 0, Ne = !ne || b || !!h || j || !!p || m || O || g || c, Ze = o?.players.filter((t) => t.stack > 0).length ?? 6, T = o?.phase === "complete", pe = T && Ze === 1 && (B?.stack ?? 0) > 0, me = T && B?.stack === 0, se = n.current && d.current ? Nt(n.current, d.current) : null, Te = o?.history.find((t) => t.number === o.handNumber)?.net ?? 0, xe = o?.players.reduce((t, s) => t + s.committed, 0) ?? 0, Je = o?.awards.reduce((t, s) => t + s.amount, 0) ?? 0, et = B?.hole.length === 2 && (o?.board.length ?? 0) >= 3 ? ye([...B.hole, ...o.board]) : null, tt = T ? o?.results.find((t) => t.seat === 0 && t.won > 0)?.hand?.cards ?? [] : [], rt = o?.phase === "showdown" || T && o?.results.some((t) => t.hand), nt = T ? pe ? "The table is yours." : me ? "A good run. Another seat awaits." : o.history[0]?.summary : o?.phase === "showdown" ? "Cards on the table." : o?.phase === "transition" ? "The next chapter…" : ne ? "Your move." : o?.actor != null ? `${$[o.actor].name} is thinking…` : "Welcome to the club.";
+  }, o = a, be = n.current?.legal() ?? { fold: !1, check: !1, call: 0, raise: !1, min: 0, max: 0, shortOnly: !1 }, B = o?.players[0], ne = o?.phase === "betting" && o.actor === 0, Ne = !ne || b || !!h || v || !!p || m || O || g || c, Ze = o?.players.filter((t) => t.stack > 0).length ?? 6, T = o?.phase === "complete", pe = T && Ze === 1 && (B?.stack ?? 0) > 0, me = T && B?.stack === 0, se = n.current && d.current ? Nt(n.current, d.current) : null, Te = o?.history.find((t) => t.number === o.handNumber)?.net ?? 0, xe = o?.players.reduce((t, s) => t + s.committed, 0) ?? 0, Je = o?.awards.reduce((t, s) => t + s.amount, 0) ?? 0, et = B?.hole.length === 2 && (o?.board.length ?? 0) >= 3 ? ye([...B.hole, ...o.board]) : null, tt = T ? o?.results.find((t) => t.seat === 0 && t.won > 0)?.hand?.cards ?? [] : [], rt = o?.phase === "showdown" || T && o?.results.some((t) => t.hand), nt = T ? pe ? "The table is yours." : me ? "A good run. Another seat awaits." : o.history[0]?.summary : o?.phase === "showdown" ? "Cards on the table." : o?.phase === "transition" ? "The next chapter…" : ne ? "Your move." : o?.actor != null ? `${$[o.actor].name} is thinking…` : "Welcome to the club.";
   return /* @__PURE__ */ e.jsxs(
     "main",
     {
@@ -342,7 +342,7 @@ function Lt({ api: r }) {
         /* @__PURE__ */ e.jsxs(lt, { onLobby: () => {
           L(!0), w(!0);
         }, children: [
-          /* @__PURE__ */ e.jsx("button", { onClick: fe, disabled: k || j || E, "aria-label": _ ? "Unmute sound" : "Mute sound", title: "Sound (M)", children: _ ? "♪̸" : "♪" }),
+          /* @__PURE__ */ e.jsx("button", { onClick: fe, disabled: k || v || E, "aria-label": _ ? "Unmute sound" : "Mute sound", title: "Sound (M)", children: _ ? "♪̸" : "♪" }),
           /* @__PURE__ */ e.jsx("button", { onClick: () => Y("rules"), "aria-label": "How to play", title: "How to play", children: "?" }),
           /* @__PURE__ */ e.jsx("button", { onClick: () => Y("settings"), "aria-label": "Settings", title: "Settings", children: "⚙" }),
           !c && x.current?.experimentalLook && /* @__PURE__ */ e.jsx("button", { "aria-label": "Recenter view", title: "Drag the room to look · Recenter (R)", disabled: b || !!h || C, onClick: () => {
@@ -384,7 +384,7 @@ function Lt({ api: r }) {
                 /* @__PURE__ */ e.jsx("kbd", { children: "E" })
               ] }),
               /* @__PURE__ */ e.jsx("button", { onClick: () => D((t) => !t), disabled: b || !!h || !!p || m || C, "aria-expanded": O, children: "Drinks ▾" }),
-              /* @__PURE__ */ e.jsxs("button", { onClick: () => Y("bank"), disabled: j || !!p || m, children: [
+              /* @__PURE__ */ e.jsxs("button", { onClick: () => Y("bank"), disabled: v || !!p || m, children: [
                 "Bank",
                 se?.debt ? ` · ${q(se.debt)} owed` : ""
               ] }),
@@ -433,7 +433,7 @@ function Lt({ api: r }) {
               ] }),
               /* @__PURE__ */ e.jsx("h1", { children: "The River Club." }),
               /* @__PURE__ */ e.jsx("p", { children: "Pull up a chair. Leave the world outside." }),
-              /* @__PURE__ */ e.jsxs("button", { className: "primary enter-button", onClick: We, disabled: k || j || m || E, children: [
+              /* @__PURE__ */ e.jsxs("button", { className: "primary enter-button", onClick: We, disabled: k || v || m || E, children: [
                 k ? "Preparing your seat…" : o ? "Return to your table" : "Take a seat",
                 " ",
                 /* @__PURE__ */ e.jsx("span", { children: "↗" })
@@ -480,10 +480,10 @@ function Lt({ api: r }) {
               handLabel: B?.folded ? "Folded" : et?.name ?? "Practice chips",
               status: nt,
               withActions: ne || T,
-              detail: j ? "Saving…" : b ? "Paused" : T ? `Net ${Te >= 0 ? "+" : ""}${q(Te)}` : o.log.at(-1)
+              detail: v ? "Saving…" : b ? "Paused" : T ? `Net ${Te >= 0 ? "+" : ""}${q(Te)}` : o.log.at(-1)
             }
           ),
-          (ne || T) && !b && !h && !p && /* @__PURE__ */ e.jsx("section", { className: "quick-actions", "aria-label": "Poker actions", children: T ? /* @__PURE__ */ e.jsxs("button", { className: "primary", disabled: j || m, onClick: me ? () => Y("bank") : pe ? () => M(!0) : Qe, children: [
+          (ne || T) && !b && !h && !p && /* @__PURE__ */ e.jsx("section", { className: "quick-actions", "aria-label": "Poker actions", children: T ? /* @__PURE__ */ e.jsxs("button", { className: "primary", disabled: v || m, onClick: me ? () => Y("bank") : pe ? () => M(!0) : Qe, children: [
             me ? "Rebuy · practice bank" : pe ? "New table" : "Deal next hand",
             " ",
             /* @__PURE__ */ e.jsx("span", { children: "→" })
@@ -514,7 +514,7 @@ function Lt({ api: r }) {
             /* @__PURE__ */ e.jsx("button", { "aria-label": "Close panel", onClick: () => G(null), children: "×" })
           ] }),
           /* @__PURE__ */ e.jsx("h2", { children: h === "bank" ? "Stay at the table." : h === "history" ? "The hands we played." : h === "rules" ? "Find your seat." : "Make it yours." }),
-          h === "bank" && se && o ? /* @__PURE__ */ e.jsx(xt, { scope: "solo", offer: se, revision: o.revision, blocked: j || !!p || m || g, onConfirm: Xe }) : h === "history" ? /* @__PURE__ */ e.jsxs("div", { className: "history-list", children: [
+          h === "bank" && se && o ? /* @__PURE__ */ e.jsx(xt, { scope: "solo", offer: se, revision: o.revision, blocked: v || !!p || m || g, onConfirm: Xe }) : h === "history" ? /* @__PURE__ */ e.jsxs("div", { className: "history-list", children: [
             o && /* @__PURE__ */ e.jsxs("details", { open: !0, children: [
               /* @__PURE__ */ e.jsxs("summary", { children: [
                 "Hand ",
@@ -548,7 +548,7 @@ function Lt({ api: r }) {
           ] }) : h === "settings" ? /* @__PURE__ */ e.jsxs("div", { className: "settings-content", children: [
             /* @__PURE__ */ e.jsxs("label", { children: [
               "Table pace",
-              /* @__PURE__ */ e.jsxs("select", { value: ie, disabled: j || k || E, onChange: (t) => {
+              /* @__PURE__ */ e.jsxs("select", { value: ie, disabled: v || k || E, onChange: (t) => {
                 const s = t.target.value;
                 Se(s), te.current.speed = s, re(n.current?.snapshot() ?? null);
               }, children: [
@@ -559,7 +559,7 @@ function Lt({ api: r }) {
             /* @__PURE__ */ e.jsx("p", { children: "How long opponents take between decisions." }),
             /* @__PURE__ */ e.jsxs("label", { children: [
               "Sound",
-              /* @__PURE__ */ e.jsx("button", { onClick: fe, disabled: j || k || E, "aria-pressed": !_, children: _ ? "Off" : "On" })
+              /* @__PURE__ */ e.jsx("button", { onClick: fe, disabled: v || k || E, "aria-pressed": !_, children: _ ? "Off" : "On" })
             ] }),
             /* @__PURE__ */ e.jsxs("label", { children: [
               "Fire ambience",
@@ -608,7 +608,7 @@ function Lt({ api: r }) {
             /* @__PURE__ */ e.jsx("div", { className: "settings-divider" }),
             /* @__PURE__ */ e.jsx("h3", { children: "A fresh table" }),
             /* @__PURE__ */ e.jsx("p", { children: "Start everyone with 2,000 practice chips. This replaces your current table and hand history." }),
-            /* @__PURE__ */ e.jsx("button", { className: "secondary", onClick: () => M(!0), disabled: j || k, children: "Start a new table" })
+            /* @__PURE__ */ e.jsx("button", { className: "secondary", onClick: () => M(!0), disabled: v || k, children: "Start a new table" })
           ] }) : /* @__PURE__ */ e.jsxs("div", { className: "rules-content", children: [
             /* @__PURE__ */ e.jsx("p", { children: "Build the best five-card hand using your two cards and the five shared cards. You can use both, one, or neither of your cards." }),
             /* @__PURE__ */ e.jsx("h3", { children: "A hand in four acts" }),
@@ -667,10 +667,10 @@ function Lt({ api: r }) {
         p && /* @__PURE__ */ e.jsxs("div", { className: "save-alert", role: "alert", children: [
           /* @__PURE__ */ e.jsx("strong", { children: E ? "Saved table needs attention" : "Table paused" }),
           /* @__PURE__ */ e.jsx("p", { children: p }),
-          !E && /* @__PURE__ */ e.jsx("button", { className: "primary", disabled: j, onClick: () => {
+          !E && /* @__PURE__ */ e.jsx("button", { className: "primary", disabled: v, onClick: () => {
             re(n.current?.snapshot() ?? null);
           }, children: "Retry save" }),
-          /* @__PURE__ */ e.jsx("button", { className: "text-button", disabled: j, onClick: () => M(!0), children: "Start a new table instead" })
+          /* @__PURE__ */ e.jsx("button", { className: "text-button", disabled: v, onClick: () => M(!0), children: "Start a new table instead" })
         ] }),
         g && /* @__PURE__ */ e.jsx("div", { className: "panel-scrim", children: /* @__PURE__ */ e.jsxs("div", { className: "confirm-card", role: "alertdialog", "aria-modal": "true", "aria-labelledby": "fresh-title", children: [
           /* @__PURE__ */ e.jsx("span", { className: "eyebrow", children: "FRESH FELT" }),
@@ -678,7 +678,7 @@ function Lt({ api: r }) {
           /* @__PURE__ */ e.jsx("p", { children: "Your current hand, chip stacks, history and fictional bank debt will be replaced. Everyone starts with 2,000 practice chips and no debt." }),
           /* @__PURE__ */ e.jsxs("div", { children: [
             /* @__PURE__ */ e.jsx("button", { className: "secondary", onClick: () => M(!1), children: "Keep this table" }),
-            /* @__PURE__ */ e.jsx("button", { className: "primary", disabled: j || m, onClick: qe, children: "Start fresh" })
+            /* @__PURE__ */ e.jsx("button", { className: "primary", disabled: v || m, onClick: qe, children: "Start fresh" })
           ] })
         ] }) })
       ]
@@ -688,7 +688,7 @@ function Lt({ api: r }) {
 const Ot = gt({
   mount(r, a) {
     const l = document.createElement("style");
-    l.textContent = jt, document.head.append(l);
+    l.textContent = vt, document.head.append(l);
     const n = yt.createRoot(r);
     return n.render(/* @__PURE__ */ e.jsx(Lt, { api: a.api })), () => {
       n.unmount(), l.remove();

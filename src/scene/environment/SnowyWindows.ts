@@ -35,7 +35,19 @@ export class SnowyWindows {
     const positions: number[] = [], colors: number[] = [], indices: number[] = []
     const frostPositions: number[] = [], frostColors: number[] = [], frostIndices: number[] = []
     const nightTop = new THREE.Color('#101c2b'), nightHorizon = new THREE.Color('#536575')
-    const tint = (hex: string, amount = 1) => new THREE.Color(hex).multiplyScalar(amount)
+    // Parse each authored hex once. new THREE.Color(hex) runs the CSS-style
+    // parser plus the sRGB→linear conversion, and the sampler below asks for
+    // several tints per cell across ~58k cells; that parsing alone was a
+    // measurable slice of the ~170ms window build that ran synchronously in
+    // the PokerRoom constructor (review of PR #11). The clone keeps callers
+    // free to mutate their colour (lerp/multiplyScalar) without corrupting
+    // the shared palette, and yields exactly the same floats as before.
+    const palette = new Map<string, THREE.Color>()
+    const tint = (hex: string, amount = 1) => {
+      let base = palette.get(hex)
+      if (!base) { base = new THREE.Color(hex); palette.set(hex, base) }
+      return base.clone().multiplyScalar(amount)
+    }
 
     // Local coordinates use physical metres. Keeping all quads in this frame
     // makes the frost, scenery and snowfall obey the exact same aperture on
@@ -44,10 +56,21 @@ export class SnowyWindows {
       const pos = frost ? frostPositions : positions, col = frost ? frostColors : colors, idx = frost ? frostIndices : indices
       const base = pos.length / 3
       for (const point of points) {
-        pos.push(...windowWorld(p, ...point)); col.push(color.r, color.g, color.b)
+        pushWindowWorld(pos, p, point[0], point[1], point[2]); col.push(color.r, color.g, color.b)
         if (frost) col.push(alpha)
       }
       idx.push(base, base + 1, base + 2, base, base + 2, base + 3)
+    }
+    // The relief emits ~70k quads. Writing corners straight into the arrays,
+    // instead of building a points array plus one spread per corner, removes
+    // several hundred thousand short-lived arrays from the mount-time build.
+    const relief = (p: WinterView, u0: number, v0: number, d0: number, u1: number, v1: number, d1: number,
+      u2: number, v2: number, d2: number, u3: number, v3: number, d3: number, r: number, g: number, b: number) => {
+      const base = positions.length / 3
+      pushWindowWorld(positions, p, u0, v0, d0); pushWindowWorld(positions, p, u1, v1, d1)
+      pushWindowWorld(positions, p, u2, v2, d2); pushWindowWorld(positions, p, u3, v3, d3)
+      colors.push(r, g, b, r, g, b, r, g, b, r, g, b)
+      indices.push(base, base + 1, base + 2, base, base + 2, base + 3)
     }
 
     windows.forEach((p, windowIndex) => {
@@ -56,6 +79,18 @@ export class SnowyWindows {
       const seed = windowIndex * 83 + 17
       const cabinX = windowIndex ? -.32 : .20, cabinY = -.51
       const moonX = windowIndex ? .48 : -.49, moonY = .62
+      // Tree placement is a per-window constant. It used to be recomputed
+      // inside sample() for every cell: three hash() sines per tree × 26 trees
+      // ≈ 80 Math.sin calls per cell, over ~58k cells, all synchronously in
+      // the PokerRoom constructor (review of PR #11). Same expressions, same
+      // floats, evaluated once; the sampled landscape is unchanged.
+      const farPines = Array.from({ length: 19 }, (_, i) => ({
+        x: -1.04 + i * .118 + (hash(i + seed) - .5) * .05, base: -.37 + .025 * Math.sin(i * 1.7),
+        h: .18 + hash(i * 7 + seed) * .23, w: .063 + hash(i * 3) * .036,
+      }))
+      const nearPines = Array.from({ length: 7 }, (_, i) => ({
+        x: -.96 + i * .31 + (hash(i + seed * 2) - .5) * .07, base: -.64 + hash(i + 91) * .05, h: .45 + hash(i + seed) * .28,
+      })).filter(t => Math.abs(t.x - cabinX) >= .29)
 
       // Author the outside as one continuous scene, then sample that scene.
       // Atmospheric perspective is more important than bright snow: distant
@@ -103,15 +138,9 @@ export class SnowyWindows {
             depth = d + (capped ? .002 : 0)
           }
         }
-        for (let i = 0; i < 19; i++) {
-          const x = -1.04 + i * .118 + (hash(i + seed) - .5) * .05
-          pine(x, -.37 + .025 * Math.sin(i * 1.7), .18 + hash(i * 7 + seed) * .23, .063 + hash(i * 3) * .036, '#304b60', '#617b8a', .007, false)
-        }
-        for (let i = 0; i < 7; i++) {
-          const x = -.96 + i * .31 + (hash(i + seed * 2) - .5) * .07
-          if (Math.abs(x - cabinX) < .29) continue
-          pine(x, -.64 + hash(i + 91) * .05, .45 + hash(i + seed) * .28, .14, '#213d48', '#819ba5', .012, true)
-        }
+        for (const t of farPines) pine(t.x, t.base, t.h, t.w, '#304b60', '#617b8a', .007, false)
+        // Trees crowding the cabin clearing were dropped when the table was built.
+        for (const t of nearPines) pine(t.x, t.base, t.h, .14, '#213d48', '#819ba5', .012, true)
 
         // A curving, blue-shadowed footpath and a few footprints make the
         // clearing inhabited. They remain subdued so the room's candles, not
@@ -174,13 +203,13 @@ export class SnowyWindows {
       // them sealed inside the relief. These exposed faces preserve the voxel
       // silhouette at a fraction of the triangles and still form one batch.
       for (let row = 0; row < rows; row++) for (let col = 0; col < columns; col++) {
-        const cell = cells[row * columns + col], d = cell.depth
+        const cell = cells[row * columns + col], d = cell.depth, { r, g, b } = cell.color
         const u = -width / 2 + col * du, v = -height / 2 + row * dv
-        quad(p, [[u,v,d],[u+du,v,d],[u+du,v+dv,d],[u,v+dv,d]], cell.color)
+        relief(p, u, v, d, u + du, v, d, u + du, v + dv, d, u, v + dv, d, r, g, b)
         const left = col ? cells[row * columns + col - 1].depth : 0
         const down = row ? cells[(row - 1) * columns + col].depth : 0
-        if (Math.abs(left - d) > .001) quad(p, [[u,v,left],[u,v,d],[u,v+dv,d],[u,v+dv,left]], cell.color.clone().multiplyScalar(.68))
-        if (Math.abs(down - d) > .001) quad(p, [[u,v,down],[u+du,v,down],[u+du,v,d],[u,v,d]], cell.color.clone().multiplyScalar(.82))
+        if (Math.abs(left - d) > .001) relief(p, u, v, left, u, v, d, u, v + dv, d, u, v + dv, left, r * .68, g * .68, b * .68)
+        if (Math.abs(down - d) > .001) relief(p, u, v, down, u + du, v, down, u + du, v, d, u, v, d, r * .82, g * .82, b * .82)
       }
       // Frost is sparse and translucent, clustered at cold edges. Dense white
       // borders would shrink the view into another glowing rectangular plate.
@@ -242,4 +271,15 @@ function windowWorld(p: WinterView, u: number, v: number, d: number): Point {
   const [x, y, z] = p.position
   d *= p.depthScale ?? 1
   return p.facing === '+x' ? [x + d, y + v, z + u] : p.facing === '-x' ? [x - d, y + v, z - u] : p.facing === '+z' ? [x + u, y + v, z + d] : [x - u, y + v, z - d]
+}
+/** windowWorld() without the result tuple, for the hot relief loop. Must stay
+ * arithmetically identical to it: the tests pin window bounds and snowfall
+ * uses windowWorld() for the same aperture. */
+function pushWindowWorld(out: number[], p: WinterView, u: number, v: number, d: number): void {
+  const x = p.position[0], y = p.position[1], z = p.position[2]
+  d *= p.depthScale ?? 1
+  if (p.facing === '+x') out.push(x + d, y + v, z + u)
+  else if (p.facing === '-x') out.push(x - d, y + v, z - u)
+  else if (p.facing === '+z') out.push(x + u, y + v, z + d)
+  else out.push(x - u, y + v, z - d)
 }

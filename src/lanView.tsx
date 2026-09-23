@@ -5,7 +5,7 @@ import baseStyles from './styles.css?inline'
 import previewStyles from '../dev/preview.css?inline'
 import clientStyles from '../server/client/style.css?inline'
 import { privateHostDestination } from '../dev/multiplayer/hostDestination'
-import { SERVICE_ID, proxyTransport, netFetchTransport, type LanTransport } from '../server/client/inAppTransport'
+import { SERVICE_ID, proxyTransport, brokeredGuestTransport, lanShareText, lanShareUrls, type LanTransport, type NetFetchInit } from '../server/client/inAppTransport'
 import { agentCodeVoiceSettingsStore, type AgentCodeStorageApi } from './voice/settingsStore'
 import { brokeredVoiceHttp, type BrokeredNetFetch } from './voice/transports'
 
@@ -27,10 +27,12 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
 #app{width:1600px;height:1000px}
 `
 
-const shareText = (port: number, at: number): string => {
+// The advancing `live` stamp is the frame harness's observable that runtime
+// state keeps reaching a mounted view; the URLs are the product payload.
+const shareText = (urls: readonly string[], port: number, at: number): string => {
   const time = new Date(at)
   const ms = String(time.getMilliseconds()).padStart(3, '0')
-  return `Friends join at http://<this-computer’s-Wi-Fi-IP>:${port} · live ${time.toLocaleTimeString()}.${ms}`
+  return `${lanShareText(urls, port)} · live ${time.toLocaleTimeString()}.${ms}`
 }
 
 const markup = pageMarkup.slice(pageMarkup.indexOf('<main'), pageMarkup.indexOf('</main>') + '</main>'.length)
@@ -38,8 +40,11 @@ const markup = pageMarkup.slice(pageMarkup.indexOf('<main'), pageMarkup.indexOf(
 type ServicesLike = {
   start(id: string): Promise<{ endpoints: Array<{ port: number }> }>
   expose(id: string, lan: boolean): Promise<{ lan: boolean; port?: number }>
+  invoke(id: string, name: string): Promise<unknown>
 }
-type NetLike = { fetch(url: string, init?: { httpMethod?: 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'; headers?: Array<{ name: string; value: string }>; body?: string; responseType?: 'text' | 'base64' }): Promise<{ status: number; contentType: string; body: string; bodyEncoding?: 'text' | 'base64' }> }
+// responseType/bodyEncoding exist on hosts with agent-code#1151 (binary
+// bodies for the ElevenLabs voice); older hosts ignore the one and omit the other.
+type NetLike = { fetch(url: string, init?: NetFetchInit & { responseType?: 'text' | 'base64' }): Promise<{ status: number; contentType: string; body: string; bodyEncoding?: 'text' | 'base64' }> }
 
 export default defineView({
   mount(element, context) {
@@ -115,9 +120,9 @@ export default defineView({
     // and keep the share line alive with the runtime heartbeat. The share
     // line's advancing timestamp is also the Electron frame harness's
     // observable that runtime state reaches a mounted view.
-    const adoptRuntimeHost = async (port: number, at: number): Promise<void> => {
+    const adoptRuntimeHost = async (urls: readonly string[], port: number, at: number): Promise<void> => {
       if (adoptedRuntimeHost) {
-        share(shareText(port, at))
+        share(shareText(urls, port, at))
         return
       }
       adoptedRuntimeHost = true
@@ -125,7 +130,7 @@ export default defineView({
       try {
         // Say the port BEFORE the heavy client import: an observer (human or
         // harness) must never wait on the 3D bundle to learn hosting is live.
-        share(shareText(port, at))
+        share(shareText(urls, port, at))
         await installClient(proxyTransport())
         overlay.hidden = true
         booting = false
@@ -135,12 +140,19 @@ export default defineView({
         fail(error instanceof Error ? error.message : String(error))
       }
     }
-    type HostState = { running?: boolean; port?: number; at?: number }
+    // `urls` may be absent from a runtime built before it existed; the text
+    // then falls back to the placeholder shape rather than failing adoption.
+    type HostState = { running?: boolean; port?: number; at?: number; urls?: unknown }
+    // Published state is untyped JSON: keep only strings shaped like the URLs
+    // lanShareUrls produces, so the share line can never render arbitrary text.
+    const urlsOf = (state: HostState): string[] => Array.isArray(state.urls)
+      ? state.urls.filter((url): url is string => typeof url === 'string' && /^http:\/\/\d{1,3}(?:\.\d{1,3}){3}:\d{1,5}$/.test(url))
+      : []
     const initial = context.runtime.state() as HostState | undefined
-    if (initial?.running && initial.port) void adoptRuntimeHost(initial.port, initial.at ?? Date.now())
+    if (initial?.running && initial.port) void adoptRuntimeHost(urlsOf(initial), initial.port, initial.at ?? Date.now())
     const unsubscribeRuntime = context.runtime.subscribe(next => {
       const state = next as HostState | undefined
-      if (state?.running && state.port) void adoptRuntimeHost(state.port, state.at ?? Date.now())
+      if (state?.running && state.port) void adoptRuntimeHost(urlsOf(state), state.port, state.at ?? Date.now())
     })
 
     const fail = (message: string) => { errorText.textContent = message }
@@ -168,11 +180,12 @@ export default defineView({
           await services.start(SERVICE_ID)
           const exposure = await services.expose(SERVICE_ID, true)
           if (!exposure.lan || !exposure.port) throw new Error('LAN exposure was not granted.')
+          const urls = lanShareUrls(await services.invoke(SERVICE_ID, 'status'), exposure.port)
           await installClient(proxyTransport())
           overlay.hidden = true
-          // The LAN address of THIS machine is deliberately not exposed to
-          // sandboxed views; name the share shape the way the CLI host does.
-          share(`Friends join at http://<this-computer’s-Wi-Fi-IP>:${exposure.port} — then use Create table below.`)
+          // This view can't see network interfaces; the service can, and its
+          // status answer supplies the addresses (see lanShareUrls).
+          share(`${lanShareText(urls, exposure.port)} — then use Create table below.`)
         } catch (error) {
           booting = false
           fail(error instanceof Error ? error.message : String(error))
@@ -187,10 +200,8 @@ export default defineView({
       let origin: string
       try { origin = privateHostDestination(input.value) } catch (reason) { fail(reason instanceof Error ? reason.message : 'Invalid host address.'); return }
       void boot(async () => {
-        // Pass init THROUGH. `url => net.fetch(url)` dropped the method,
-        // headers and body, so every guest POST (join, wager, chat) reached
-        // the host as a bare unauthenticated GET.
-        await installClient(netFetchTransport((url, init) => net.fetch(url, init), origin))
+        // Pass init THROUGH (see brokeredGuestTransport).
+        await installClient(brokeredGuestTransport(net, origin))
       })
     })
 
