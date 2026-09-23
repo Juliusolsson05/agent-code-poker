@@ -129,7 +129,10 @@ export function createSurroundPlan() {
 
   // Snowy side window with heavy curtains, candles on the sill and a wreath.
   const winZ = -2.0, winY = 1.9, winW = 1.5, winH = 1.8
-  pictures.push({ kind: 'snowscape', position: [WALL.left + .004, winY, winZ], size: [winW, winH], facing: '+x', lit: false })
+  // The view plane must stand in front of the wallpaper (which is 12mm proud of
+  // the wall) and behind the mullions (30mm+). At 4mm the paper hid it and
+  // both windows rendered as black panes.
+  pictures.push({ kind: 'snowscape', position: [WALL.left + .016, winY, winZ], size: [winW, winH], facing: '+x', lit: false })
   L('#3a2a1e', .04, winY + winH / 2 + .04, winZ, .08, .08, winW + .12); L('#3a2a1e', .04, winY, winZ - winW / 2 - .04, .08, winH + .16, .08)
   L('#3a2a1e', .04, winY, winZ + winW / 2 + .04, .08, winH + .16, .08)
   L('#4a3526', .11, winY - winH / 2 - .03, winZ, .22, .06, winW + .26)
@@ -246,7 +249,7 @@ export function createSurroundPlan() {
 
   // Second snowy window, green curtains, candles.
   const rZ = .65, rW = 1.3, rH = 1.7, rY = 1.9
-  pictures.push({ kind: 'snowscape', position: [WALL.right - .004, rY, rZ], size: [rW, rH], facing: '-x', lit: false })
+  pictures.push({ kind: 'snowscape', position: [WALL.right - .016, rY, rZ], size: [rW, rH], facing: '-x', lit: false })
   R('#3a2a1e', .04, rY + rH / 2 + .04, rZ, .08, .08, rW + .12)
   for (const s of [-1, 1]) R('#3a2a1e', .04, rY, rZ + s * (rW / 2 + .04), .08, rH + .16, .08)
   R('#4a3526', .11, rY - rH / 2 - .03, rZ, .22, .06, rW + .26)

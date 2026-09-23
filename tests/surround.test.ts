@@ -118,3 +118,14 @@ test('flicker is a pure function of the room clock and stays gentle', () => {
     assert.ok(v > .8 && v < 1.2, `${kind} at ${t}: ${v}`)
   }
 })
+
+test('window views and paintings sit in front of the wallpaper they hang on', () => {
+  // Regression: the snowy side-window planes were authored 4mm off the wall
+  // while wallpaper stripes stand 12mm proud, so both windows rendered black.
+  const plan = createSurroundPlan()
+  const paperDepth = Math.max(...plan.shell.filter(b => b.size[1] === 2.1).map(b => Math.min(b.size[0], b.size[2])))
+  for (const p of plan.pictures) {
+    const offset = p.facing === '+x' ? p.position[0] - WALL.left : p.facing === '-x' ? WALL.right - p.position[0] : WALL.rear - p.position[2]
+    assert.ok(offset > paperDepth + .001, `${p.kind} at ${p.position} is behind the wallpaper (${offset} ≤ ${paperDepth})`)
+  }
+})
