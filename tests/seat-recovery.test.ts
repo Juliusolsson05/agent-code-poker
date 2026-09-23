@@ -63,3 +63,31 @@ test('synthetic malformed keys fail closed and old tab credentials migrate witho
   assert.equal(vault(session, local).save({ ...key(1), token: 'bad' }, true), false)
   assert.deepEqual(vault(session, local).saved(), [])
 })
+
+test('saved seats carry table code and time, list newest first, and keep legacy entries (#24)', () => {
+  // After a host restart the browser still holds seats from earlier tables.
+  // The picker must show which table each belongs to, newest first, so the
+  // live seat is the default choice instead of a dead one in storage order.
+  const local = new MemoryStorage(), store = vault(new MemoryStorage(), local)
+  local.setItem('poker-lan-saved-seat-v1:' + key(1).nonce, JSON.stringify(key(1))) // legacy: no labels
+  store.save({ ...key(2), code: '3B8E5AB6FE', at: 1000 }, true)
+  store.save({ ...key(3), code: 'AAAAA11111', at: 5000 }, true)
+  assert.deepEqual(store.saved().map(k => k.name), ['Guest 3', 'Guest 2', 'Guest 1'])
+  assert.deepEqual(store.saved()[0], { ...key(3), code: 'AAAAA11111', at: 5000 })
+  assert.deepEqual(store.saved()[2], key(1), 'legacy entry parses unchanged and sorts last')
+})
+
+test('a malformed label is dropped without discarding a good credential (#24)', () => {
+  const local = new MemoryStorage(), store = vault(new MemoryStorage(), local)
+  local.setItem('poker-lan-saved-seat-v1:' + key(4).nonce, JSON.stringify({ ...key(4), code: '<script>', at: -3 }))
+  assert.deepEqual(store.saved(), [key(4)])
+})
+
+test('save-time labels: fractional times floor, zero and non-numbers are dropped (#24)', () => {
+  const local = new MemoryStorage(), store = vault(new MemoryStorage(), local)
+  local.setItem('poker-lan-saved-seat-v1:' + key(5).nonce, JSON.stringify({ ...key(5), at: 1234.9 }))
+  local.setItem('poker-lan-saved-seat-v1:' + key(6).nonce, JSON.stringify({ ...key(6), at: 0 }))
+  local.setItem('poker-lan-saved-seat-v1:' + key(7).nonce, JSON.stringify({ ...key(7), at: '99' }))
+  const byName = Object.fromEntries(store.saved().map(k => [k.name, k.at]))
+  assert.deepEqual(byName, { 'Guest 5': 1234, 'Guest 6': undefined, 'Guest 7': undefined })
+})

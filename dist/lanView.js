@@ -83,7 +83,7 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
       v = !0, n = !0;
       try {
         d(L(e, o, i));
-        const { setApiTransport: a } = await import("./client-CslU1nby.js");
+        const { setApiTransport: a } = await import("./client-pEJorCbm.js");
         a(k()), t.hidden = !0, n = !1;
       } catch (a) {
         n = !1, v = !1, b(a instanceof Error ? a.message : String(a));
@@ -116,7 +116,7 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
           await p.start(y);
           const e = await p.expose(y, !0);
           if (!e.lan || !e.port) throw new Error("LAN exposure was not granted.");
-          const o = C(await p.invoke(y, "status"), e.port), { setApiTransport: i } = await import("./client-CslU1nby.js");
+          const o = C(await p.invoke(y, "status"), e.port), { setApiTransport: i } = await import("./client-pEJorCbm.js");
           i(k()), t.hidden = !0, d(`${S(o, e.port)} — then use Create table below.`);
         } catch (e) {
           n = !1, b(e instanceof Error ? e.message : String(e));
@@ -136,7 +136,7 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
         return;
       }
       E(async () => {
-        const { setApiTransport: a } = await import("./client-CslU1nby.js");
+        const { setApiTransport: a } = await import("./client-pEJorCbm.js");
         a(N(u, i));
       });
     }), () => {
