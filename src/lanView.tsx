@@ -27,14 +27,6 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
 #app{width:1600px;height:1000px}
 `
 
-// The advancing `live` stamp is the frame harness's observable that runtime
-// state keeps reaching a mounted view; the URLs are the product payload.
-const shareText = (urls: readonly string[], port: number, at: number): string => {
-  const time = new Date(at)
-  const ms = String(time.getMilliseconds()).padStart(3, '0')
-  return `${lanShareText(urls, port)} · live ${time.toLocaleTimeString()}.${ms}`
-}
-
 const markup = pageMarkup.slice(pageMarkup.indexOf('<main'), pageMarkup.indexOf('</main>') + '</main>'.length)
 
 type ServicesLike = {
@@ -96,7 +88,6 @@ export default defineView({
     const services = (context.api as { services?: ServicesLike }).services
     const net = (context.api as { net?: NetLike }).net
     let booting = false
-    let adoptedRuntimeHost = false
 
     // Every path into the shared client goes through here, so the voice
     // environment can never be left on the website default (localStorage +
@@ -115,45 +106,14 @@ export default defineView({
       client.setApiTransport(transport)
     }
 
-    // Adopt a host that the RUNTIME already started (palette command or a
-    // previous view): skip the role panel entirely, route through the proxy,
-    // and keep the share line alive with the runtime heartbeat. The share
-    // line's advancing timestamp is also the Electron frame harness's
-    // observable that runtime state reaches a mounted view.
-    const adoptRuntimeHost = async (urls: readonly string[], port: number, at: number): Promise<void> => {
-      if (adoptedRuntimeHost) {
-        share(shareText(urls, port, at))
-        return
-      }
-      adoptedRuntimeHost = true
-      booting = true
-      try {
-        // Say the port BEFORE the heavy client import: an observer (human or
-        // harness) must never wait on the 3D bundle to learn hosting is live.
-        share(shareText(urls, port, at))
-        await installClient(proxyTransport())
-        overlay.hidden = true
-        booting = false
-      } catch (error) {
-        booting = false
-        adoptedRuntimeHost = false
-        fail(error instanceof Error ? error.message : String(error))
-      }
-    }
-    // `urls` may be absent from a runtime built before it existed; the text
-    // then falls back to the placeholder shape rather than failing adoption.
-    type HostState = { running?: boolean; port?: number; at?: number; urls?: unknown }
-    // Published state is untyped JSON: keep only strings shaped like the URLs
-    // lanShareUrls produces, so the share line can never render arbitrary text.
-    const urlsOf = (state: HostState): string[] => Array.isArray(state.urls)
-      ? state.urls.filter((url): url is string => typeof url === 'string' && /^http:\/\/\d{1,3}(?:\.\d{1,3}){3}:\d{1,5}$/.test(url))
-      : []
-    const initial = context.runtime.state() as HostState | undefined
-    if (initial?.running && initial.port) void adoptRuntimeHost(urlsOf(initial), initial.port, initial.at ?? Date.now())
-    const unsubscribeRuntime = context.runtime.subscribe(next => {
-      const state = next as HostState | undefined
-      if (state?.running && state.port) void adoptRuntimeHost(urlsOf(state), state.port, state.at ?? Date.now())
-    })
+    // Hosting has exactly one entry point: the Host button below. An earlier
+    // build also offered a palette command ("Host an Agent Code Poker LAN
+    // table") that started the service from the runtime with no window, and
+    // this view adopted that host from a runtime heartbeat. It was removed for
+    // v0.3.0: from the palette it looked like nothing happened, it duplicated
+    // the button, and the host frame harness can drive the button instead.
+    // Re-clicking Host after reopening the view is safe — services.start is
+    // idempotent and joins the already-running service.
 
     const fail = (message: string) => { errorText.textContent = message }
 
@@ -206,7 +166,6 @@ export default defineView({
     })
 
     return () => {
-      unsubscribeRuntime()
       overlay.remove()
       style.remove()
       // The client is page-lifetime by design (timers, audio, a 3D room).
