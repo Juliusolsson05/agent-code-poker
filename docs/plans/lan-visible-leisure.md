@@ -139,3 +139,33 @@ midline or enter the torso volume (`SeatedBody` exposes its torso predicate).
   from Node. Recorded run: accepted 140ms after the key press; the watcher's own
   read had it 213ms after the press; the watcher's screen shows the puff at
   2.6-3.4s, matching the 2.54-3.54s the timeline predicts.
+
+## Review round (PR #21)
+
+- **Broadcast only on a real start.** With mouse-look, S/D only queue a
+  gesture until the view re-centres. The client used to broadcast on request,
+  so an interrupted queue (pause, hand end, panel, inspection) was shown to
+  everyone. Now `LeisureStarts` (camera/, next to SeatedLook) is the only place
+  that starts a local gesture, and `Room.onLeisureStarted` fires only on a
+  real start. Tested against the real SeatedLook; the two-browser run has an
+  interrupted smoke that never reaches the host.
+- **One spacing rule.** `GESTURE_SECONDS` in props/specs is the only source of
+  gesture lengths. The hero reads it through `Calibration.durations` (the
+  interactions core may not import props). Opponent sip and smoke timelines are
+  scaled to it: the smoke went from 5.8s to 3.6s and the sip from 6s to 5.35s,
+  with clearances re-verified at the new speed. The host refuses a new gesture
+  (`busy`) while the previous one is within its length minus 250ms of jitter.
+  An honest client can't overlap its own gestures, so a real one is never
+  refused (except after a local interruption cut one short: then the next is
+  missed, never a phantom). Remote copies never outlast their originals, so
+  chains don't drift. The pending slot is a FIFO that keeps each gesture's own
+  start, and a start is never earlier than the moment the hand is free.
+- **Orders never hide a gesture.** The per-seat record keeps the last animated
+  gesture (`seq/action/ageMs`) separate from `drinkKind`, and `action` no
+  longer has an `order` value.
+- **Wall-time anchoring.** `RemoteLeisure` records each new gesture's wall-clock
+  start and converts it only in a rendering frame. A gesture that finished
+  while the tab was hidden or paused is dropped rather than replayed.
+- **Random seq start** (32-bit), no longer the host clock.
+- **Follow-up, not changed here:** the HTTP host's request rate bucket is global
+  to the table (200 per 10s across every client). It predates this work.

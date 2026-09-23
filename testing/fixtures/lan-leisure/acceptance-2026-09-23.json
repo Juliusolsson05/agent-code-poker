@@ -1,0 +1,431 @@
+{
+ "source": "testing/lan-two-browser.mjs against a memory-only LAN host (startLanHost, port 5303), two headless Chrome profiles on the Apple M3 Metal backend, 2026-09-23, after the PR #21 review fixes",
+ "layout": "B hosts at seat 0; throwaway admissions at seats 1-2 (idle, bot-controlled after the 15s lease); A at seat 3, opposite B",
+ "senderToHost": {
+  "keyDispatchMs": 1337,
+  "acceptedMsAfterPress": 926,
+  "note": "the CDP key dispatch itself took 1.3s on a loaded machine; acceptance happens inside it"
+ },
+ "orderThroughMenu": {
+  "watcherSaw": {
+   "action": "sip",
+   "drinkKind": "wine",
+   "note": "the order changed only the glass; the last sip stays visible"
+  }
+ },
+ "interruptedSmoke": {
+  "hostSeqBefore": 1015782166,
+  "hostSeqAfter": 1015782166,
+  "watcherSeqThroughout": 1015782166
+ },
+ "queuedSmokeAcceptedMsAfterPress": 654,
+ "consoleErrors": {
+  "A": [],
+  "B": []
+ },
+ "note": "samples are each WATCHER's own /api/state reads of the other player's seat, stamped ms since the key press; jpg sheets are screencast frames with the same stamps",
+ "smoke": [
+  {
+   "ms": 2072,
+   "leisure": {
+    "seq": 1015782165,
+    "action": "smoke",
+    "ageMs": 839,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 2780,
+   "leisure": {
+    "seq": 1015782165,
+    "action": "smoke",
+    "ageMs": 1897,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 3522,
+   "leisure": {
+    "seq": 1015782165,
+    "action": "smoke",
+    "ageMs": 2615,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 4240,
+   "leisure": {
+    "seq": 1015782165,
+    "action": "smoke",
+    "ageMs": 3355,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 4964,
+   "leisure": {
+    "seq": 1015782165,
+    "action": "smoke",
+    "ageMs": 4071,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 5678,
+   "leisure": {
+    "seq": 1015782165,
+    "action": "smoke",
+    "ageMs": 4793,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 6402,
+   "leisure": {
+    "seq": 1015782165,
+    "action": "smoke",
+    "ageMs": 5509,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 7127,
+   "leisure": {
+    "seq": 1015782165,
+    "action": "smoke",
+    "ageMs": 6244,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  }
+ ],
+ "sip": [
+  {
+   "ms": 32,
+   "leisure": {
+    "seq": 1015782165,
+    "action": "smoke",
+    "ageMs": 7488,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 1217,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 1052,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 1969,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 1937,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 2733,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 2651,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 3515,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 3465,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 4226,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 4195,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 4947,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 4916,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 5666,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 5635,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 6385,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 6345,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 7117,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 7084,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  }
+ ],
+ "reverse": [
+  {
+   "ms": 1615,
+   "leisure": {
+    "seq": 1015782167,
+    "action": "smoke",
+    "ageMs": 716,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 2411,
+   "leisure": {
+    "seq": 1015782167,
+    "action": "smoke",
+    "ageMs": 1478,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 3136,
+   "leisure": {
+    "seq": 1015782167,
+    "action": "smoke",
+    "ageMs": 2264,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 3852,
+   "leisure": {
+    "seq": 1015782167,
+    "action": "smoke",
+    "ageMs": 2990,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 4791,
+   "leisure": {
+    "seq": 1015782167,
+    "action": "smoke",
+    "ageMs": 3782,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 5910,
+   "leisure": {
+    "seq": 1015782167,
+    "action": "smoke",
+    "ageMs": 4979,
+    "drinkKind": "old-fashioned"
+   },
+   "revision": 6
+  }
+ ],
+ "interrupted": [
+  {
+   "ms": 553,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 22648,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 1465,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 23429,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 2173,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 24270,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 2888,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 24985,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 3781,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 25758,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 4523,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 26607,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 5284,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 27352,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 6027,
+   "leisure": {
+    "seq": 1015782166,
+    "action": "sip",
+    "ageMs": 28096,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  }
+ ],
+ "queuedAccept": {
+  "seenAt": 656,
+  "ageMs": 2
+ },
+ "queued": [
+  {
+   "ms": 693,
+   "leisure": {
+    "seq": 1015782168,
+    "action": "smoke",
+    "ageMs": 177,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 1475,
+   "leisure": {
+    "seq": 1015782168,
+    "action": "smoke",
+    "ageMs": 906,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 2276,
+   "leisure": {
+    "seq": 1015782168,
+    "action": "smoke",
+    "ageMs": 1729,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 2995,
+   "leisure": {
+    "seq": 1015782168,
+    "action": "smoke",
+    "ageMs": 2468,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 4038,
+   "leisure": {
+    "seq": 1015782168,
+    "action": "smoke",
+    "ageMs": 3220,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 4839,
+   "leisure": {
+    "seq": 1015782168,
+    "action": "smoke",
+    "ageMs": 4274,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  },
+  {
+   "ms": 5587,
+   "leisure": {
+    "seq": 1015782168,
+    "action": "smoke",
+    "ageMs": 5057,
+    "drinkKind": "wine"
+   },
+   "revision": 6
+  }
+ ]
+}
