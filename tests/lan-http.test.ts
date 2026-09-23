@@ -103,7 +103,9 @@ test('real HTTP rejects foreign origins, forged host, oversized and malformed bo
   const page = await fetch(host.origin)
   assert.match(page.headers.get('content-security-policy')!, /script-src 'self'/)
   assert.match(page.headers.get('content-security-policy')!, /media-src data:;/,'bundled fireplace media is allowed without external audio origins')
-  assert.match(page.headers.get('content-security-policy')!, /connect-src 'self';/,'fire audio cannot widen poker network access')
+  // Exactly one public origin, the user-approved ElevenLabs exception (#22,
+  // AGENTS.md). Fire audio or anything else must not widen it further.
+  assert.match(page.headers.get('content-security-policy')!, /connect-src 'self' https:\/\/api\.elevenlabs\.io;/,'only the approved voice origin widens poker network access')
   assert.equal(page.headers.get('access-control-allow-origin'), null)
   assert.match(await page.text(), /Multiplayer poker room/)
   const bundle = await fetch(host.origin + '/client.js')
