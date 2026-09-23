@@ -1,4 +1,9 @@
-export type SeatKey = { token: string; nonce: string; name: string }
+/** `code` and `at` are optional labels, not credentials: the host checks only
+ * the token. They exist because a browser outlives tables. Without them every
+ * saved seat read as just "Bigj", in storage order, and after a host restart
+ * the player could not tell the live seat from ones for tables that no longer
+ * exist (#24). Legacy entries simply lack them. */
+export type SeatKey = { token: string; nonce: string; name: string; code?: string; at?: number }
 type StoragePort = Pick<Storage, 'length' | 'key' | 'getItem' | 'setItem' | 'removeItem'>
 const CURRENT = 'poker-lan-connection-test-v1'
 const PREFIX = 'poker-lan-saved-seat-v1:'
@@ -10,7 +15,12 @@ function parse(raw: string | null, legacy = false): SeatKey | null {
     if (!value || typeof value.token !== 'string' || !/^(?:[A-Za-z0-9_-]{43})?$/.test(value.token) ||
       typeof value.nonce !== 'string' || !/^[a-f0-9]{64}$/.test(value.nonce) || typeof name !== 'string' ||
       !name.trim() || name.length > 96 || /[\p{Cc}\p{Cf}]/u.test(name)) return null
-    return { token: value.token, nonce: value.nonce, name }
+    const key: SeatKey = { token: value.token, nonce: value.nonce, name }
+    // Optional labels fail closed individually: a malformed label is dropped,
+    // never allowed to invalidate an otherwise good credential.
+    if (typeof value.code === 'string' && /^[A-F0-9]{10}$/.test(value.code)) key.code = value.code
+    if (typeof value.at === 'number' && Number.isFinite(value.at) && value.at > 0) key.at = Math.floor(value.at)
+    return key
   } catch { return null }
 }
 
@@ -39,7 +49,9 @@ export class SeatRecovery {
         const value = parse(local.getItem(name))
         if (value?.token && name === PREFIX + value.nonce) result.push(value)
       }
-      return result
+      // Newest first: after a restart the live seat is almost always the one
+      // saved most recently. Legacy entries without a time sort last.
+      return result.sort((a, b) => (b.at ?? 0) - (a.at ?? 0))
     } catch { return [] }
   }
   save(value: SeatKey, remember: boolean): boolean {

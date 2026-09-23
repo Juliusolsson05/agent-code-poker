@@ -43,11 +43,14 @@ const focusTable = () => el('app').focus()
 const syncLookBlocked = () => room?.setLookBlocked(wagerOpen || menuOpen || drinkMenuOpen)
 const onWagerOpen = open => { wagerOpen=open;syncLookBlocked();renderLeisure() }
 const currentKey = recovery.current()
-let savedKeys = [], playerName = currentKey?.name || 'Guest'
+let savedKeys = [], playerName = currentKey?.name || 'Guest', tableCode = currentKey?.code || ''
 if (currentKey) { token = currentKey.token; admissionNonce = currentKey.nonce; el('name').value = playerName }
 const records = [], started = new Date().toISOString()
 let truncated = false
-const seatKey = () => ({ token, nonce: admissionNonce, name: playerName })
+// The table code and save time are labels for the saved-seat picker (#24),
+// never credentials; the host authenticates only the token.
+const seatKey = () => ({ token, nonce: admissionNonce, name: playerName, ...(tableCode ? { code: tableCode } : {}), at: Date.now() })
+const normalizeCode = value => String(value || '').toUpperCase().replace(/[^A-F0-9]/g, '')
 function save(remember = false) {
   if (!recovery.save(seatKey(), remember)) el('storage-warning').textContent = 'Browser storage is unavailable. You can play, but keep this tab open: your seat may not survive closing or reloading it.'
 }
@@ -58,7 +61,9 @@ function showSaved() {
   savedKeys = recovery.saved()
   el('recovery').hidden = token || !savedKeys.length
   el('saved-seats').replaceChildren(...savedKeys.map((key, index) => {
-    const option = document.createElement('option'); option.value = String(index); option.textContent = key.name; return option
+    const option = document.createElement('option'); option.value = String(index)
+    const when = key.at ? new Date(key.at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'earlier'
+    option.textContent = `${key.name} · ${key.code ? `table ${key.code.slice(0,5)}-${key.code.slice(5)}` : 'unknown table'} · ${when}`; return option
   }))
   el('resume-seat').disabled = el('forget-seat').disabled = pending
 }
@@ -289,8 +294,38 @@ async function enter(joining) {
   // Save the retry identity before sending. A lost admission response must not
   // become a second player when this tab reloads and retries with the same name.
   save()
-  const result = await api(joining ? '/api/join' : '/api/create', { name: playerName, nonce: admissionNonce, ...(joining ? { code: el('code').value } : {}) })
+  let result
+  try {
+    result = await api(joining ? '/api/join' : '/api/create', { name: playerName, nonce: admissionNonce, ...(joining ? { code: el('code').value } : {}) })
+  } catch (error) {
+    // Only the host computer can create, and a 409 there means this host
+    // already holds a table (usually restored after a restart). The player on
+    // this computer almost certainly owns a saved seat for it, so try those
+    // before dead-ending on "table already exists" (#24).
+    if (!joining && /already exists/i.test(error?.message || '') && recovery.saved().length) {
+      if (await resumeSaved(recovery.saved())) return
+      throw new Error('This host already has a table, and none of the seats saved in this browser belong to it. Resume from the browser that created it, or restart the host with a fresh table.')
+    }
+    throw error
+  }
+  tableCode = normalizeCode(result.code || (joining ? el('code').value : ''))
   responses.reset(); token = result.token; save(el('remember').checked); await api('/api/state')
+}
+/** Try saved seats in order until the host accepts one. A 401/410 proves that
+ * seat belongs to a table this host no longer has, so it is forgotten and the
+ * next is tried. Any other failure (host down, timeout) proves nothing about
+ * the seat and stops the loop with the seat intact. */
+async function resumeSaved(candidates) {
+  for (const key of candidates) {
+    responses.reset();token=key.token;admissionNonce=key.nonce;playerName=key.name;tableCode=key.code||'';ended=false;renderFailed=false
+    try {
+      await api('/api/state'); save(true); return true
+    } catch (error) {
+      if (!ended) throw error
+      forget(key); token=''; ended=false; el('forget').hidden=true
+    }
+  }
+  token=''; admissionNonce=hex(); state=null; showSaved(); return false
 }
 el('create').onclick = () => run(() => enter(false)); el('join').onclick = () => run(() => enter(true))
 el('start').onclick = () => run(() => api('/api/start', { revision: state.view.revision }))
@@ -303,9 +338,11 @@ el('forget').onclick = () => {
 el('resume-seat').onclick = () => {
   const selected = savedKeys[Number(el('saved-seats').value)]
   if (!selected) return
+  // The chosen seat first, then the others newest first: after a restart the
+  // player should not have to guess which of several "Bigj" entries is live.
   void run(async () => {
-    responses.reset();token=selected.token;admissionNonce=selected.nonce;playerName=selected.name;ended=false;renderFailed=false
-    save(); await api('/api/state')
+    const ordered = [selected, ...recovery.saved().filter(key => key.nonce !== selected.nonce)]
+    if (!await resumeSaved(ordered)) throw new Error('None of the seats saved in this browser belong to a table on this host. They were removed; create or join a table.')
   })
 }
 el('forget-seat').onclick = () => {
