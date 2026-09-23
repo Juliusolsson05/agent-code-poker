@@ -90,3 +90,23 @@ function of the clock.
 `npm run verify`, `tsc`, before/after headless captures at yaw 0, ±90°, the
 extremes and the rig inspector. Rebuild `dist/` and `lan-dist/` (committed
 artifacts).
+
+## Decisions made during implementation
+
+- **Grip (#7):** `TableDrink` authors the near rim per drinker
+  (`near: -1` for opponents). The vessel is no longer turned at all.
+- **Anatomy (#9):** the chair seat is tall (.62), so thighs rest level and
+  flattened on the seat, heels lift and toes touch the floor. A sloped-thigh
+  pass cut into the seat, and a horizontal pass with flat feet needed .56m
+  shins. The table's 3.0×1.7m under-skirt block is exempt from the contact
+  test: no real knee clears it, the pre-existing thighs sat in it too, and the
+  tabletop hides it. Side seats' origins sit inside the rail's outer lip;
+  that seat-layout overlap predates this work and is only noted, not changed.
+- **Light budget:** rig 6 (+felt bounce) + tree 1 + sconces 2 + surround 3 =
+  12, pinned in `tests/surround.test.ts`; still one shadow-casting light.
+- **Fire:** 8cd over 7m with ±1.5 breath/flutter (was 1.7cd over 3.2m, which
+  never reached a chair).
+- **Key light:** moved from behind the player's shoulder to over the table's
+  near edge, so opponents' faces get top-down modelling.
+- **Window views:** must sit in front of the 12mm wallpaper (a regression test
+  pins this after both windows first rendered black).
