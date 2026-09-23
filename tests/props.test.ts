@@ -27,13 +27,20 @@ function dispose(root: THREE.Object3D) {
   root.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); (o.material as THREE.Material).dispose() } })
 }
 
-test('all four drinks use bounded block surfaces and rim/grip anchors on the actual vessel', () => {
+// Covers every kind in DRINKS (sixteen since #13), not a pinned count: the
+// contract is per vessel, so a new drink is checked the moment it is added.
+test('every drink uses bounded block surfaces and rim/grip anchors on the actual vessel', () => {
   for (const kind of Object.keys(DRINKS) as DrinkKind[]) {
     const drink = new TableDrink(kind)
     assert.ok(blockFaces(drink.root) < 35_000, `${kind}: prop triangle budget`)
-    const bounds = new THREE.Box3().setFromObject(drink.root)
-    assert.ok(Math.abs(bounds.max.y - drink.rim.y) < .0021)
-    assert.ok(Math.abs(bounds.max.x - drink.grip.x) < .0021)
+    // Solid bounds only. Steam is tagged vapour and deliberately rises above
+    // the rim: it is never a contact surface, so it cannot put a garnish in
+    // the lips. Every SOLID garnish must stay under the rim (mouth contact)
+    // and inside the wall radius (the fitted grip), which is what this pins.
+    const bounds = new THREE.Box3()
+    drink.root.children.forEach(child => { if (!child.userData.vapour) bounds.expandByObject(child) })
+    assert.ok(Math.abs(bounds.max.y - drink.rim.y) < .0021, `${kind}: solid geometry rises above the rim`)
+    assert.ok(Math.abs(bounds.max.x - drink.grip.x) < .0021, `${kind}: solid geometry leaves the gripped wall`)
     assert.ok(bounds.min.y >= 0)
     assert.ok(drink.root.children.length <= 5, 'do not draw one mesh per block')
     let disposed = 0, materialsDisposed = 0
