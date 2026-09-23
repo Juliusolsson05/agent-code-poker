@@ -1212,7 +1212,7 @@ var VoiceRelay = class {
     if (this.#clips.has(seq)) return "duplicate";
     if (bytes.length > MAX_VOICE_BYTES) return "too-large";
     if (!looksLikeMpegAudio(bytes)) return "not-audio";
-    this.#clips.set(seq, { bytes, at: this.now() });
+    this.#clips.set(seq, { bytes, at: sender.at });
     while (this.#clips.size > VOICE_RELAY_LIMITS.maxClips) this.#clips.delete(this.#clips.keys().next().value);
     return "stored";
   }

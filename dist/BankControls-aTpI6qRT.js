@@ -5810,6 +5810,7 @@ class AM {
     };
     return this.voices.set(e, { source: l, cleanup: u }), l.onended = u, l.start(), !0;
   }
+  /** Silence every chat voice now: mute, and the host turning voices off. */
   stopVoices() {
     for (const t of [...this.voices.values()]) t.cleanup();
   }
