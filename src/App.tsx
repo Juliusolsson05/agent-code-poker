@@ -319,8 +319,10 @@ export function App({ api }: { api: PokerApi }) {
       if (event.key.toLowerCase() === 'd' && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed && !(event.target instanceof HTMLElement && event.target.closest('input, select, textarea, [contenteditable]'))) {
         event.preventDefault(); if (!event.repeat) scene.current?.sipDrink(); return
       }
-      // E takes a cosmetic treat from the dish (#14); same guards as D.
-      if (event.key.toLowerCase() === 'e' && leisure.treat && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed && !(event.target instanceof HTMLElement && event.target.closest('input, select, textarea, [contenteditable]'))) {
+      // E takes a cosmetic treat from the dish (#14); same guards as D, plus
+      // the same canConsume gate as the on-screen button. Room also refuses,
+      // but one rule for key and button keeps the two paths from drifting.
+      if (event.key.toLowerCase() === 'e' && leisure.treat && leisure.canConsume && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed && !(event.target instanceof HTMLElement && event.target.closest('input, select, textarea, [contenteditable]'))) {
         event.preventDefault(); if (!event.repeat) scene.current?.consumeTreat(); return
       }
       if (isEditing(event.target)) return

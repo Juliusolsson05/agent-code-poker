@@ -19,8 +19,8 @@ function wt(r, a, l = 56) {
   const n = /* @__PURE__ */ new Set([...r.hole, ...r.board]), d = Array.from({ length: 52 }, (f, c) => c).filter((f) => !n.has(f));
   let k = 0;
   for (let f = 0; f < l; f++) {
-    const c = [...d], T = 5 - r.board.length + r.opponents * 2;
-    for (let v = 0; v < T; v++) {
+    const c = [...d], L = 5 - r.board.length + r.opponents * 2;
+    for (let v = 0; v < L; v++) {
       const E = v + Math.floor(a() * (c.length - v));
       [c[v], c[E]] = [c[E], c[v]];
     }
@@ -68,7 +68,7 @@ function Ke(r, a, l, n) {
   const d = je(r, n.tableTotal);
   if (!De(a) || !H(n.stack)) throw new Error("Invalid bank player.");
   if (n.phase !== "ready" && n.phase !== "complete") throw new Error("Bank transfers are only available between hands.");
-  const k = d.accounts.find((T) => T.id === a);
+  const k = d.accounts.find((L) => L.id === a);
   let f;
   if (l.type === "borrow") {
     if (n.stack !== 0) throw new Error("Only a busted player can borrow chips.");
@@ -81,7 +81,7 @@ function Ke(r, a, l, n) {
     f = -l.amount;
   } else throw new Error("Invalid bank operation.");
   const c = (k?.debt ?? 0) + f;
-  return d.accounts = d.accounts.filter((T) => T.id !== a), c > 0 && d.accounts.push({ id: a, debt: c }), d.reserve -= f, { bank: je(d, n.tableTotal + f), delta: f };
+  return d.accounts = d.accounts.filter((L) => L.id !== a), c > 0 && d.accounts.push({ id: a, debt: c }), d.reserve -= f, { bank: je(d, n.tableTotal + f), delta: f };
 }
 const ae = "solo-player";
 function St(r) {
@@ -124,7 +124,7 @@ function Tt(r, a, l, n) {
 }
 const He = "poker.table.v1", q = (r) => r.toLocaleString("en-US"), ke = (r) => r instanceof HTMLElement && !!r.closest("button, input, select, textarea, a, [contenteditable]"), Me = (r) => r instanceof HTMLElement && !!r.closest("input, select, textarea, [contenteditable]");
 function Lt({ api: r }) {
-  const [a, l] = i.useState(null), n = i.useRef(null), d = i.useRef(null), [k, f] = i.useState(!0), [c, T] = i.useState(!0), [b, w] = i.useState(!1), [j, U] = i.useState(!1), [p, v] = i.useState(""), [E, oe] = i.useState(!1), [m, le] = i.useState(!1), [_, Ee] = i.useState(!1), [X, Ye] = i.useState(1), [Z, $e] = i.useState(1), [ie, Se] = i.useState("relaxed"), [h, G] = i.useState(null), [g, M] = i.useState(!1), [V, ce] = i.useState(!1), J = i.useRef(null), [C, I] = i.useState(!1), [O, D] = i.useState(!1), [L, Ue] = i.useState({ kind: "old-fashioned", available: !1, treat: null, canConsume: !1 }), F = i.useRef(!1), [de, _e] = i.useState(0), [ee, Ge] = i.useState(!0), [ue, Ve] = i.useState("normal"), [P, he] = i.useState(0), Ce = i.useRef(null), S = i.useRef(null), x = i.useRef(null), y = i.useRef(null), z = i.useRef(!0), R = i.useRef(!1), te = i.useRef({ muted: !1, speed: "relaxed" });
+  const [a, l] = i.useState(null), n = i.useRef(null), d = i.useRef(null), [k, f] = i.useState(!0), [c, L] = i.useState(!0), [b, w] = i.useState(!1), [j, U] = i.useState(!1), [p, v] = i.useState(""), [E, oe] = i.useState(!1), [m, le] = i.useState(!1), [_, Ee] = i.useState(!1), [X, Ye] = i.useState(1), [Z, $e] = i.useState(1), [ie, Se] = i.useState("relaxed"), [h, G] = i.useState(null), [g, M] = i.useState(!1), [V, ce] = i.useState(!1), J = i.useRef(null), [C, I] = i.useState(!1), [O, D] = i.useState(!1), [N, Ue] = i.useState({ kind: "old-fashioned", available: !1, treat: null, canConsume: !1 }), F = i.useRef(!1), [de, _e] = i.useState(0), [ee, Ge] = i.useState(!0), [ue, Ve] = i.useState("normal"), [P, he] = i.useState(0), Ce = i.useRef(null), S = i.useRef(null), x = i.useRef(null), y = i.useRef(null), z = i.useRef(!0), R = i.useRef(!1), te = i.useRef({ muted: !1, speed: "relaxed" });
   i.useEffect(() => {
     z.current = !0, y.current = new st(
       ot.fireplace ? at : void 0,
@@ -260,9 +260,9 @@ function Lt({ api: r }) {
     ce(!1);
   }, [a?.revision, c]);
   const We = () => {
-    k || R.current || m || E || (y.current?.unlock(), n.current || (n.current = new Q(), d.current = Pe(n.current), n.current.startHand(), K(), y.current?.play("card")), T(!1), w(!1), S.current?.focus({ preventScroll: !0 }));
+    k || R.current || m || E || (y.current?.unlock(), n.current || (n.current = new Q(), d.current = Pe(n.current), n.current.startHand(), K(), y.current?.play("card")), L(!1), w(!1), S.current?.focus({ preventScroll: !0 }));
   }, qe = () => {
-    R.current || k || m || (n.current = new Q(), d.current = Pe(n.current), n.current.startHand(), y.current?.resetEvents(), x.current?.endNight(), M(!1), G(null), v(""), oe(!1), w(!1), T(!1), y.current?.unlock(), y.current?.play("card"), S.current?.focus({ preventScroll: !0 }), K());
+    R.current || k || m || (n.current = new Q(), d.current = Pe(n.current), n.current.startHand(), y.current?.resetEvents(), x.current?.endNight(), M(!1), G(null), v(""), oe(!1), w(!1), L(!1), y.current?.unlock(), y.current?.play("card"), S.current?.focus({ preventScroll: !0 }), K());
   }, Qe = () => {
     R.current || !n.current || a?.phase !== "complete" || (n.current.startHand(), S.current?.focus({ preventScroll: !0 }), K());
   }, Y = (t) => {
@@ -279,7 +279,7 @@ function Lt({ api: r }) {
     if (R.current || k || E) return;
     const t = !_;
     Ee(t), te.current.muted = t, y.current?.setMuted(t), t || y.current?.unlock(), re(n.current?.snapshot() ?? null);
-  }, o = a, be = n.current?.legal() ?? { fold: !1, check: !1, call: 0, raise: !1, min: 0, max: 0, shortOnly: !1 }, B = o?.players[0], ne = o?.phase === "betting" && o.actor === 0, Ne = !ne || b || !!h || j || !!p || m || O || g || c, Ze = o?.players.filter((t) => t.stack > 0).length ?? 6, N = o?.phase === "complete", pe = N && Ze === 1 && (B?.stack ?? 0) > 0, me = N && B?.stack === 0, se = n.current && d.current ? Nt(n.current, d.current) : null, Te = o?.history.find((t) => t.number === o.handNumber)?.net ?? 0, xe = o?.players.reduce((t, s) => t + s.committed, 0) ?? 0, Je = o?.awards.reduce((t, s) => t + s.amount, 0) ?? 0, et = B?.hole.length === 2 && (o?.board.length ?? 0) >= 3 ? ye([...B.hole, ...o.board]) : null, tt = N ? o?.results.find((t) => t.seat === 0 && t.won > 0)?.hand?.cards ?? [] : [], rt = o?.phase === "showdown" || N && o?.results.some((t) => t.hand), nt = N ? pe ? "The table is yours." : me ? "A good run. Another seat awaits." : o.history[0]?.summary : o?.phase === "showdown" ? "Cards on the table." : o?.phase === "transition" ? "The next chapter…" : ne ? "Your move." : o?.actor != null ? `${$[o.actor].name} is thinking…` : "Welcome to the club.";
+  }, o = a, be = n.current?.legal() ?? { fold: !1, check: !1, call: 0, raise: !1, min: 0, max: 0, shortOnly: !1 }, B = o?.players[0], ne = o?.phase === "betting" && o.actor === 0, Ne = !ne || b || !!h || j || !!p || m || O || g || c, Ze = o?.players.filter((t) => t.stack > 0).length ?? 6, T = o?.phase === "complete", pe = T && Ze === 1 && (B?.stack ?? 0) > 0, me = T && B?.stack === 0, se = n.current && d.current ? Nt(n.current, d.current) : null, Te = o?.history.find((t) => t.number === o.handNumber)?.net ?? 0, xe = o?.players.reduce((t, s) => t + s.committed, 0) ?? 0, Je = o?.awards.reduce((t, s) => t + s.amount, 0) ?? 0, et = B?.hole.length === 2 && (o?.board.length ?? 0) >= 3 ? ye([...B.hole, ...o.board]) : null, tt = T ? o?.results.find((t) => t.seat === 0 && t.won > 0)?.hand?.cards ?? [] : [], rt = o?.phase === "showdown" || T && o?.results.some((t) => t.hand), nt = T ? pe ? "The table is yours." : me ? "A good run. Another seat awaits." : o.history[0]?.summary : o?.phase === "showdown" ? "Cards on the table." : o?.phase === "transition" ? "The next chapter…" : ne ? "Your move." : o?.actor != null ? `${$[o.actor].name} is thinking…` : "Welcome to the club.";
   return /* @__PURE__ */ e.jsxs(
     "main",
     {
@@ -320,7 +320,7 @@ function Lt({ api: r }) {
               t.preventDefault(), t.repeat || x.current?.sipDrink();
               return;
             }
-            if (t.key.toLowerCase() === "e" && L.treat && !c && !b && !h && !g && !p && !m && !(t.target instanceof HTMLElement && t.target.closest("input, select, textarea, [contenteditable]"))) {
+            if (t.key.toLowerCase() === "e" && N.treat && N.canConsume && !c && !b && !h && !g && !p && !m && !(t.target instanceof HTMLElement && t.target.closest("input, select, textarea, [contenteditable]"))) {
               t.preventDefault(), t.repeat || x.current?.consumeTreat();
               return;
             }
@@ -340,7 +340,7 @@ function Lt({ api: r }) {
       },
       children: [
         /* @__PURE__ */ e.jsxs(lt, { onLobby: () => {
-          T(!0), w(!0);
+          L(!0), w(!0);
         }, children: [
           /* @__PURE__ */ e.jsx("button", { onClick: fe, disabled: k || j || E, "aria-label": _ ? "Unmute sound" : "Mute sound", title: "Sound (M)", children: _ ? "♪̸" : "♪" }),
           /* @__PURE__ */ e.jsx("button", { onClick: () => Y("rules"), "aria-label": "How to play", title: "How to play", children: "?" }),
@@ -363,23 +363,23 @@ function Lt({ api: r }) {
                 " ",
                 /* @__PURE__ */ e.jsx("kbd", { children: "Space" })
               ] }),
-              /* @__PURE__ */ e.jsxs("button", { onClick: () => x.current?.smokeCigar(), disabled: b || !!h || !!p || m || C || !L.available, title: "Smoke cigar (S)", children: [
+              /* @__PURE__ */ e.jsxs("button", { onClick: () => x.current?.smokeCigar(), disabled: b || !!h || !!p || m || C || !N.available, title: "Smoke cigar (S)", children: [
                 "Cigar ",
                 /* @__PURE__ */ e.jsx("kbd", { children: "S" })
               ] }),
               /* @__PURE__ */ e.jsxs("button", { onClick: () => {
                 x.current?.sipDrink(), S.current?.focus({ preventScroll: !0 });
-              }, disabled: b || !!h || !!p || m || C || !L.available, title: "Sip current drink (D)", children: [
-                ct[L.kind].label,
+              }, disabled: b || !!h || !!p || m || C || !N.available, title: "Sip current drink (D)", children: [
+                ct[N.kind].label,
                 " ",
                 /* @__PURE__ */ e.jsx("kbd", { children: "D" })
               ] }),
-              L.treat && /* @__PURE__ */ e.jsxs("button", { onClick: () => {
+              N.treat && /* @__PURE__ */ e.jsxs("button", { onClick: () => {
                 x.current?.consumeTreat(), S.current?.focus({ preventScroll: !0 });
-              }, disabled: b || !!h || !!p || m || C || !L.canConsume, title: "Take a cosmetic treat (E)", children: [
-                dt[L.treat.kind].label,
+              }, disabled: b || !!h || !!p || m || C || !N.canConsume, title: "Take a cosmetic treat (E)", children: [
+                dt[N.treat.kind].label,
                 " · ",
-                L.treat.remaining,
+                N.treat.remaining,
                 " ",
                 /* @__PURE__ */ e.jsx("kbd", { children: "E" })
               ] }),
@@ -390,7 +390,7 @@ function Lt({ api: r }) {
               ] }),
               /* @__PURE__ */ e.jsx("button", { onClick: () => Y("history"), children: "Hand history ↗" })
             ] }),
-            O && /* @__PURE__ */ e.jsx(ut, { kind: L.kind, treat: L.treat?.kind ?? null, available: L.available, onClose: () => {
+            O && /* @__PURE__ */ e.jsx(ut, { kind: N.kind, treat: N.treat?.kind ?? null, available: N.available, onClose: () => {
               D(!1), S.current?.focus({ preventScroll: !0 });
             }, onOrder: (t) => {
               (ht(t) ? x.current?.orderDrink(t) : x.current?.orderTreat(t)) && (D(!1), S.current?.focus({ preventScroll: !0 }));
@@ -419,7 +419,7 @@ function Lt({ api: r }) {
                 s
               );
             }),
-            /* @__PURE__ */ e.jsx("div", { className: "pot-label", ref: (t) => x.current?.bindWorldLabel(-1, t), children: /* @__PURE__ */ e.jsx(bt, { finished: N, amount: N ? Je : xe, sidePots: o.awards.length - 1 }) }),
+            /* @__PURE__ */ e.jsx("div", { className: "pot-label", ref: (t) => x.current?.bindWorldLabel(-1, t), children: /* @__PURE__ */ e.jsx(bt, { finished: T, amount: T ? Je : xe, sidePots: o.awards.length - 1 }) }),
             /* @__PURE__ */ e.jsxs("div", { className: "room-caption", children: [
               /* @__PURE__ */ e.jsx("span", { children: "THE RIVER CLUB" }),
               /* @__PURE__ */ e.jsx("i", { children: "Make yourself comfortable." })
@@ -460,7 +460,7 @@ function Lt({ api: r }) {
               "Back to the table ",
               /* @__PURE__ */ e.jsx("span", { children: "→" })
             ] }),
-            /* @__PURE__ */ e.jsx("button", { className: "text-button", onClick: () => T(!0), children: "Visit the lobby" })
+            /* @__PURE__ */ e.jsx("button", { className: "text-button", onClick: () => L(!0), children: "Visit the lobby" })
           ] }) }),
           m && /* @__PURE__ */ e.jsx("div", { className: "scrim", children: /* @__PURE__ */ e.jsxs("div", { className: "pause-card", role: "alert", children: [
             /* @__PURE__ */ e.jsx("h2", { children: "The room couldn’t open." }),
@@ -479,11 +479,11 @@ function Lt({ api: r }) {
               position: `${o.dealer === 0 ? " · DEALER" : ""}${o.smallBlindSeat === 0 ? " · SB" : ""}${o.bigBlindSeat === 0 ? " · BB" : ""}`,
               handLabel: B?.folded ? "Folded" : et?.name ?? "Practice chips",
               status: nt,
-              withActions: ne || N,
-              detail: j ? "Saving…" : b ? "Paused" : N ? `Net ${Te >= 0 ? "+" : ""}${q(Te)}` : o.log.at(-1)
+              withActions: ne || T,
+              detail: j ? "Saving…" : b ? "Paused" : T ? `Net ${Te >= 0 ? "+" : ""}${q(Te)}` : o.log.at(-1)
             }
           ),
-          (ne || N) && !b && !h && !p && /* @__PURE__ */ e.jsx("section", { className: "quick-actions", "aria-label": "Poker actions", children: N ? /* @__PURE__ */ e.jsxs("button", { className: "primary", disabled: j || m, onClick: me ? () => Y("bank") : pe ? () => M(!0) : Qe, children: [
+          (ne || T) && !b && !h && !p && /* @__PURE__ */ e.jsx("section", { className: "quick-actions", "aria-label": "Poker actions", children: T ? /* @__PURE__ */ e.jsxs("button", { className: "primary", disabled: j || m, onClick: me ? () => Y("bank") : pe ? () => M(!0) : Qe, children: [
             me ? "Rebuy · practice bank" : pe ? "New table" : "Deal next hand",
             " ",
             /* @__PURE__ */ e.jsx("span", { children: "→" })
@@ -520,7 +520,7 @@ function Lt({ api: r }) {
                 "Hand ",
                 o.handNumber,
                 " · ",
-                N ? "Complete" : Re[o.street]
+                T ? "Complete" : Re[o.street]
               ] }),
               o.log.map((t, s) => /* @__PURE__ */ e.jsx("p", { children: t }, s)),
               o.awards.map((t, s) => /* @__PURE__ */ e.jsxs("p", { className: "pot-history", children: [
