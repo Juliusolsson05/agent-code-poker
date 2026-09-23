@@ -82,3 +82,12 @@ test('a malformed label is dropped without discarding a good credential (#24)', 
   local.setItem('poker-lan-saved-seat-v1:' + key(4).nonce, JSON.stringify({ ...key(4), code: '<script>', at: -3 }))
   assert.deepEqual(store.saved(), [key(4)])
 })
+
+test('save-time labels: fractional times floor, zero and non-numbers are dropped (#24)', () => {
+  const local = new MemoryStorage(), store = vault(new MemoryStorage(), local)
+  local.setItem('poker-lan-saved-seat-v1:' + key(5).nonce, JSON.stringify({ ...key(5), at: 1234.9 }))
+  local.setItem('poker-lan-saved-seat-v1:' + key(6).nonce, JSON.stringify({ ...key(6), at: 0 }))
+  local.setItem('poker-lan-saved-seat-v1:' + key(7).nonce, JSON.stringify({ ...key(7), at: '99' }))
+  const byName = Object.fromEntries(store.saved().map(k => [k.name, k.at]))
+  assert.deepEqual(byName, { 'Guest 5': 1234, 'Guest 6': undefined, 'Guest 7': undefined })
+})

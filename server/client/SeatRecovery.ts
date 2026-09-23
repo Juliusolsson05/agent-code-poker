@@ -27,7 +27,9 @@ function parse(raw: string | null, legacy = false): SeatKey | null {
 /** Browser credential persistence, not admission or seat authority. A saved
  * name is only a label; the host authenticates its random token. current() may
  * resume this tab, but saved() NEVER changes it. The caller must offer an
- * explicit choice before recovering a closed tab's credential.
+ * explicit choice before recovering a closed tab's credential: a picker
+ * selection, or "Create" under the same name the seat was saved with
+ * (resumeSeats.seatsForCreate, #24).
  *
  * Each seat gets its own localStorage entry. A shared array with read/modify/
  * write would let two admitted tabs erase each other's recovery keys. Neither

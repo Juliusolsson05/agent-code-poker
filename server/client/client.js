@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { PokerRoom } from '../../src/scene/Room'
 import { BettingControls } from '../../src/components/BettingControls'
 import { SeatRecovery } from './SeatRecovery'
+import { resumeSeats, seatsForCreate } from './resumeSeats'
 import { ResponseOrder, ObsoleteResponse } from './ResponseOrder'
 import { LeisureControls, leisureShortcut } from './LeisureControls'
 import { isDrinkKind } from '../../src/scene/props/specs'
@@ -112,7 +113,9 @@ async function api(path, body) {
     throw new ObsoleteResponse()
   }
   if (token && [401,410].includes(response.status)) { ended = true; responses.reset(); el('forget').hidden = false }
-  if (!response.ok) throw new Error(data.error || data.receipt?.code || 'Request rejected.')
+  // Carry the HTTP status: callers branch on it (409 on create, #24) instead
+  // of matching message text that a copy edit could silently break.
+  if (!response.ok) throw Object.assign(new Error(data.error || data.receipt?.code || 'Request rejected.'), { status: response.status })
   return data
 }
 function leisureContext() {
@@ -302,9 +305,13 @@ async function enter(joining) {
     // already holds a table (usually restored after a restart). The player on
     // this computer almost certainly owns a saved seat for it, so try those
     // before dead-ending on "table already exists" (#24).
-    if (!joining && /already exists/i.test(error?.message || '') && recovery.saved().length) {
-      if (await resumeSaved(recovery.saved())) return
-      throw new Error('This host already has a table, and none of the seats saved in this browser belong to it. Resume from the browser that created it, or restart the host with a fresh table.')
+    if (!joining && error?.status === 409) {
+      const mine = seatsForCreate(recovery.saved(), playerName)
+      if (mine.length && await resumeSaved(mine)) return
+      showSaved()
+      throw new Error(recovery.saved().length
+        ? 'This host already has a table. No saved seat under this name belongs to it; choose one under "Return to a saved seat", or restart the host with a fresh table.'
+        : 'This host already has a table, and this browser has no saved seat for it. Resume from the browser that created it, or restart the host with a fresh table.')
     }
     throw error
   }
@@ -316,16 +323,21 @@ async function enter(joining) {
  * next is tried. Any other failure (host down, timeout) proves nothing about
  * the seat and stops the loop with the seat intact. */
 async function resumeSaved(candidates) {
-  for (const key of candidates) {
-    responses.reset();token=key.token;admissionNonce=key.nonce;playerName=key.name;tableCode=key.code||'';ended=false;renderFailed=false
-    try {
-      await api('/api/state'); save(true); return true
-    } catch (error) {
-      if (!ended) throw error
-      forget(key); token=''; ended=false; el('forget').hidden=true
-    }
+  const disconnect = () => { responses.reset(); token=''; admissionNonce=hex(); playerName=el('name').value || 'Guest'; tableCode=''; state=null; ended=false; el('forget').hidden=true }
+  let found
+  try {
+    found = await resumeSeats(candidates, async key => {
+      responses.reset();token=key.token;admissionNonce=key.nonce;playerName=key.name;tableCode=key.code||'';ended=false;renderFailed=false
+      try { await api('/api/state'); return 'accepted' }
+      catch (error) { if (ended) return 'rejected'; throw error }
+    }, key => forget(key))
+  } catch (error) {
+    // Never keep a borrowed seat after a transient failure: polling would
+    // otherwise seat this tab as that player once the network heals.
+    disconnect(); showSaved(); throw error
   }
-  token=''; admissionNonce=hex(); state=null; showSaved(); return false
+  if (found) { save(true); return true }
+  disconnect(); showSaved(); return false
 }
 el('create').onclick = () => run(() => enter(false)); el('join').onclick = () => run(() => enter(true))
 el('start').onclick = () => run(() => api('/api/start', { revision: state.view.revision }))
