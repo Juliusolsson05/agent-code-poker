@@ -1,6 +1,6 @@
-import { C as $, e as ye, P as Q, r as i, a as st, f as at, T as ot, F as Be, j as e, b as lt, c as it, D as ct, d as dt, g as ut, i as ht, S as ft, h as bt, k as pt, l as Re, B as mt, m as xt, n as kt, o as yt } from "./BankControls-CftdAJXh.js";
+import { C as $, e as ye, P as Q, r as i, a as st, f as at, T as ot, F as Be, j as e, b as lt, c as it, D as ct, d as dt, g as ut, i as ht, S as ft, h as bt, k as pt, l as Re, B as mt, m as xt, n as kt, o as yt } from "./BankControls-V-2DpMuh.js";
 import { d as gt } from "./runtime-XLX8az2X.js";
-import { s as jt } from "./styles-_KrikfgR.js";
+import { s as jt } from "./styles-DJYLcAU6.js";
 function vt(r, a) {
   const l = r.actor;
   return {
@@ -262,7 +262,7 @@ function Lt({ api: r }) {
   const We = () => {
     k || R.current || m || E || (y.current?.unlock(), n.current || (n.current = new Q(), d.current = Pe(n.current), n.current.startHand(), K(), y.current?.play("card")), T(!1), w(!1), S.current?.focus({ preventScroll: !0 }));
   }, qe = () => {
-    R.current || k || m || (n.current = new Q(), d.current = Pe(n.current), n.current.startHand(), y.current?.resetEvents(), M(!1), G(null), v(""), oe(!1), w(!1), T(!1), y.current?.unlock(), y.current?.play("card"), S.current?.focus({ preventScroll: !0 }), K());
+    R.current || k || m || (n.current = new Q(), d.current = Pe(n.current), n.current.startHand(), y.current?.resetEvents(), x.current?.endNight(), M(!1), G(null), v(""), oe(!1), w(!1), T(!1), y.current?.unlock(), y.current?.play("card"), S.current?.focus({ preventScroll: !0 }), K());
   }, Qe = () => {
     R.current || !n.current || a?.phase !== "complete" || (n.current.startHand(), S.current?.focus({ preventScroll: !0 }), K());
   }, Y = (t) => {

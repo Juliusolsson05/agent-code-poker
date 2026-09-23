@@ -1,5 +1,5 @@
 import { d as E } from "./runtime-XLX8az2X.js";
-import { s as R } from "./styles-_KrikfgR.js";
+import { s as R } from "./styles-DJYLcAU6.js";
 import { S as x, p as w, n as C } from "./inAppTransport-CvkJA9Og.js";
 const y = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent Code Poker · LAN</title><script src="/client.js" type="module"><\/script></head>
@@ -83,7 +83,7 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
       v = !0, n = !0;
       try {
         l(k(t, o));
-        const { setApiTransport: i } = await import("./client-cTnF4tEX.js");
+        const { setApiTransport: i } = await import("./client-BAc_T9XW.js");
         i(w()), e.hidden = !0, n = !1;
       } catch (i) {
         n = !1, v = !1, u(i instanceof Error ? i.message : String(i));
@@ -116,7 +116,7 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
           await d.start(x);
           const t = await d.expose(x, !0);
           if (!t.lan || !t.port) throw new Error("LAN exposure was not granted.");
-          const { setApiTransport: o } = await import("./client-cTnF4tEX.js");
+          const { setApiTransport: o } = await import("./client-BAc_T9XW.js");
           o(w()), e.hidden = !0, l(`Friends join at http://<this-computer’s-Wi-Fi-IP>:${t.port} — then use Create table below.`);
         } catch (t) {
           n = !1, u(t instanceof Error ? t.message : String(t));
@@ -136,7 +136,7 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
         return;
       }
       S(async () => {
-        const { setApiTransport: h } = await import("./client-cTnF4tEX.js");
+        const { setApiTransport: h } = await import("./client-BAc_T9XW.js");
         h(C((T) => c.fetch(T), i));
       });
     }), () => {
