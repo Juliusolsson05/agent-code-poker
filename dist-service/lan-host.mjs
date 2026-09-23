@@ -1025,10 +1025,11 @@ var privateV4 = (s) => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(s);
 var lanAddresses = () => Object.values(networkInterfaces()).flatMap((list) => (list ?? []).filter((i) => i.family === "IPv4" && !i.internal && privateV4(i.address)).map((i) => i.address));
 var TRANSPORT_HEADER = "x-agent-code-transport";
 var literalHost = /^(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5})$/;
-function resolveCaller(request) {
+function resolveCaller(request, agentCodeHost, ownHost) {
   const socketPeer = request.socket.remoteAddress?.replace(/^::ffff:/, "");
-  const marker = isLoopback(socketPeer) ? request.headers[TRANSPORT_HEADER] : void 0;
+  const marker = agentCodeHost && isLoopback(socketPeer) ? request.headers[TRANSPORT_HEADER] : void 0;
   if (marker === "lan") {
+    if (request.headers.host !== ownHost) fail(403, "Unrecognized host.");
     const peer = request.headers["x-forwarded-for"];
     const host2 = request.headers["x-forwarded-host"];
     const literal = typeof host2 === "string" ? literalHost.exec(host2) : null;
@@ -1210,7 +1211,7 @@ async function startLanHost(options = {}) {
     response.setHeader("Referrer-Policy", "no-referrer");
     response.setHeader("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; media-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     void (async () => {
-      const caller = resolveCaller(request);
+      const caller = resolveCaller(request, options.agentCodeHost === true, `127.0.0.1:${port}`);
       const peer = caller.peer;
       if (!isLoopback(peer) && (!peer || !privateV4(peer))) fail(403, "Private-network peers only.");
       const allowed = new Set(addresses.map((address) => `${address}:${port}`));
@@ -1368,7 +1369,7 @@ function checkpointDirectory() {
 var host = null;
 var lanHostService = defineService({
   async start(context) {
-    host = await startLanHost({ port: 0, lan: false, checkpointDirectory: checkpointDirectory() });
+    host = await startLanHost({ port: 0, lan: false, agentCodeHost: true, checkpointDirectory: checkpointDirectory() });
     context.onRequest("status", () => ({ origin: host.origin, lanAddresses: lanAddresses() }));
     context.ready([{ name: "http", port: Number(new URL(host.origin).port) }]);
   },

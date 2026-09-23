@@ -39,7 +39,9 @@ let host: Host | null = null
 
 export const lanHostService = defineService({
   async start(context) {
-    host = await startLanHost({ port: 0, lan: false, checkpointDirectory: checkpointDirectory() })
+    // agentCodeHost: every request comes through Agent Code's proxy or LAN
+    // listener, whose markers tell the host player from a guest (http.ts).
+    host = await startLanHost({ port: 0, lan: false, agentCodeHost: true, checkpointDirectory: checkpointDirectory() })
     // `lanAddresses` feeds the share line. The sandboxed view has no API to
     // enumerate interfaces; this process does. It is read per request, not
     // captured at start, because the laptop may change Wi-Fi mid-session. The

@@ -7,7 +7,10 @@ import { CheckpointStore } from './persistence/CheckpointStore'
 
 type Credential = { id: string; token: string; nonce: string; name: string; seen: number; connected: boolean }
 type Room = { table: HostTable; code: string; host: Credential; credentials: Map<string, Credential>; paused: boolean; nextTick: number; observation: number }
-type Options = { port?: number; lan?: boolean; now?: () => number; automaticTicks?: boolean; checkpointDirectory?: string }
+/** `agentCodeHost`: this process is the extension's service behind Agent Code's
+ *  proxy and listener, so its transport markers are read (see resolveCaller).
+ *  Only server/service.ts sets it; the standalone CLI never does. */
+type Options = { port?: number; lan?: boolean; now?: () => number; automaticTicks?: boolean; checkpointDirectory?: string; agentCodeHost?: boolean }
 class HttpFailure extends Error { constructor(readonly status: number, message: string) { super(message) } }
 const fail = (status: number, message: string): never => { throw new HttpFailure(status, message) }
 const isLoopback = (address?: string) => address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1'
@@ -36,41 +39,55 @@ type Caller = { peer: string | undefined; host: string | undefined; via: 'direct
  * Resolve WHO is asking before any rule runs. Every security rule below (peer,
  * Host, same-origin, loopback-only create) reads this, never the raw socket.
  *
- * Standalone website: the socket peer, the Host header, and the browser's
- * Origin. That is unchanged.
+ * Standalone website (the CLI, `agentCodeHost` off): the socket peer, the Host
+ * header and the browser's Origin. Markers are never read, so those rules are
+ * byte-for-byte what they were.
  *
- * Inside Agent Code the server binds loopback only, and every request arrives
- * from the host app's main process on 127.0.0.1. Taken at face value that would
- * make every LAN guest "local", free to take the host seat via /api/create. And
- * the host player's own frame, whose Origin never reaches us, could not
- * create at all. The host therefore marks each request (agent-code#1147):
+ * Inside Agent Code (`agentCodeHost`, set only by server/service.ts) the server
+ * binds loopback only, and every request arrives from the host app's main
+ * process on 127.0.0.1. Taken at face value that would make every LAN guest
+ * "local", free to take the host seat via /api/create. And the host player's
+ * own frame, whose Origin never reaches us, could not create at all. The host
+ * therefore marks each request (agent-code#1147):
  *
  * - `lan`: the forwarded peer and Host become the caller. This DOWNGRADES trust
  *   from loopback to "a LAN guest", and it wins over any other claim. The
- *   listener sets these values from its socket and request line. It never
- *   copies a peer's own x-forwarded-* or marker, so a guest can neither forge
- *   them nor strip them.
+ *   listener sets these values from its socket and request line and never
+ *   copies a peer's own, so a guest can neither forge nor strip them. It is
+ *   trusted ONLY with the raw Host the listener always dials with,
+ *   `127.0.0.1:<our port>`. A DNS-rebound page (Host: evil.example:<port>) is
+ *   same-origin with itself, so it could attach the marker without any
+ *   preflight; without this rule its `lan` claim would skip the exact Host
+ *   allow-list below.
  * - `service`: the host player's own frame. The host already checked the grant
  *   and the running service, and the frame's CSP is `connect-src 'self'`. The
- *   marker then stands in for the same-origin proof. A browser page can't
- *   forge it: a custom header needs a CORS preflight, and this server never
+ *   marker then stands in for the same-origin proof. A cross-origin page can't
+ *   send it: a custom header needs a CORS preflight, and this server never
  *   answers one (OPTIONS is a 404 without CORS headers). NEVER add CORS here;
- *   doing so would make this marker forgeable by any website.
+ *   doing so would make this marker forgeable by any website. A rebound page
+ *   can send it, but its Host then fails the exact allow-list.
  *
- * Markers only count on a loopback socket. From a real LAN socket (the
- * standalone --lan server), anyone could type them, so they are ignored and the
- * website rules apply unchanged.
+ * Markers only count on a loopback socket. Agent Code's net.fetch refuses both
+ * the marker headers and loopback service ports, so no other extension can
+ * send them. Any LOCAL PROGRAM still can, including every extension's service
+ * child, which is ordinary Node. Loopback callers are therefore local-user
+ * trust, and that is all `service` or a loopback forwarded peer grants: a
+ * same-machine client dialing the listener on 127.x arrives as a loopback
+ * `lan` peer and may create, exactly like the host computer's own browser.
  */
-function resolveCaller(request: IncomingMessage): Caller {
+function resolveCaller(request: IncomingMessage, agentCodeHost: boolean, ownHost: string): Caller {
   const socketPeer = request.socket.remoteAddress?.replace(/^::ffff:/, '')
-  const marker = isLoopback(socketPeer) ? request.headers[TRANSPORT_HEADER] : undefined
+  const marker = agentCodeHost && isLoopback(socketPeer) ? request.headers[TRANSPORT_HEADER] : undefined
   if (marker === 'lan') {
+    if (request.headers.host !== ownHost) fail(403, 'Unrecognized host.')
     const peer = request.headers['x-forwarded-for']
     const host = request.headers['x-forwarded-host']
     // We don't know the listener's OS-chosen port or which interface the guest
     // dialed, so an exact Host allow-list (the standalone rule) is impossible.
-    // A private or loopback IPv4 LITERAL is the DNS-rebinding defence instead:
-    // rebinding needs a hostname, and a hostname can never match this.
+    // A private or loopback IPv4 LITERAL is the DNS-rebinding defence for the
+    // GUEST's browser instead: rebinding needs a hostname, and a hostname can
+    // never match this. IPv6 guests are refused here and by the peer rule, as
+    // on the standalone server: IPv4 only (the share line shows IPv4 too).
     const literal = typeof host === 'string' ? literalHost.exec(host) : null
     if (!literal || !(privateV4(literal[1]) || literal[1] === '127.0.0.1')) fail(403, 'Unrecognized host.')
     return { peer: typeof peer === 'string' ? peer.replace(/^::ffff:/, '') : undefined, host: host as string, via: 'lan' }
@@ -231,7 +248,7 @@ export async function startLanHost(options: Options = {}) {
     // broader connect-src exception; all poker traffic stays same-origin.
     response.setHeader('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; media-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
     void (async () => {
-      const caller = resolveCaller(request)
+      const caller = resolveCaller(request, options.agentCodeHost === true, `127.0.0.1:${port}`)
       const peer = caller.peer
       if (!isLoopback(peer) && (!peer || !privateV4(peer))) fail(403, 'Private-network peers only.')
       // A LAN caller's forwarded Host was already held to the literal rule in

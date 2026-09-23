@@ -149,7 +149,23 @@ and forwards the guest's real address and Host. `server/http.ts`
 rules the website uses, so a LAN guest can never take the loopback-only host
 seat. The markers only count on a loopback socket, and the server must never
 answer CORS preflights; `tests/lan-proxy-contract.test.ts` pins both.
+The markers are read only when the server runs as the extension's service
+(`agentCodeHost`); the standalone CLI never reads them. A `lan` marker is
+trusted only with the Host the listener always sends, `127.0.0.1:<port>`.
+
+Loopback callers get local-user trust and no more. Any local program can speak
+to the loopback port, and a client on this computer that dials the listener on
+127.x may create the table, like the host computer's own browser.
+
+LAN play is IPv4 only. Agent Code's listener admits private IPv6 peers, but
+this server refuses them, just as the standalone server does, and the share
+line lists IPv4 addresses. The limit lives here rather than in the listener
+because the listener is shared by every extension service.
+
 Two-device acceptance in the installed app is still open.
+`testing/manual/agent-code-lan-e2e.mts` runs Agent Code's real proxy, listener
+and `net.fetch` code in front of this server (`AGENT_CODE_DIR=…`, see the file
+header).
 
 The CLI stores its private checkpoint in ignored `.poker-lan/` on local disk.
 It contains private cards and credentials: never share, serve, export or commit

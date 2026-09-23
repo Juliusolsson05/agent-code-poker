@@ -21,10 +21,16 @@ import { lanAddresses, startLanHost } from '../server/http'
 //    and x-forwarded-host (the Host the peer used).
 //    Dials: 127.0.0.1:<port>.
 //
-// The helpers below send EXACTLY those header sets over real sockets, so they
-// hit the real startLanHost the same way the installed extension will. If
-// either host file changes its forwarded set, these tests must change with it.
-// That is the cross-repo contract (agent-code#1147, poker#17).
+// The helpers below HAND-BUILD those header sets and send them over real
+// sockets to the real startLanHost. They do not run the host code: the host
+// side of the contract is pinned by agent-code's serviceTransport.test.ts and
+// serviceLanListener.test.ts. If either host file changes its forwarded set,
+// both sides must change together (agent-code#1147, poker#17). For a manual
+// run of the real host code in front of this server, see
+// testing/manual/agent-code-lan-e2e.mts.
+//
+// Raw node:http sends Host = 127.0.0.1:<port>, which is exactly the Host the
+// Agent Code proxy and listener dial with.
 
 const TRANSPORT = 'x-agent-code-transport'
 const LISTENER = '192.168.1.42:61234' // the Host a guest dialed on the host's LAN listener
@@ -72,8 +78,8 @@ const viaListener = (origin: string, path: string, body?: unknown, token?: strin
 const nonce = () => randomBytes(32).toString('hex')
 
 async function table(t: { after(fn: () => unknown): void }, clock = { now: 1000 }) {
-  // lan:false and port 0: exactly how server/service.ts starts it in the app.
-  const host = await startLanHost({ port: 0, lan: false, automaticTicks: false, now: () => clock.now })
+  // lan:false, port 0, agentCodeHost: exactly how server/service.ts starts it.
+  const host = await startLanHost({ port: 0, lan: false, agentCodeHost: true, automaticTicks: false, now: () => clock.now })
   t.after(() => host.close())
   return host
 }
@@ -199,6 +205,53 @@ test('the server never grants a CORS preflight, which the service marker relies 
   assert.notEqual(preflight.status, 204)
   assert.equal(preflight.headers['access-control-allow-origin'], undefined)
   assert.equal(preflight.headers['access-control-allow-headers'], undefined)
+})
+
+// DNS rebinding: evil.example resolves to 127.0.0.1, so its page is
+// same-origin with ITSELF and may attach any header without a preflight. The
+// listener always dials with Host 127.0.0.1:<port>; any other Host with a
+// marker did not come from Agent Code.
+test('a DNS-rebound page cannot use a transport marker to skip the Host allow-list', async t => {
+  const host = await table(t)
+  const port = new URL(host.origin).port
+  // A same-origin GET carries no Origin header, and a page cannot set one, so
+  // the Host rule is the ONLY thing standing between a rebound GET and data.
+  const rebound = { host: `evil.example:${port}` }
+  for (const path of ['/', '/client.js', '/api/state']) {
+    const lan = await raw(host.origin, 'GET', path, { ...rebound, [TRANSPORT]: 'lan', 'x-forwarded-for': '192.168.1.77', 'x-forwarded-host': LISTENER })
+    assert.equal(lan.status, 403, `lan marker on ${path}`)
+    assert.equal((await raw(host.origin, 'GET', path, { ...rebound, [TRANSPORT]: 'service' })).status, 403, `service marker on ${path}`)
+  }
+  const create = await raw(host.origin, 'POST', '/api/create', { ...rebound, origin: `http://evil.example:${port}`, [TRANSPORT]: 'service' }, { name: 'Mallory', nonce: nonce() })
+  assert.equal(create.status, 403)
+})
+
+// A client on the host computer that dials the LAN listener on 127.x arrives
+// as a loopback forwarded peer. That is local access, the same as the host
+// computer's own browser on the standalone server, so it may create.
+test('a loopback forwarded peer is local access and may create', async t => {
+  const host = await table(t)
+  const local = await viaListener(host.origin, '/api/create', { name: 'Host', nonce: nonce() }, undefined, {
+    'x-forwarded-for': '127.0.0.1', 'x-forwarded-host': '127.0.0.1:61234', origin: 'http://127.0.0.1:61234',
+  })
+  assert.equal(local.status, 201)
+})
+
+// Standalone rules are unchanged: the CLI never sets agentCodeHost, so no
+// marker is read, not even from a loopback socket.
+test('the standalone server never reads markers, even on loopback', async t => {
+  const host = await startLanHost({ port: 0, lan: false, automaticTicks: false })
+  t.after(() => host.close())
+  // `service` does not replace the Origin proof.
+  const service = await raw(host.origin, 'POST', '/api/create', { [TRANSPORT]: 'service' }, { name: 'Host', nonce: nonce() })
+  assert.equal(service.status, 403)
+  assert.match(service.body.error, /Same-origin/)
+  // A `lan` claim with a forged forwarded Host is just an ordinary same-origin
+  // loopback request judged by the website rules.
+  const lan = await raw(host.origin, 'POST', '/api/create', {
+    [TRANSPORT]: 'lan', 'x-forwarded-for': '192.168.1.77', 'x-forwarded-host': LISTENER, origin: host.origin,
+  }, { name: 'Host', nonce: nonce() })
+  assert.equal(lan.status, 201)
 })
 
 // Markers are host facts only on a loopback socket. On the standalone --lan
