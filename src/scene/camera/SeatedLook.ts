@@ -17,7 +17,7 @@ export function yawLimitForView(verticalFovDegrees: number, aspect: number): num
 }
 type Context = { playing: boolean; enabled: boolean; paused: boolean; blocked: boolean; inspection: boolean; busy: boolean; reduced: boolean }
 type View = { yaw: number; pitch: number }
-type Contact = 'smoke' | 'drink'
+type Contact = 'smoke' | 'drink' | 'consume'
 
 /** Camera intent has one owner. This core knows neither poker state nor prop
  * transforms: turning the view must never stretch an arm or change the ledger.

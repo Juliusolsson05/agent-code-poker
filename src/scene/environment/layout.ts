@@ -18,6 +18,10 @@ export const PLAYER_LAYOUT = {
   drink: [.29, .7955, .84] as [number, number, number],
   cigar: [.105, TABLE.feltY + ASHTRAY.cigarRestY, .83] as [number, number, number],
   rest: [.205, 1.13, 1.07] as [number, number, number],
+  // Cosmetic treat dish (#14): the one free patch of near felt between the
+  // ashtray (x .105, r .06) and the coaster (x .29, r .051), at the same depth
+  // so the seated 70° lens still sees it and the 57cm arm still reaches it.
+  treat: [.200, TABLE.feltY, .80] as [number, number, number],
 } as const
 
 export const SEATS: [number, number][] = [[0, 1.7], [-1.82, -.39], [-1.10, -1.03], [0, -1.25], [1.10, -1.03], [1.82, -.39]]
