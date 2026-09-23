@@ -115,12 +115,19 @@ export function App({ api }: { api: PokerApi }) {
   useEffect(() => { scene.current?.setPlaying(!lobby) }, [lobby, sceneReady])
   useEffect(() => {
     // The ambience follows the same explicit table pause gates as gameplay.
-    // Hide/blur stops the media immediately, not after React commits; returning
-    // focus does not resume betting or audio without the existing resume flow.
+    // Hide/blur stops the fire immediately, not after React commits.
+    // Focus RE-EVALUATES the gates (#12). It never forces audio on. Today a blur
+    // on a live table also sets `paused` (the suspend effect below), so focus
+    // alone still leaves the fire off until the player uses the existing resume
+    // flow. Without this listener, though, a blur that did NOT pause the table
+    // left the fire off with every gate open, because only a React state change
+    // re-ran sync(). That made the pause coupling a hidden requirement of the
+    // audio. The gates below are now the single source of truth. The LAN client
+    // (server/client/client.js) already pairs blur with focus the same way.
     const sync = () => audio.current?.setAmbienceActive(!document.hidden && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed)
     const blur = () => audio.current?.setAmbienceActive(false)
-    document.addEventListener('visibilitychange', sync); window.addEventListener('blur', blur); sync()
-    return () => { document.removeEventListener('visibilitychange', sync); window.removeEventListener('blur', blur) }
+    document.addEventListener('visibilitychange', sync); window.addEventListener('blur', blur); window.addEventListener('focus', sync); sync()
+    return () => { document.removeEventListener('visibilitychange', sync); window.removeEventListener('blur', blur); window.removeEventListener('focus', sync) }
   }, [api, lobby, paused, panel, confirmNew, error, sceneFailed])
   useEffect(()=>{audio.current?.setLevels(ambienceLevel,effectsLevel)},[ambienceLevel,effectsLevel])
   useEffect(()=>{
