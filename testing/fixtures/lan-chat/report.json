@@ -85,7 +85,7 @@
      "Content-Type": "application/json",
      "sec-ch-ua-mobile": "?0"
     },
-    "postData": "{\"name\":\"Ari\",\"nonce\":\"e2bb6fc889ae46f70a7b96575956fd4bf259840c98d6765a36968b24fea6e1a4\",\"code\":\"E92F1-A0501\"}"
+    "postData": "{\"name\":\"Ari\",\"nonce\":\"8fe41df94fb6f7ff1ef395716c7bd5f7695b202298b3b524b3d2984bcb98474e\",\"code\":\"2FA74-3E71F\"}"
    },
    {
     "url": "/api/leisure",
@@ -130,7 +130,7 @@
      "Content-Type": "application/json",
      "sec-ch-ua-mobile": "?0"
     },
-    "postData": "{\"seq\":1790147582959,\"mime\":\"audio/mpeg\",\"data\":\"//NAxAAL0CpUFnvYAGbl1FWMR8iwjhwBIWVZmHElw+UBB0uf9kEAz6jk51k5T/V/9f/yf/T…"
+    "postData": "{\"seq\":281083830,\"mime\":\"audio/mpeg\",\"data\":\"//NAxAAL0CpUFnvYAGbl1FWMR8iwjhwBIWVZmHElw+UBB0uf9kEAz6jk51k5T/V/9f/yf/TyjqW…"
    },
    {
     "url": "/api/chat",
@@ -199,7 +199,7 @@
      "Content-Type": "application/json",
      "sec-ch-ua-mobile": "?0"
     },
-    "postData": "{\"name\":\"Bea\",\"nonce\":\"e15b9a02b67ae3d7ea02219fc74fc0d06a792c7a57950fccf2bb97604f1f961a\"}"
+    "postData": "{\"name\":\"Bea\",\"nonce\":\"e80db88a3f0955dca8f3851573985dc8d4227d898b5f60198ac448a4eaa78771\"}"
    },
    {
     "url": "/api/leisure",
@@ -247,7 +247,7 @@
     "postData": "{\"revision\":1}"
    },
    {
-    "url": "/api/voice/1790147582959",
+    "url": "/api/voice/281083830",
     "method": "GET",
     "carriedKey": false,
     "headers": {
@@ -353,7 +353,7 @@
    "name": "no request to the LAN host carried either key",
    "ok": true,
    "detail": {
-    "hostRequests": 105
+    "hostRequests": 91
    }
   },
   {
