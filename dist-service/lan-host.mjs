@@ -671,11 +671,18 @@ function planBankTransfer(value, id, operation, context) {
 // src/session/HostTable.ts
 var LEISURE_LIMITS = { jitterMs: 250, orderMs: 1e3, maxAgeMs: 6e4 };
 var gestureSpacingMs = (action) => (action === "sip" ? GESTURE_SECONDS.drink : GESTURE_SECONDS.smoke) * 1e3 - LEISURE_LIMITS.jitterMs;
+var CHAT_LIMITS = { maxChars: 200, burst: 4, refillMs: 3e3, keep: 30, project: 12, maxAgeMs: 6e5 };
 function displayName(value) {
   if (typeof value !== "string" || value.length > 96 || /[\p{Cc}\p{Cf}]/u.test(value)) throw new Error("Invalid display name.");
   const name = value.normalize("NFC").trim().replace(/\s+/gu, " ");
   if (!name || [...name].length > 24) throw new Error("Invalid display name.");
   return name;
+}
+function chatText(value) {
+  if (typeof value !== "string" || value.length > CHAT_LIMITS.maxChars * 4) return null;
+  const text = value.normalize("NFC").replace(/[ \u00a0\u2000-\u200a\u202f\u205f\u3000]+/gu, " ").trim();
+  if (!text || /[\p{Cc}\p{Cf}]/u.test(text) || [...text].length > CHAT_LIMITS.maxChars) return null;
+  return text;
 }
 function principal2(value) {
   if (typeof value !== "string" || !/^[a-zA-Z0-9_-]{1,128}$/.test(value)) throw new Error("Invalid principal.");
@@ -724,6 +731,13 @@ var HostTable = class _HostTable {
   // animated) a 1-in-2^32 event. The earlier clock seed did the same job but
   // published the host's wall clock to every player.
   #leisureSeq = globalThis.crypto.getRandomValues(new Uint32Array(1))[0];
+  // Volatile for the same reasons as #leisure. A host restart forgets the
+  // conversation; nobody's chips or seat depend on it. Random start for the
+  // same reason as #leisureSeq: projected seqs must not publish the host clock,
+  // and a restart must not reuse a seq a browser already spoke.
+  #chat = [];
+  #chatSeq = globalThis.crypto.getRandomValues(new Uint32Array(1))[0];
+  #chatBuckets = /* @__PURE__ */ new Map();
   constructor(host2, options = {}) {
     principal2(host2.id);
     const name = displayName(host2.name);
@@ -846,6 +860,7 @@ var HostTable = class _HostTable {
       if (m.leaving) {
         this.#members.delete(key);
         this.#leisure.delete(key);
+        this.#chatBuckets.delete(key);
       } else m.active = true;
     }
     this.#revision++;
@@ -919,6 +934,38 @@ var HostTable = class _HostTable {
     });
     return reply("accepted");
   }
+  /** Principal-bound table talk. The seat and name come from the
+   * authenticated member at send time (a later leave does not rewrite who
+   * said it). Allowed while paused and while queued for the next hand: a
+   * pause is exactly when people talk, and a waiting player is at the table. */
+  chat(id, request) {
+    const reply = (code, seq) => ({ ok: code === "accepted", code, ...seq === void 0 ? {} : { seq } });
+    const m = this.#members.get(id);
+    if (!m || m.leaving) return reply("unauthorized");
+    if (!record(request) || !keys2(request, ["text"])) return reply("invalid");
+    const text = chatText(request.text);
+    if (text === null) return reply("invalid");
+    if (!m.connected) return reply("disconnected");
+    const at = this.#now(), bucket = this.#chatBuckets.get(id) ?? { tokens: CHAT_LIMITS.burst, at };
+    bucket.tokens = Math.min(CHAT_LIMITS.burst, bucket.tokens + Math.max(0, at - bucket.at) / CHAT_LIMITS.refillMs);
+    bucket.at = at;
+    if (bucket.tokens < 1) {
+      this.#chatBuckets.set(id, bucket);
+      return reply("rate-limited");
+    }
+    bucket.tokens -= 1;
+    this.#chatBuckets.set(id, bucket);
+    this.#chatSeq += 1;
+    this.#chat.push({ seq: this.#chatSeq, memberId: id, seat: m.seat, name: m.name, text, at });
+    if (this.#chat.length > CHAT_LIMITS.keep) this.#chat.splice(0, this.#chat.length - CHAT_LIMITS.keep);
+    return reply("accepted", this.#chatSeq);
+  }
+  /** The relay's authority check: who sent chat line `seq`, and when. The
+   * transport stores a clip only for the line's own sender. */
+  chatSender(seq) {
+    const line = this.#chat.find((c) => c.seq === seq);
+    return line ? { memberId: line.memberId, at: line.at } : null;
+  }
   /** Called by the host scheduler, not a client packet. Timer cancellation alone
    * cannot prevent queued callbacks: revision check makes a late tick harmless.
    * Bots see the existing observe() allowlist, never another player's cards.
@@ -935,7 +982,9 @@ var HostTable = class _HostTable {
     this.#revision++;
     return true;
   }
-  view(id) {
+  /** `voiced` is the transport's relay: it knows which lines have a clip and
+   * whether voices are on. HostTable only turns that into a boolean per line. */
+  view(id, options = {}) {
     const member = this.#member(id);
     if (!member.connected || member.leaving) throw new Error("Principal is disconnected or has left.");
     const state = this.#game.snapshot(), privateSeat = member.active ? member.seat : null;
@@ -961,9 +1010,19 @@ var HostTable = class _HostTable {
     } catch (error) {
       reason = error instanceof Error ? error.message : "The practice bank is unavailable.";
     }
+    const chat = this.#chat.filter((c) => at - c.at <= CHAT_LIMITS.maxAgeMs).slice(-CHAT_LIMITS.project).map((c) => ({
+      seq: c.seq,
+      seat: c.seat,
+      displaySeat: (c.seat - member.seat + 6) % 6,
+      name: c.name,
+      text: c.text,
+      ageMs: Math.max(0, Math.floor(at - c.at)),
+      voice: options.voiced?.(c.seq) ?? false
+    }));
     return {
       ...view,
       revision: this.#revision,
+      chat,
       self: {
         seat: member.seat,
         waiting: !member.active,
@@ -1107,6 +1166,78 @@ var CheckpointStore = class {
   }
 };
 
+// src/voice/audioClip.ts
+var VOICE_MIME = "audio/mpeg";
+var MAX_VOICE_BYTES = 96 * 1024;
+function looksLikeMpegAudio(bytes) {
+  if (bytes.length < 4) return false;
+  if (bytes[0] === 73 && bytes[1] === 68 && bytes[2] === 51) return bytes[3] >= 2 && bytes[3] <= 4;
+  if (bytes[0] !== 255 || (bytes[1] & 224) !== 224) return false;
+  const version = bytes[1] >> 3 & 3, layer = bytes[1] >> 1 & 3;
+  const bitrate = bytes[2] >> 4, sampleRate = bytes[2] >> 2 & 3;
+  return version !== 1 && layer !== 0 && bitrate !== 15 && sampleRate !== 3;
+}
+function bytesToBase64(bytes) {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 32768) binary += String.fromCharCode(...bytes.subarray(i, i + 32768));
+  return btoa(binary);
+}
+function base64ToBytes(value) {
+  if (typeof value !== "string" || value.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value)) return null;
+  try {
+    const binary = atob(value), bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  } catch {
+    return null;
+  }
+}
+
+// server/VoiceRelay.ts
+var VOICE_RELAY_LIMITS = { ttlMs: 9e4, maxClips: 16, uploadWindowMs: 6e4 };
+var VoiceRelay = class {
+  constructor(now) {
+    this.now = now;
+  }
+  #clips = /* @__PURE__ */ new Map();
+  /** `sender` is HostTable.chatSender(seq); `uploader` is the authenticated
+   * member. Only a line's own sender may attach audio to it: otherwise any
+   * player could put words in another player's mouth. One clip per line, so a
+   * retry cannot swap the audio after others already heard it. */
+  put(seq, uploader, sender, bytes) {
+    this.#sweep();
+    if (!sender) return "unknown-line";
+    if (sender.memberId !== uploader) return "not-sender";
+    if (this.now() - sender.at > VOICE_RELAY_LIMITS.uploadWindowMs) return "expired";
+    if (this.#clips.has(seq)) return "duplicate";
+    if (bytes.length > MAX_VOICE_BYTES) return "too-large";
+    if (!looksLikeMpegAudio(bytes)) return "not-audio";
+    this.#clips.set(seq, { bytes, at: this.now() });
+    while (this.#clips.size > VOICE_RELAY_LIMITS.maxClips) this.#clips.delete(this.#clips.keys().next().value);
+    return "stored";
+  }
+  get(seq) {
+    this.#sweep();
+    return this.#clips.get(seq)?.bytes ?? null;
+  }
+  has(seq) {
+    return this.get(seq) !== null;
+  }
+  /** Voices switched off: drop everything now, not at TTL. A host who turns
+   * voices off mid-session means "stop", including clips already uploaded. */
+  clear() {
+    this.#clips.clear();
+  }
+  get size() {
+    this.#sweep();
+    return this.#clips.size;
+  }
+  #sweep() {
+    const at = this.now();
+    for (const [seq, clip] of this.#clips) if (at - clip.at > VOICE_RELAY_LIMITS.ttlMs) this.#clips.delete(seq);
+  }
+};
+
 // server/http.ts
 var HttpFailure = class extends Error {
   constructor(status, message) {
@@ -1128,9 +1259,10 @@ function admission(value, joining) {
   if (typeof value.name !== "string" || typeof value.nonce !== "string" || !/^[a-f0-9]{64}$/.test(value.nonce) || joining && (typeof value.code !== "string" || value.code.length > 24)) fail(400, "Invalid admission request.");
   return { name: value.name, nonce: value.nonce, code: joining ? String(value.code).trim().toUpperCase().replaceAll("-", "") : "" };
 }
-function body(request) {
+var VOICE_BODY_LIMIT = Math.ceil(MAX_VOICE_BYTES / 3) * 4 + 256;
+function body(request, limit = 4096) {
   if (request.headers["content-type"]?.split(";")[0].trim().toLowerCase() !== "application/json") fail(415, "Use application/json.");
-  if (Number(request.headers["content-length"] ?? 0) > 4096) {
+  if (Number(request.headers["content-length"] ?? 0) > limit) {
     request.resume();
     fail(413, "Request is too large.");
   }
@@ -1139,7 +1271,7 @@ function body(request) {
     const chunks = [];
     request.on("data", (chunk) => {
       size += chunk.length;
-      if (size > 4096) {
+      if (size > limit) {
         rejected = true;
         chunks.length = 0;
         reject(new HttpFailure(413, "Request is too large."));
@@ -1198,7 +1330,17 @@ async function startLanHost(options = {}) {
       }
       const host2 = [...credentials.values()].find((c) => c.id === saved.host);
       if (!host2 || privateState.members.some((m) => !m.leaving && !ids.has(m.id))) throw new Error();
-      room = { table, code: saved.code, host: host2, credentials, paused: true, nextTick: now() + 1e3, observation: 0 };
+      room = {
+        table,
+        code: saved.code,
+        host: host2,
+        credentials,
+        paused: true,
+        nextTick: now() + 1e3,
+        observation: 0,
+        features: { voices: false, treats: false },
+        voices: new VoiceRelay(now)
+      };
       committed = JSON.stringify(saved);
     }
   } catch {
@@ -1249,11 +1391,14 @@ async function startLanHost(options = {}) {
   const envelope = (r, c) => ({
     generation,
     observation: ++r.observation,
-    view: r.table.view(c.id),
+    // A line is "voiced" only while voices are on AND the relay holds its clip,
+    // so a guest never tries to fetch audio the host would refuse.
+    view: r.table.view(c.id, { voiced: (seq) => r.features.voices && r.voices.has(seq) }),
     isHost: c === r.host,
     paused: r.paused || !r.host.connected,
     hostConnected: r.host.connected,
     durable: !!store,
+    features: { voices: r.features.voices, treats: r.features.treats },
     ...c === r.host ? { code: r.code } : {}
   });
   const send = (response, status, value) => {
@@ -1290,7 +1435,7 @@ async function startLanHost(options = {}) {
     response.setHeader("Cache-Control", "no-store");
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("Referrer-Policy", "no-referrer");
-    response.setHeader("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; media-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+    response.setHeader("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' https://api.elevenlabs.io; media-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     void (async () => {
       const peer = request.socket.remoteAddress?.replace(/^::ffff:/, "");
       if (!isLoopback(peer) && (!peer || !privateV4(peer))) fail(403, "Private-network peers only.");
@@ -1313,9 +1458,17 @@ async function startLanHost(options = {}) {
         send(response, 200, envelope(r2, c2));
         return;
       }
-      if (request.method !== "POST" || !["/api/create", "/api/join", "/api/start", "/api/action", "/api/leisure", "/api/pause", "/api/leave"].includes(route)) fail(404, "Not found.");
+      const voiceRoute = request.method === "GET" ? /^\/api\/voice\/([1-9][0-9]{0,15})$/.exec(route) : null;
+      if (voiceRoute) {
+        const { r: r2 } = authorize(request);
+        const clip = r2.features.voices ? r2.voices.get(Number(voiceRoute[1])) : null;
+        if (!clip) fail(404, "No voice clip for that message.");
+        send(response, 200, { mime: VOICE_MIME, data: bytesToBase64(clip) });
+        return;
+      }
+      if (request.method !== "POST" || !["/api/create", "/api/join", "/api/start", "/api/action", "/api/leisure", "/api/chat", "/api/voice", "/api/features", "/api/pause", "/api/leave"].includes(route)) fail(404, "Not found.");
       if (route === "/api/create" || route === "/api/join") rate("admission");
-      const input = await body(request);
+      const input = await body(request, route === "/api/voice" ? VOICE_BODY_LIMIT : 4096);
       if (closed || storageFailed) fail(503, "Host closed or storage failed; table frozen.");
       if (route === "/api/create") {
         if (!isLoopback(request.socket.remoteAddress)) fail(403, "Create the table on the host computer.");
@@ -1334,7 +1487,9 @@ async function startLanHost(options = {}) {
           credentials: /* @__PURE__ */ new Map([[c2.token, c2]]),
           paused: false,
           nextTick: now() + 1e3,
-          observation: 0
+          observation: 0,
+          features: { voices: false, treats: false },
+          voices: new VoiceRelay(now)
         };
         send(response, 201, { token: c2.token, code: room.code });
         return;
@@ -1373,6 +1528,30 @@ async function startLanHost(options = {}) {
         r.paused = input.paused;
         r.nextTick = now() + 1e3;
         send(response, 200, envelope(r, c));
+        return;
+      }
+      if (route === "/api/features") {
+        if (c !== r.host) fail(403, "Only the host changes table features.");
+        shape(input, ["voices", "treats"]);
+        if (typeof input.voices !== "boolean" || typeof input.treats !== "boolean") fail(400, "Invalid features.");
+        r.features = { voices: input.voices, treats: input.treats };
+        if (!r.features.voices) r.voices.clear();
+        send(response, 200, envelope(r, c));
+        return;
+      }
+      if (route === "/api/chat") {
+        const receipt2 = r.table.chat(c.id, input);
+        send(response, receipt2.ok ? 200 : 409, { receipt: receipt2 });
+        return;
+      }
+      if (route === "/api/voice") {
+        if (!r.features.voices) fail(409, "The host has turned voices off.");
+        shape(input, ["seq", "mime", "data"]);
+        if (!Number.isSafeInteger(input.seq) || Number(input.seq) < 1 || input.mime !== VOICE_MIME || typeof input.data !== "string") fail(400, "Invalid voice clip.");
+        const bytes = base64ToBytes(input.data);
+        if (!bytes) fail(400, "Invalid voice clip.");
+        const seq = Number(input.seq), code = r.voices.put(seq, c.id, r.table.chatSender(seq), bytes);
+        send(response, code === "stored" ? 200 : code === "not-sender" ? 403 : 409, { voice: code });
         return;
       }
       if (route === "/api/leisure") {
