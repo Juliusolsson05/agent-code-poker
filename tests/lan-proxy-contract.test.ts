@@ -94,6 +94,10 @@ test('the host player creates, starts, acts, pauses and reads through the servic
   const state = await viaProxy(host.origin, '/api/state', undefined, token)
   assert.equal(state.status, 200)
   assert.equal(state.body.isHost, true)
+  // In-app the service listens on loopback only; Agent Code's listener fronts
+  // it on a port only the view knows, so the service must not advertise its
+  // own loopback address as the invite URL (the view sets it instead).
+  assert.deepEqual(state.body.shareUrls, [])
   const started = await viaProxy(host.origin, '/api/start', { revision: state.body.view.revision }, token)
   assert.equal(started.status, 200, JSON.stringify(started.body))
   const paused = await viaProxy(host.origin, '/api/pause', { paused: true }, token)
@@ -117,6 +121,7 @@ test('a guest joins, reads its private view and acts through the LAN listener', 
     const mine = (await viaListener(host.origin, '/api/state', undefined, guest)).body
     assert.equal(mine.isHost, false)
     assert.equal(mine.code, undefined, 'a guest must never receive the lobby code')
+    assert.equal(mine.shareUrls, undefined, 'the invite line is host-only, like the code')
     const view = mine.view
     if (view.phase === 'betting' && view.actor === view.self.seat) {
       const acted = await viaListener(host.origin, '/api/action', {

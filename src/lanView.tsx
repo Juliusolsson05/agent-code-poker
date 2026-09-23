@@ -5,6 +5,7 @@ import baseStyles from './styles.css?inline'
 import previewStyles from '../dev/preview.css?inline'
 import clientStyles from '../server/client/style.css?inline'
 import { privateHostDestination } from '../dev/multiplayer/hostDestination'
+import { configureEmbedding } from '../server/client/embedding'
 import { SERVICE_ID, proxyTransport, brokeredGuestTransport, lanShareText, lanShareUrls, type LanTransport, type NetFetchInit } from '../server/client/inAppTransport'
 import { agentCodeVoiceSettingsStore, type AgentCodeStorageApi } from './voice/settingsStore'
 import { brokeredVoiceHttp, type BrokeredNetFetch } from './voice/transports'
@@ -82,7 +83,9 @@ export default defineView({
       // Appending on first use (not at markup build) so the element's EXISTENCE
       // means "a live host state arrived" — what the frame harness and a human
       // both wait for; an ever-present empty node would read as no-signal.
-      if (!shareLine.isConnected) overlay.querySelector('.side-panel')!.append(shareLine)
+      // On the admission page (#entry), not in the overlay: the overlay is
+      // hidden by the time there is anything to share.
+      if (!shareLine.isConnected) entry?.append(shareLine)
       shareLine.textContent = text
     }
     const services = (context.api as { services?: ServicesLike }).services
@@ -95,15 +98,20 @@ export default defineView({
     // Code the ElevenLabs key lives in the host's per-extension secret store
     // and ElevenLabs is reached only through the host broker, under the
     // manifest's declared networkOrigins + net.origins consent.
-    const installClient = async (transport: LanTransport): Promise<void> => {
-      const client = await import('../server/client/client.js')
-      client.setVoiceEnvironment({
-        store: agentCodeVoiceSettingsStore(context.api as unknown as AgentCodeStorageApi),
-        http: brokeredVoiceHttp(net
-          ? (url, init) => net.fetch(url, init) as ReturnType<BrokeredNetFetch>
-          : async () => { throw new Error('This Agent Code build does not support brokered fetch.') }),
+    const installClient = async (transport: LanTransport, shareUrls: readonly string[] | null = null): Promise<void> => {
+      // Configure FIRST, import SECOND: client.js starts polling a saved seat
+      // while it evaluates (see server/client/embedding.ts).
+      configureEmbedding({
+        apiTransport: transport,
+        voice: {
+          store: agentCodeVoiceSettingsStore(context.api as unknown as AgentCodeStorageApi),
+          http: brokeredVoiceHttp(net
+            ? (url, init) => net.fetch(url, init) as ReturnType<BrokeredNetFetch>
+            : async () => { throw new Error('This Agent Code build does not support brokered fetch.') }),
+        },
+        shareUrls,
       })
-      client.setApiTransport(transport)
+      await import('../server/client/client.js')
     }
 
     // Hosting has exactly one entry point: the Host button below. An earlier
@@ -149,10 +157,14 @@ export default defineView({
           // it. An empty object is valid JSON on every host; the service's
           // `status` handler ignores params.
           const urls = lanShareUrls(await services.invoke(SERVICE_ID, 'status', {}), exposure.port)
-          await installClient(proxyTransport())
-          overlay.hidden = true
           // This view can't see network interfaces; the service can, and its
-          // status answer supplies the addresses (see lanShareUrls).
+          // status answer supplies the addresses (see lanShareUrls). They go
+          // next to the lobby code in the table menu, and on the admission
+          // page before the table exists. The share line used to live in this
+          // overlay and was written just AFTER hiding it, so no host ever saw
+          // the URL.
+          await installClient(proxyTransport(), urls)
+          overlay.hidden = true
           share(`${lanShareText(urls, exposure.port)} — then use Create table below.`)
         } catch (error) {
           booting = false

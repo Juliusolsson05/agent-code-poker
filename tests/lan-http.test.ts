@@ -192,3 +192,13 @@ test('real leisure packets are token-bound, paused like wagers, never saved and 
   assert.equal((await call(host.origin, '/api/leisure', { action: 'sip', kind: 'wine' }, b.token)).body.receipt.code, 'busy', 'the previous sip is still playing')
   assert.equal((await call(host.origin, '/api/state', undefined, a.token)).body.view.players[1].leisure.drinkKind, 'wine')
 })
+
+// A standalone LAN host knows the addresses friends dial, so the host's own
+// state carries them for the invite line next to the lobby code. Loopback is
+// never an invite: a friend's 127.0.0.1 is their own machine.
+test('a standalone LAN host advertises its non-loopback addresses to the host only', async t => {
+  const host = await startLanHost({ port: 0, lan: true, automaticTicks: false }); t.after(() => host.close())
+  const created = (await call(host.origin, '/api/create', { name: 'Host', nonce: nonce() })).body
+  const state = (await call(host.origin, '/api/state', undefined, created.token)).body
+  assert.deepEqual(state.shareUrls, host.addresses.filter(url => !url.startsWith('http://127.0.0.1:')))
+})

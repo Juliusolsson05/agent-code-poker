@@ -234,7 +234,10 @@ export async function startLanHost(options: Options = {}) {
     view: r.table.view(c.id, { voiced: seq => r.features.voices && r.voices.has(seq) }), isHost: c === r.host,
     paused: r.paused || !r.host.connected, hostConnected: r.host.connected, durable: !!store,
     features: { voices: r.features.voices, treats: r.features.treats },
-    ...(c === r.host ? { code: r.code } : {}) })
+    // shareUrls: the non-loopback addresses this host really listens on, for
+    // the host's invite line. Empty when hosting inside Agent Code (lan:false,
+    // the app's listener fronts it) — the view supplies them there instead.
+    ...(c === r.host ? { code: r.code, shareUrls: addresses.filter(a => a !== '127.0.0.1').map(a => `http://${a}:${port}`) } : {}) })
   const send = (response: ServerResponse, status: number, value: unknown) => {
     // The synchronous commit finishes before ANY API response is published.
     // On failure even reads are refused: in-memory mutation may be newer than
