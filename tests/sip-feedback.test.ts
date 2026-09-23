@@ -1,10 +1,16 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { InteractionDirector } from '../src/scene/InteractionDirector'
-import { DrinkWarmth } from '../src/interaction/drinking/DrinkWarmth'
+import { EffectEngine, type EffectSetting } from '../src/interaction/effects/EffectEngine'
+
+// DrinkWarmth was replaced by EffectEngine (#15). Its Subtle/Soft levels map
+// onto Normal/Strong with the SAME .09/.18 tint maxima, so these tests keep
+// pinning the original sip maths rather than being rewritten to new numbers.
+const LEGACY: Record<string, EffectSetting> = { off: 'off', subtle: 'normal', soft: 'strong' }
 import { readFileSync } from 'node:fs'
 import { gunzipSync } from 'node:zlib'
 import { createHash } from 'node:crypto'
+import { DRINKS, type DrinkKind } from '../src/scene/props/specs'
 
 // Synthetic boundary samples through the production owner, not recorded motion.
 test('player receipts occur after the sip interval, once, with the consumed drink identity',()=>{
@@ -35,19 +41,30 @@ test('sip completed before an inspection return counts once, never again on resu
   d.sample(9);d.inspect(false,9);assert.equal(d.takeCompletedSip(),null)
 })
 test('cosmetic warmth ignores water/duplicates, caps, decays on active time and clears when off',()=>{
-  const w=new DrinkWarmth();w.setLevel('soft')
-  w.accept({id:1,actor:'player',kind:'water'});assert.equal(w.opacity,0)
-  w.accept({id:2,actor:'player',kind:'old-fashioned'});const one=w.opacity
-  assert.ok(one>0);w.accept({id:2,actor:'player',kind:'old-fashioned'});assert.equal(w.opacity,one)
-  for(let id=3;id<100;id++)w.accept({id,actor:'player',kind:'beer'})
-  assert.equal(w.opacity,.18)
-  w.advance(0);assert.equal(w.opacity,.18)
-  w.advance(300);assert.ok(Math.abs(w.opacity-.09)<1e-8)
-  w.advance(300);assert.equal(w.opacity,0)
-  w.accept({id:100,actor:'player',kind:'wine'});w.setLevel('off');assert.equal(w.opacity,0)
-  w.accept({id:101,actor:'player',kind:'wine'});w.setLevel('subtle');assert.equal(w.opacity,0)
-  w.accept({id:102,actor:'player',kind:'wine'});assert.equal(w.opacity,one/2)
-  w.reset();assert.equal(w.opacity,0)
+  const w=new EffectEngine();w.setSetting('strong')
+  w.acceptSip({id:1,actor:'player',kind:'water'});assert.equal(w.drinkTintOpacity,0)
+  w.acceptSip({id:2,actor:'player',kind:'old-fashioned'});const one=w.drinkTintOpacity
+  assert.ok(one>0);w.acceptSip({id:2,actor:'player',kind:'old-fashioned'});assert.equal(w.drinkTintOpacity,one)
+  for(let id=3;id<100;id++)w.acceptSip({id,actor:'player',kind:'beer'})
+  assert.equal(w.drinkTintOpacity,.18)
+  w.advance(0);assert.equal(w.drinkTintOpacity,.18)
+  w.advance(300);assert.ok(Math.abs(w.drinkTintOpacity-.09)<1e-8)
+  w.advance(300);assert.equal(w.drinkTintOpacity,0)
+  w.acceptSip({id:100,actor:'player',kind:'wine'});w.setSetting('off');assert.equal(w.drinkTintOpacity,0)
+  w.acceptSip({id:101,actor:'player',kind:'wine'});w.setSetting('normal');assert.equal(w.drinkTintOpacity,0)
+  w.acceptSip({id:102,actor:'player',kind:'wine'});assert.equal(w.drinkTintOpacity,one/2)
+  w.reset();assert.equal(w.drinkTintOpacity,0)
+})
+test('alcohol and strength come from DRINKS, not a hard-coded list',()=>{
+  // The old list silently excluded any new kind. Every alcoholic kind must
+  // now register, weighted by its spec, and every soft kind must not.
+  for(const kind of Object.keys(DRINKS) as DrinkKind[]) {
+    const w=new EffectEngine();w.setSetting('strong');w.acceptSip({id:1,actor:'player',kind})
+    const spec=DRINKS[kind]
+    if(spec.alcoholic)assert.ok(Math.abs(w.drinkTintOpacity-.18*spec.strength/6)<1e-12,kind)
+    else assert.equal(w.drinkTintOpacity,0,kind)
+  }
+  assert.equal(DRINKS['hot-chocolate'].alcoholic,false);assert.equal(DRINKS['cranberry-spritz'].alcoholic,false)
 })
 
 test('actual source wine/water receipts replay with one dose and no order-triggered exposure',()=>{
@@ -58,7 +75,7 @@ test('actual source wine/water receipts replay with one dose and no order-trigge
   // the new intra-frame receipt followed by the older frame-start timestamp.
   const backwards=trace.entries.filter((e:any,i:number)=>i>0&&e.wallMs<trace.entries[i-1].wallMs)
   assert.equal(backwards.length,2);assert.ok(backwards.every((e:any)=>e.kind==='frame'))
-  const director=new InteractionDirector(),warmth=new DrinkWarmth();warmth.setLevel('subtle')
+  const director=new InteractionDirector(),warmth=new EffectEngine();warmth.setSetting('normal')
   let previous=0,count=0
   for(const e of trace.entries) {
     warmth.advance(Math.max(0,e.visualSeconds-previous));previous=e.visualSeconds
@@ -66,14 +83,14 @@ test('actual source wine/water receipts replay with one dose and no order-trigge
     if(e.kind==='drink')assert.equal(director.begin('drink',e.visualSeconds),e.data.accepted)
     if(e.kind==='order-drink')assert.equal(director.orderDrink(e.data.kind,e.visualSeconds),e.data.accepted)
     if(e.kind==='inspection')director.inspect(e.data.active,e.visualSeconds)
-    if(e.kind==='drink-effect-setting')warmth.setLevel(e.data.level)
+    if(e.kind==='drink-effect-setting')warmth.setSetting(LEGACY[e.data.level])
     if(e.kind==='completed-player-sip') {
       director.sample(e.visualSeconds)
       const receipt=director.takeCompletedSip()
       assert.deepEqual(receipt,{id:e.data.id,actor:'player',kind:e.data.kind})
-      warmth.accept(receipt!);assert.ok(Math.abs(warmth.opacity-e.data.opacity)<1e-7)
+      warmth.acceptSip(receipt!);assert.ok(Math.abs(warmth.drinkTintOpacity-e.data.opacity)<1e-7)
       assert.equal(director.takeCompletedSip(),null);count++
     }
   }
-  assert.equal(count,2);assert.equal(warmth.opacity,0)
+  assert.equal(count,2);assert.equal(warmth.drinkTintOpacity,0)
 })

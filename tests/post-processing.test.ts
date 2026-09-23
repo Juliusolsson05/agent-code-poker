@@ -36,7 +36,11 @@ test('double-MSAA candidate removes canvas samples, not geometry target coverage
   const pipeline = new PostProcessing(renderer, new THREE.Scene(), new THREE.PerspectiveCamera())
   const state = pipeline.diagnostics()
   assert.equal(state.sceneSamples, 4); assert.equal(state.hdr, true)
-  assert.equal(state.passCount, 3); assert.equal(state.bloomThreshold, 4)
+  // Four passes since #15: scene, bloom, the cosmetic intoxication pass and
+  // output. The effect pass starts DISABLED, and EffectComposer skips disabled
+  // passes, so a sober frame is still the three-pass pipeline these canonical
+  // pixel captures were taken with.
+  assert.equal(state.passCount, 4); assert.equal(state.effectEnabled, false); assert.equal(state.bloomThreshold, 4)
   pipeline.setSize(1100, 800, 1.25)
   assert.deepEqual(pipeline.diagnostics().buffer, [1375, 1000], 'first resize must apply DPR even at constructor CSS dimensions')
   pipeline.setSize(100, 50, 1.25)
