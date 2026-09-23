@@ -67,17 +67,17 @@ session/http leisure seam this work extends; later #21 commits are merged in
   (403 otherwise), exact shape, same body/rate/origin gates as `/api/pause`.
   Turning voices off drops every relayed clip immediately.
 - `envelope()` carries `features` for every member.
-- Treats: this base (#21) has no treat kinds anywhere. Leisure carries only
-  drink kinds, and the LAN client has no treat control. Adding an unused
-  `treats` parameter to `HostTable.leisure` would be dead code. So this branch
-  ships the switch, its host-only route and its propagation to every client.
-  The gate itself is a documented merge point for when #20's treats reach
-  LAN leisure:
-  - `HostTable.leisure` takes `features.treats` in its context and returns
-    `disabled` for an order of an `isTreatKind` kind while it is off;
-  - `client.js` passes `treat: null` to `LeisureControls` while
-    `state.features.treats` is false.
-  Implementation decision recorded 2026-09-23.
+- Treats: after merging #21 (which now contains #20), treats exist but are
+  local-only props. Nothing about a treat reaches the host, so the host has
+  nothing to refuse. The switch is enforced in the LAN client:
+  - `LeisureControls` hides the E button and filters treat orders (the real
+    gate);
+  - `leisureShortcut` drops E;
+  - `requestLeisure` refuses `consume`;
+  - `.lan-no-treats` hides #20's Curiosities group without editing
+    `DrinkMenu`.
+  If treats ever become host leisure, `HostTable.leisure` must refuse treat
+  kinds while `features.treats` is off.
 
 ## Stage B2 — chat intent + public projection
 
