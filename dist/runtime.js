@@ -1,5 +1,5 @@
 import { a as u } from "./runtime-XLX8az2X.js";
-import { S as a, l as c } from "./inAppTransport-K7SvMopF.js";
+import { S as a, l as c } from "./inAppTransport-z84GxgS3.js";
 const d = 900, w = u({
   activate(r) {
     r.registerCommand("agent-code-poker.host-lan", async () => {

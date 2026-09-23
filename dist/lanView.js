@@ -1,6 +1,6 @@
-import { d as A } from "./runtime-XLX8az2X.js";
-import { s as C } from "./styles-D3FEynTG.js";
-import { S as x, l as N, p as k, a as S, n as H } from "./inAppTransport-K7SvMopF.js";
+import { d as R } from "./runtime-XLX8az2X.js";
+import { s as A } from "./styles-D3FEynTG.js";
+import { S as x, l as C, p as k, a as S, b as N } from "./inAppTransport-z84GxgS3.js";
 const y = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent Code Poker · LAN</title><script src="/client.js" type="module"><\/script></head>
 <body class="poker-preview"><main id="app" class="poker" tabindex="-1">
@@ -30,30 +30,30 @@ const y = `<!doctype html>
   <p id="seat-note" class="small" role="status"></p><p class="small">Diagnostics contain no codes, credentials, names or card values. Leaving as host ends the session for everyone.</p>
 </aside></div>
 </main></body></html>
-`, P = "html:has(body.poker-preview),body.poker-preview{margin:0;width:100%;height:100%;background:#08090b;overflow:hidden}body.poker-preview #root{width:100%;height:100dvh}body.poker-preview .poker{width:100%;height:100dvh;border-radius:0}body.poker-preview .poker .room{height:100%}body.poker-preview .header{padding-right:70px}body.poker-preview .betting-controls{max-width:760px;margin-left:auto}body.poker-preview .your-hand{width:330px}.preview-fullscreen{position:fixed;z-index:40;top:12px;right:22px;width:31px;height:31px;display:grid;place-items:center;padding:0;background:#131414b0;border:1px solid #a2917030;border-radius:4px;color:#b7aa94;font:24px/1 sans-serif;cursor:pointer}.preview-fullscreen:hover{background:#50453388}.preview-fullscreen:focus-visible{outline:2px solid #c9ad80;outline-offset:3px}.preview-fullscreen-status{position:fixed;z-index:50;right:20px;top:60px;max-width:320px;color:#e4d7bf;background:#24221e;font:12px/1.5 sans-serif;border-radius:4px}.preview-fullscreen-status:not(:empty){padding:12px 16px;border:1px solid #b9a07866}body.poker-preview .website-multiplayer{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;margin:10px 0 0 12px;border:1px solid #b9a07880;border-radius:4px;color:#e7d8ba;background:#151a15d9;text-decoration:none;font:500 14px/1.4 sans-serif}body.poker-preview .website-multiplayer:hover{background:#3c3b2b}body.poker-preview .website-multiplayer:focus-visible{outline:2px solid #e6c795;outline-offset:4px}@media(min-width:1400px){body.poker-preview .action-deck,body.poker-preview .table-strip{padding-left:4vw;padding-right:4vw}}@media(max-width:850px){body.poker-preview .header-location{display:none}body.poker-preview .header-tools{margin-left:auto}body.poker-preview .your-hand{width:250px;gap:12px}body.poker-preview .action-deck{gap:16px;padding-left:16px;padding-right:16px}body.poker-preview .bet-presets button{padding:6px 8px}body.poker-preview .table-strip{gap:10px}}", j = "[hidden]{display:none!important}#header,#hud,#table-info,#leisure,.lan-leisure{display:contents}.lan-admission{max-height:calc(100dvh - 100px);overflow:auto;max-width:680px;margin:0 auto;padding:20px!important;background:#111414cf;border:1px solid #b9a07835;border-radius:6px}.admission-fields{display:flex;justify-content:center;gap:14px;flex-wrap:wrap}.admission-fields label{display:grid;gap:7px;text-align:left;font-size:11px}.admission-fields input,#saved-seats{font:inherit;padding:10px;border:1px solid #786b5355;border-radius:4px;background:#171a17;color:#e7dcc8}.row{display:flex;flex-wrap:wrap;gap:10px}.lan-admission .row{justify-content:center;margin:12px 0}.remember{display:flex;justify-content:center;align-items:center;gap:8px;margin:14px 0;font-size:11px;color:#b3a997}.remember input{width:16px;height:16px}.small{font-size:11px;line-height:1.6}#recovery{margin:16px 0;border-top:1px solid #b9a07835;padding-top:14px}#error:empty,#storage-warning:empty{display:none}#storage-warning{position:absolute;top:110px;left:20px;right:20px;z-index:12;background:#282314f2;color:#f1dda9;padding:10px;font-size:12px}#forget{position:absolute;top:160px;left:20px;z-index:13}#menu ol{padding-left:20px}#menu li{padding:5px 0;font-size:12px}";
-function z(c) {
-  const a = c.trim(), l = /^http:\/\/(localhost|(?:\d{1,3}\.){3}\d{1,3})(?::([1-9]\d{0,4}))?\/?$/.exec(a), t = () => new Error("Paste the host’s printed http:// private IPv4 address and port, without a path, code or password.");
-  if (!l) throw t();
-  const [, m, h] = l;
+`, H = "html:has(body.poker-preview),body.poker-preview{margin:0;width:100%;height:100%;background:#08090b;overflow:hidden}body.poker-preview #root{width:100%;height:100dvh}body.poker-preview .poker{width:100%;height:100dvh;border-radius:0}body.poker-preview .poker .room{height:100%}body.poker-preview .header{padding-right:70px}body.poker-preview .betting-controls{max-width:760px;margin-left:auto}body.poker-preview .your-hand{width:330px}.preview-fullscreen{position:fixed;z-index:40;top:12px;right:22px;width:31px;height:31px;display:grid;place-items:center;padding:0;background:#131414b0;border:1px solid #a2917030;border-radius:4px;color:#b7aa94;font:24px/1 sans-serif;cursor:pointer}.preview-fullscreen:hover{background:#50453388}.preview-fullscreen:focus-visible{outline:2px solid #c9ad80;outline-offset:3px}.preview-fullscreen-status{position:fixed;z-index:50;right:20px;top:60px;max-width:320px;color:#e4d7bf;background:#24221e;font:12px/1.5 sans-serif;border-radius:4px}.preview-fullscreen-status:not(:empty){padding:12px 16px;border:1px solid #b9a07866}body.poker-preview .website-multiplayer{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;margin:10px 0 0 12px;border:1px solid #b9a07880;border-radius:4px;color:#e7d8ba;background:#151a15d9;text-decoration:none;font:500 14px/1.4 sans-serif}body.poker-preview .website-multiplayer:hover{background:#3c3b2b}body.poker-preview .website-multiplayer:focus-visible{outline:2px solid #e6c795;outline-offset:4px}@media(min-width:1400px){body.poker-preview .action-deck,body.poker-preview .table-strip{padding-left:4vw;padding-right:4vw}}@media(max-width:850px){body.poker-preview .header-location{display:none}body.poker-preview .header-tools{margin-left:auto}body.poker-preview .your-hand{width:250px;gap:12px}body.poker-preview .action-deck{gap:16px;padding-left:16px;padding-right:16px}body.poker-preview .bet-presets button{padding:6px 8px}body.poker-preview .table-strip{gap:10px}}", P = "[hidden]{display:none!important}#header,#hud,#table-info,#leisure,.lan-leisure{display:contents}.lan-admission{max-height:calc(100dvh - 100px);overflow:auto;max-width:680px;margin:0 auto;padding:20px!important;background:#111414cf;border:1px solid #b9a07835;border-radius:6px}.admission-fields{display:flex;justify-content:center;gap:14px;flex-wrap:wrap}.admission-fields label{display:grid;gap:7px;text-align:left;font-size:11px}.admission-fields input,#saved-seats{font:inherit;padding:10px;border:1px solid #786b5355;border-radius:4px;background:#171a17;color:#e7dcc8}.row{display:flex;flex-wrap:wrap;gap:10px}.lan-admission .row{justify-content:center;margin:12px 0}.remember{display:flex;justify-content:center;align-items:center;gap:8px;margin:14px 0;font-size:11px;color:#b3a997}.remember input{width:16px;height:16px}.small{font-size:11px;line-height:1.6}#recovery{margin:16px 0;border-top:1px solid #b9a07835;padding-top:14px}#error:empty,#storage-warning:empty{display:none}#storage-warning{position:absolute;top:110px;left:20px;right:20px;z-index:12;background:#282314f2;color:#f1dda9;padding:10px;font-size:12px}#forget{position:absolute;top:160px;left:20px;z-index:13}#menu ol{padding-left:20px}#menu li{padding:5px 0;font-size:12px}";
+function j(c) {
+  const r = c.trim(), d = /^http:\/\/(localhost|(?:\d{1,3}\.){3}\d{1,3})(?::([1-9]\d{0,4}))?\/?$/.exec(r), t = () => new Error("Paste the host’s printed http:// private IPv4 address and port, without a path, code or password.");
+  if (!d) throw t();
+  const [, m, h] = d;
   if (h && Number(h) > 65535) throw t();
   if (m !== "localhost") {
-    const r = m.split(".");
-    if (r.some((u) => String(Number(u)) !== u || Number(u) > 255)) throw t();
-    const [d, p] = r.map(Number);
-    if (!(d === 127 || d === 10 || d === 192 && p === 168 || d === 172 && p >= 16 && p <= 31)) throw t();
+    const a = m.split(".");
+    if (a.some((u) => String(Number(u)) !== u || Number(u) > 255)) throw t();
+    const [l, p] = a.map(Number);
+    if (!(l === 127 || l === 10 || l === 192 && p === 168 || l === 172 && p >= 16 && p <= 31)) throw t();
   }
-  return new URL(a).origin + "/";
+  return new URL(r).origin + "/";
 }
-const I = `
+const z = `
 html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
 #app{width:1600px;height:1000px}
-`, L = (c, a, l) => {
-  const t = new Date(l), m = String(t.getMilliseconds()).padStart(3, "0");
-  return `${S(c, a)} · live ${t.toLocaleTimeString()}.${m}`;
-}, O = y.slice(y.indexOf("<main"), y.indexOf("</main>") + 7), V = A({
-  mount(c, a) {
-    const l = document.createElement("style");
-    l.textContent = P + C + j + I, document.head.append(l), c.innerHTML = O, document.body.classList.add("poker-preview");
+`, L = (c, r, d) => {
+  const t = new Date(d), m = String(t.getMilliseconds()).padStart(3, "0");
+  return `${S(c, r)} · live ${t.toLocaleTimeString()}.${m}`;
+}, I = y.slice(y.indexOf("<main"), y.indexOf("</main>") + 7), U = R({
+  mount(c, r) {
+    const d = document.createElement("style");
+    d.textContent = H + A + P + z, document.head.append(d), c.innerHTML = I, document.body.classList.add("poker-preview");
     const t = document.createElement("section");
     t.className = "panel-scrim", t.style.position = "absolute", t.style.zIndex = "40", t.innerHTML = `
       <aside class="side-panel" role="dialog" aria-modal="true" aria-label="Play over LAN">
@@ -68,28 +68,28 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
         <p id="lan-error" role="alert" style="color:#e2a79c;min-height:1em"></p>
         <p class="small">Practice chips only · trusted local network only.</p>
       </aside>`, c.querySelector("#entry")?.append(t);
-    const h = t.querySelector("#lan-error"), r = document.createElement("p");
-    r.id = "lan-share", r.setAttribute("role", "status"), r.style.color = "#c1db9c";
-    const d = (e) => {
-      r.isConnected || t.querySelector(".side-panel").append(r), r.textContent = e;
-    }, p = a.api.services, u = a.api.net;
+    const h = t.querySelector("#lan-error"), a = document.createElement("p");
+    a.id = "lan-share", a.setAttribute("role", "status"), a.style.color = "#c1db9c";
+    const l = (e) => {
+      a.isConnected || t.querySelector(".side-panel").append(a), a.textContent = e;
+    }, p = r.api.services, u = r.api.net;
     let n = !1, v = !1;
     const g = async (e, o, i) => {
       if (v) {
-        d(L(e, o, i));
+        l(L(e, o, i));
         return;
       }
       v = !0, n = !0;
       try {
-        d(L(e, o, i));
-        const { setApiTransport: s } = await import("./client-BXRLvBPC.js");
+        l(L(e, o, i));
+        const { setApiTransport: s } = await import("./client-xgtajoHc.js");
         s(k()), t.hidden = !0, n = !1;
       } catch (s) {
         n = !1, v = !1, b(s instanceof Error ? s.message : String(s));
       }
-    }, w = (e) => Array.isArray(e.urls) ? e.urls.filter((o) => typeof o == "string" && /^http:\/\/\d{1,3}(?:\.\d{1,3}){3}:\d{1,5}$/.test(o)) : [], f = a.runtime.state();
+    }, w = (e) => Array.isArray(e.urls) ? e.urls.filter((o) => typeof o == "string" && /^http:\/\/\d{1,3}(?:\.\d{1,3}){3}:\d{1,5}$/.test(o)) : [], f = r.runtime.state();
     f?.running && f.port && g(w(f), f.port, f.at ?? Date.now());
-    const T = a.runtime.subscribe((e) => {
+    const T = r.runtime.subscribe((e) => {
       const o = e;
       o?.running && o.port && g(w(o), o.port, o.at ?? Date.now());
     }), b = (e) => {
@@ -115,8 +115,8 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
           await p.start(x);
           const e = await p.expose(x, !0);
           if (!e.lan || !e.port) throw new Error("LAN exposure was not granted.");
-          const o = N(await p.invoke(x, "status"), e.port), { setApiTransport: i } = await import("./client-BXRLvBPC.js");
-          i(k()), t.hidden = !0, d(`${S(o, e.port)} — then use Create table below.`);
+          const o = C(await p.invoke(x, "status"), e.port), { setApiTransport: i } = await import("./client-xgtajoHc.js");
+          i(k()), t.hidden = !0, l(`${S(o, e.port)} — then use Create table below.`);
         } catch (e) {
           n = !1, b(e instanceof Error ? e.message : String(e));
         }
@@ -129,20 +129,20 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
       const o = t.querySelector("#lan-address");
       let i;
       try {
-        i = z(o.value);
+        i = j(o.value);
       } catch (s) {
         b(s instanceof Error ? s.message : "Invalid host address.");
         return;
       }
       E(async () => {
-        const { setApiTransport: s } = await import("./client-BXRLvBPC.js");
-        s(H((R) => u.fetch(R), i));
+        const { setApiTransport: s } = await import("./client-xgtajoHc.js");
+        s(N(u, i));
       });
     }), () => {
-      T(), t.remove(), l.remove();
+      T(), t.remove(), d.remove();
     };
   }
 });
 export {
-  V as default
+  U as default
 };

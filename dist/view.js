@@ -1,4 +1,4 @@
-import { C as $, e as ye, P as Q, r as i, a as st, f as at, T as ot, F as Be, j as e, b as lt, c as it, D as ct, d as dt, S as ut, g as ht, h as ft, i as Ae, B as bt, k as pt, l as mt, m as xt } from "./BankControls-Ctq2iWdw.js";
+import { C as $, e as ye, P as Q, r as i, a as st, f as at, T as ot, F as Be, j as e, b as lt, c as it, D as ct, d as dt, S as ut, g as ht, h as ft, i as Ae, B as bt, k as pt, l as mt, m as xt } from "./BankControls-m03KoxFb.js";
 import { d as kt } from "./runtime-XLX8az2X.js";
 import { s as yt } from "./styles-D3FEynTG.js";
 function gt(r, a) {
@@ -171,8 +171,8 @@ function Nt({ api: r }) {
     k.current?.setPlaying(!c);
   }, [c, O]), i.useEffect(() => {
     const t = () => y.current?.setAmbienceActive(!document.hidden && !c && !b && !f && !j && !p && !x), s = () => y.current?.setAmbienceActive(!1);
-    return document.addEventListener("visibilitychange", t), window.addEventListener("blur", s), t(), () => {
-      document.removeEventListener("visibilitychange", t), window.removeEventListener("blur", s);
+    return document.addEventListener("visibilitychange", t), window.addEventListener("blur", s), window.addEventListener("focus", t), t(), () => {
+      document.removeEventListener("visibilitychange", t), window.removeEventListener("blur", s), window.removeEventListener("focus", t);
     };
   }, [r, c, b, f, j, p, x]), i.useEffect(() => {
     y.current?.setLevels(X, Z);
