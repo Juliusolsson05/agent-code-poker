@@ -1,6 +1,30 @@
 # Agent Code Poker
 
-## Active direction — finish the non-LAN gameplay list
+## Current status — 2026-09-23 (read this first)
+
+Everything below this section is the **historical working log**: session
+checkpoints, superseded directions and evidence notes, kept because the
+reasoning behind them is still useful. It is not a list of current
+instructions. Current rules live in AGENTS.md; current behavior in README.md;
+the feature-to-PR map in `docs/decomposition/poker-backlog-2026-09.md`.
+
+- **Scope has moved past "non-LAN only".** The user authorized LAN play
+  (website first, then inside the extension) and, on 2026-09-23, LAN chat
+  voices through each player's own ElevenLabs key (AGENTS.md, "One recorded
+  exception"). The "Active direction — finish the non-LAN gameplay list"
+  heading below is the old direction.
+- **Network and permissions are no longer zero.** The extension declares
+  `service.run`, `service.transport`, `net.listen`, `net.connect` and
+  `net.origins`, and one external origin (`https://api.elevenlabs.io`). The
+  "no runtime network calls, accounts, purchases or requested host
+  permissions" sentence further down described the initial repository;
+  purchases and accounts are still absent.
+- **Version 0.3.0** (chat and voices) needs Agent Code 0.1.3 or later.
+- **Still open, as acceptance rather than code:** listening quality (fire
+  loop, mix, cues), a LAN game on two separate devices, a real-key voice
+  check, and re-checking the installed extension in Electron on this version.
+
+## Historical: active direction — finish the non-LAN gameplay list
 
 ### Narrow controls — record before layout correction
 
@@ -540,7 +564,7 @@ The live website now fills the viewport with compact contextual betting controls
 
 The user approved the research-led rebuild on September 19. Keep characters self-authored and procedural: anatomical landmarks and tapered volumes first, fine block surface second. Rebuild articulated hands with separate card, cigar, glass, push and resting poses; establish grip contacts and exclusive prop ownership before arm motion. Prove one hand and one seated character before expanding the cast. Add purposeful public-event gaze, private card handling, varied opponent drinks and a player Old Fashioned. Improve materials and motivated bar lighting without making cards luminous. Preserve the fullscreen minimal HUD and engine-owned chip ledger. Verify interruption/pause, private textures, chair/table clearance, animation continuity, source and production previews. No downloaded models or automatic merge.
 
-The initial repository is private. All chips are free practice currency. There are no runtime network calls, accounts, purchases or requested host permissions. The September 20 audio addition permits licensed web-sourced fire/chip recordings bundled locally with provenance and attribution; procedural characters/props remain self-authored. Rules use TDA betting/settlement conventions where applicable; physical casino procedures are represented by legal UI actions.
+The initial repository is private. All chips are free practice currency. There are no runtime network calls, accounts, purchases or requested host permissions. *(Historical: true when written. LAN hosting and chat voices later added declared permissions and one external origin; see Current status at the top.)* The September 20 audio addition permits licensed web-sourced fire/chip recordings bundled locally with provenance and attribution; procedural characters/props remain self-authored. Rules use TDA betting/settlement conventions where applicable; physical casino procedures are represented by legal UI actions.
 
 Keep the rationale near the implementation. The engine owns chip amounts and legal actions; rendering never moves money. Storage failure must be visible and must not silently replace saved progress.
 
