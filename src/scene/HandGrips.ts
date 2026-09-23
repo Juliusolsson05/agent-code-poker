@@ -29,3 +29,12 @@ export const GLASS_HAND_ROTATION_FACING: [number, number, number, number] = new 
 // shaft and avoids the former hooked-fist silhouette. Its local X axis remains
 // the cigar axis, so tray rest and bite targets can transport the same frame.
 export const CIGAR_HAND_CONTACT: [number, number, number] = [-.009, .120, .038]
+
+/** Pad-to-pad pinch centre for the treat pieces, in canonical hand space
+ * (the midpoint the fitted 'pinch' pose closes thumb and index around). It is
+ * fitted for a sphere up to TREAT_PINCH_ENVELOPE; tests/grip-surfaces checks
+ * both digits support it and no skin enters it, and tests/props checks every
+ * piece mesh fits inside that sphere. Like the glass wrap, this is an offline
+ * fit (testing/fit-pinch.ts), never a runtime collision query. */
+export const PINCH_HAND_CONTACT: [number, number, number] = [-.0356, .0884, .0553]
+export const TREAT_PINCH_ENVELOPE = .0092

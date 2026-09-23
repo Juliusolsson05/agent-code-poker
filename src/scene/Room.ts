@@ -18,13 +18,19 @@ import { CHAIR_BLOCKS, PLAYER_LAYOUT, SEATS, seatYaw } from './environment/layou
 import { createFeltPrint } from './TablePrint'
 import { SeatedLook, yawLimitForView } from './camera/SeatedLook'
 import { SurroundDecor } from './environment/SurroundDecor'
-import { DrinkWarmth, type DrinkEffectLevel } from '../interaction/drinking/DrinkWarmth'
+import { EffectEngine, type EffectSetting } from '../interaction/effects/EffectEngine'
+import { applySway, calmEffect } from './rendering/EffectCamera'
+import type { DrinkKind, TreatKind } from './props/specs'
 
 import { createRoomPlan, type RoomBlock } from './environment/RoomPlan'
 import { createTavernLighting, TAVERN_EXPOSURE } from './environment/Lighting'
 import { renderPixelRatio } from './rendering/RenderQuality'
 import type { ProbeMode } from './diagnostics/RenderProbe'
 import { PostProcessing, RENDERER_OPTIONS } from './rendering/PostProcessing'
+
+/** What the leisure controls need, published on transitions only. `treat`
+ * is the cosmetic dish on the table (#14) and `canConsume` its E/button gate. */
+export type LeisureState = { kind: DrinkKind; available: boolean; treat: { kind: TreatKind; remaining: number } | null; canConsume: boolean }
 
 /** Everything is authored in metres, from a seated human's eye line. The first
  * room was orthographic with toy proportions: that erased physical presence.
@@ -33,17 +39,23 @@ import { PostProcessing, RENDERER_OPTIONS } from './rendering/PostProcessing'
 export class PokerRoom {
   onAudioListener?: (matrix: ArrayLike<number>) => void
   private lastAudioPose = -Infinity
-  private drinkWarmth = new DrinkWarmth()
+  // One owner for every cosmetic intoxication channel (#15). It only ever
+  // hears the hero director's completed receipts and the paused visual clock.
+  private effects = new EffectEngine()
   private drinkTint = document.createElement('div')
   private tintOpacity = ''
-  setDrinkEffect(level:DrinkEffectLevel):void {
-    this.drinkWarmth.setLevel(level);this.paintDrinkEffect()
-    this.capture?.event('drink-effect-setting',{level})
+  private tintColor = ''
+  setDrinkEffect(level: EffectSetting): void {
+    this.effects.setSetting(level); this.paintDrinkEffect(this.effects.sample(this.visualTime, this.reduced.matches).tint)
+    // Off must take effect even on a paused (not re-rendering) table.
+    this.pausedRendered = false
+    this.capture?.event('drink-effect-setting', { level })
   }
-  private paintDrinkEffect():void {
-    const opacity=this.drinkWarmth.opacity.toFixed(3)
-    if(opacity===this.tintOpacity)return
-    this.tintOpacity=opacity;this.drinkTint.style.opacity=opacity
+  private paintDrinkEffect(tint: { opacity: number; color: string }): void {
+    // Quantized opacity avoids rewriting style on every tiny decay frame.
+    const opacity = tint.opacity.toFixed(3)
+    if (opacity !== this.tintOpacity) { this.tintOpacity = opacity; this.drinkTint.style.opacity = opacity }
+    if (tint.color !== this.tintColor) { this.tintColor = tint.color; this.drinkTint.style.setProperty('--effect-tint', tint.color) }
   }
   // Actual canvas-drag evidence now covers retained intent, inspection and
   // centered contact dispatch. Keep one product capability across all builds:
@@ -61,6 +73,9 @@ export class PokerRoom {
   private worldUp = new THREE.Vector3(0, 1, 0)
   private scene = new THREE.Scene()
   private camera = new THREE.PerspectiveCamera(70, 1.4, .035, 35)
+  // What the GPU sees: the logical camera plus cosmetic sway (EffectCamera.ts).
+  // Audio, labels and capture diagnostics stay on `camera` so they never jitter.
+  private renderCamera = new THREE.PerspectiveCamera(70, 1.4, .035, 35)
   private labelCamera = new THREE.PerspectiveCamera(70, 1.4, .035, 35)
   private renderer: THREE.WebGLRenderer
   private post: PostProcessing
@@ -105,7 +120,7 @@ export class PokerRoom {
 
   private leisureKey = ''
   constructor(private container: HTMLElement, private onFailure: () => void, private onLayout: () => void = () => {},
-    private onLeisure: (value: { kind: import('./props/specs').DrinkKind; available: boolean }) => void = () => {}, viewerSeat = 0) {
+    private onLeisure: (value: LeisureState) => void = () => {}, viewerSeat = 0) {
     // Canonical14-12-39/14-13-19 browser PNGs are byte-identical; actual context
     // diagnostics confirm canvas samples4→0. Geometry still resolves4x in the
     // post target. Remove only the redundant fullscreen-triangle allocation,
@@ -126,7 +141,7 @@ export class PokerRoom {
     // blur. HUD/cards/readouts outside this container keep their original CSS.
     // Quantized opacity avoids rewriting style on every tiny decay frame.
     this.drinkTint.className='drink-warmth';this.drinkTint.setAttribute('aria-hidden','true')
-    container.append(this.drinkTint);this.paintDrinkEffect()
+    container.append(this.drinkTint);this.paintDrinkEffect(this.effects.sample(0, this.reduced.matches).tint)
     this.renderer.domElement.addEventListener('webglcontextlost', this.lost)
     container.parentElement?.addEventListener('pointermove', this.look)
     container.parentElement?.addEventListener('pointerleave', this.centerLook)
@@ -182,7 +197,7 @@ export class PokerRoom {
     for (let i = 0; i < 150; i++) { positions[i * 3] = Math.sin(i * 78.23) * 3.4; positions[i * 3 + 1] = .85 + (Math.sin(i * 12.87) + 1) * 1.2; positions[i * 3 + 2] = Math.cos(i * 61.23) * 2.7 - 1.5 }
     dustGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     this.dust = new THREE.Points(dustGeometry, new THREE.PointsMaterial({ color: '#b69a70', size: .005, transparent: true, opacity: .26, depthWrite: false })); this.scene.add(this.dust)
-    this.post = new PostProcessing(this.renderer, this.scene, this.camera)
+    this.post = new PostProcessing(this.renderer, this.scene, this.renderCamera)
     if (import.meta.env.DEV && new URLSearchParams(location.search).has('record')) {
       this.renderer.info.autoReset = false
       this.capture = new SceneCapture(this.renderer, () => this.visualTime, () => ({
@@ -376,18 +391,35 @@ export class PokerRoom {
     }
     const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy(); this.textures.set(key, texture); return texture
   }
-  setPlaying(playing: boolean): void { if (playing) this.capture?.cancelProbe('entered-game'); this.capture?.event('playing', { playing }); this.hero.setActive(playing); this.lookPlaying = playing; this.seatedLook.setContext({ playing }); if (!playing) {this.suspendLook();this.hero.takeCompletedSip();this.drinkWarmth.reset();this.paintDrinkEffect()} }
+  setPlaying(playing: boolean): void { if (playing) this.capture?.cancelProbe('entered-game'); this.capture?.event('playing', { playing }); this.hero.setActive(playing); this.lookPlaying = playing; this.seatedLook.setContext({ playing }); if (!playing) {this.suspendLook();this.hero.takeCompletedSip();this.endNight()} }
+  /** Leaving the table (or starting a fresh one) ends the night: the effect
+   * and the treat dish go together, so a stale "Mushrooms · 0" dish can never
+   * outlive the session it was ordered in (#15 review). Receipt high-water
+   * marks survive, so nothing is replayed on return. */
+  endNight(): void {
+    this.hero.takeCompletedSip(); this.hero.takeCompletedTreat()
+    this.hero.clearTreat(); this.effects.reset()
+    this.paintDrinkEffect(this.effects.sample(this.visualTime, this.reduced.matches).tint)
+    this.pausedRendered = false; this.publishLeisure()
+  }
   setPaused(paused: boolean): void { if (paused) { this.capture?.cancelProbe('paused'); this.suspendLook() } this.capture?.event('pause', { paused }); this.paused = paused; this.seatedLook.setContext({ paused }); this.pausedRendered = false }
   private publishLeisure(): void {
-    const value = { kind: this.hero.drinkKind, available: !this.paused && !this.inspecting && !this.seatedLook.contactPending && this.hero.leisureAvailable }
-    const key = value.kind + ':' + value.available
+    const free = !this.paused && !this.inspecting && !this.seatedLook.contactPending
+    const value: LeisureState = { kind: this.hero.drinkKind, available: free && this.hero.leisureAvailable,
+      treat: this.hero.treatState, canConsume: free && this.hero.canConsume }
+    const key = [value.kind, value.available, value.treat?.kind, value.treat?.remaining, value.canConsume].join(':')
     // React only hears transitions, not every animation frame. The renderer
     // owns availability; a UI timeout cannot predict interrupted return length.
     if (key !== this.leisureKey) { this.leisureKey = key; this.onLeisure(value) }
   }
-  private requestLeisure(kind: 'smoke' | 'drink'): boolean {
+  private startLeisure(kind: 'smoke' | 'drink' | 'consume'): boolean {
+    return kind === 'smoke' ? this.hero.smokeCigar() : kind === 'drink' ? this.hero.sipDrink() : this.hero.consumeTreat()
+  }
+  private requestLeisure(kind: 'smoke' | 'drink' | 'consume'): boolean {
     if (this.paused || this.inspecting || this.seatedLook.contactPending) return false
-    if (!this.experimentalLook) return kind === 'smoke' ? this.hero.smokeCigar() : this.hero.sipDrink()
+    // Queuing an E press with an empty dish would recenter the view for nothing.
+    if (kind === 'consume' && !this.hero.canConsume) return false
+    if (!this.experimentalLook) return this.startLeisure(kind)
     // Queue a request, not a prop animation. Body contacts stay exactly where
     // their established owner authored them; begin only after the view centers.
     this.syncLook()
@@ -397,9 +429,14 @@ export class PokerRoom {
   }
   smokeCigar(): boolean { const accepted = this.requestLeisure('smoke'); this.capture?.event('smoke', { accepted, queued: this.experimentalLook }); this.publishLeisure(); return accepted }
   sipDrink(): boolean { const accepted = this.requestLeisure('drink'); this.capture?.event('drink', { accepted, queued: this.experimentalLook }); this.publishLeisure(); return accepted }
-  orderDrink(kind: import('./props/specs').DrinkKind): boolean {
+  orderDrink(kind: DrinkKind): boolean {
     const accepted = !this.paused && !this.inspecting && !this.seatedLook.contactPending && this.hero.orderDrink(kind)
     this.capture?.event('order-drink', { kind, accepted }); this.publishLeisure(); return accepted
+  }
+  consumeTreat(): boolean { const accepted = this.requestLeisure('consume'); this.capture?.event('consume', { accepted, queued: this.experimentalLook }); this.publishLeisure(); return accepted }
+  orderTreat(kind: TreatKind): boolean {
+    const accepted = !this.paused && !this.inspecting && !this.seatedLook.contactPending && this.hero.orderTreat(kind)
+    this.capture?.event('order-treat', { kind, accepted }); this.publishLeisure(); return accepted
   }
   recordBettingInput(data: { [key: string]: TraceValue }): void {
     // Only opt-in local QA has a capture. The UI supplies bounded command/focus
@@ -461,11 +498,15 @@ export class PokerRoom {
     if (!this.probeMode) this.visualTime += dt
     const t = this.probeMode ? 12 : this.visualTime, now = t * 1000
     this.hero.setInspection(this.inspecting); this.hero.frame(t, this.reduced.matches)
-    this.drinkWarmth.advance(dt)
-    const sip=this.hero.takeCompletedSip()
-    if(sip)this.drinkWarmth.accept(sip)
-    const sipOpacity=this.drinkWarmth.opacity
-    this.paintDrinkEffect()
+    // dt is 0 while paused, so neither build-up nor fade can happen off-table.
+    this.effects.advance(dt)
+    const sip=this.hero.takeCompletedSip(), treat = this.hero.takeCompletedTreat()
+    if(sip)this.effects.acceptSip(sip)
+    if (treat) this.effects.acceptTreat(treat)
+    const sipOpacity=this.effects.drinkTintOpacity
+    // Probe comparisons must measure the pipeline, not a woozy frame.
+    const effect = this.probeMode ? null : this.effects.sample(t, this.reduced.matches)
+    this.paintDrinkEffect(effect?.tint ?? { opacity: 0, color: this.tintColor })
     this.publishLeisure()
     // Inspection is a presentation-only lean, never a second gameplay mode.
     // Time-based damping avoids different transition speeds on 60/144Hz screens.
@@ -477,7 +518,7 @@ export class PokerRoom {
     const contact = this.experimentalLook ? this.seatedLook.takeContact() : null
     let contactAccepted = false
     if (contact) {
-      contactAccepted = contact === 'smoke' ? this.hero.smokeCigar() : this.hero.sipDrink()
+      contactAccepted = this.startLeisure(contact)
     }
     if (this.probeMode) this.gaze.set(0, 0)
     else this.gaze.lerp(this.reduced.matches ? new THREE.Vector2() : this.pointer, .045)
@@ -495,6 +536,15 @@ export class PokerRoom {
       this.camera.position.set(3.8, 2.7, 2.8); this.camera.lookAt(0, 1.35, -3.15)
       this.camera.fov = 75; this.camera.updateProjectionMatrix()
     }
+    // Sway is applied last, to the render camera only (after look yaw/pitch).
+    // Inspection fades sway AND the motion post channels out (calmEffect), so
+    // reading your own cards stays easy; the wide diagnostic view never sways.
+    const calm = this.diagnosticWide ? 0 : 1 - peek
+    const calmed = effect ? calmEffect(effect, calm) : null
+    applySway(this.camera, this.renderCamera, calmed?.active ? calmed.sway : null)
+    this.post.setEffect(calmed?.active ? calmed.post : null)
+    // The HRTF listener follows the LOGICAL camera: a woozy view must not make
+    // the fire's position wobble in your ears (#15 review).
     if (t - this.lastAudioPose >= 1 / 30 || this.lastAudioPose > t) {
       this.lastAudioPose = t; this.camera.updateMatrixWorld()
       this.onAudioListener?.(this.camera.matrixWorld.elements)
@@ -502,10 +552,14 @@ export class PokerRoom {
     if (this.experimentalLook) {
       // Project labels in the same frame as the scene without React frame
       // updates. Out-of-view anchors disappear instead of sticking to an edge.
-      this.camera.updateMatrixWorld()
+      // Labels follow the RENDER camera: they are drawn over the swayed image,
+      // so projecting through the steady logical camera left name tags
+      // drifting against the heads they label (#15 review). They move with
+      // the picture, exactly like the heads, which is what keeps them glued.
+      // tests/effects pins that every projection here uses renderCamera.
       for (const [seat, element] of this.worldLabels) {
         const point = seat < 0 ? this.labelPoint.set(0, .94, -.36) : this.labelPoint.set(SEATS[seat][0], 1.79, SEATS[seat][1])
-        point.project(this.camera)
+        point.project(this.renderCamera)
         element.style.visibility = Math.abs(point.x) > .94 || Math.abs(point.y) > .9 || point.z > 1 || point.z < -1 ? 'hidden' : ''
         element.style.left = `${(point.x + 1) * 50}%`; element.style.top = `${(1 - point.y) * 50}%`
       }
@@ -535,7 +589,7 @@ export class PokerRoom {
     this.chips.frame(now / 1000, this.reduced.matches); this.cardField.frame(now / 1000, this.reduced.matches)
     if (this.stats || this.capture) this.renderer.info.reset()
     this.capture?.beforeRender()
-    if (this.probeMode === 'direct') this.renderer.render(this.scene, this.camera)
+    if (this.probeMode === 'direct') this.renderer.render(this.scene, this.renderCamera)
     else this.post.render()
     this.capture?.afterRender()
     this.capture?.frame(wallTime, frameMs, performance.now() - wallTime, () => ({
@@ -551,6 +605,7 @@ export class PokerRoom {
     // the receipt after that frame, preserving actual clocks without sorting
     // or rewriting raw evidence. The visual completion time remains identical.
     if(sip)this.capture?.event('completed-player-sip',{...sip,opacity:sipOpacity})
+    if (treat) this.capture?.event('completed-player-treat', { ...treat, levels: { ...this.effects.levels() } })
     // The real turned-sip baseline exposed the same ordering issue for queued
     // contact starts. Dispatch stays before render; only diagnostics wait until
     // the frame-start sample has been written. Never sort captured evidence.

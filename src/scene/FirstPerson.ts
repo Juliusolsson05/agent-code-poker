@@ -3,14 +3,15 @@ import { SeatedArm } from './Arm'
 import { InteractionDirector } from './InteractionDirector'
 import { PLAYER_LAYOUT } from './environment/layout'
 import { coaster, TableDrink } from './Drinks'
-import { ASHTRAY, CIGAR, isDrinkKind, type DrinkKind } from './props/specs'
+import { ASHTRAY, CIGAR, isDrinkKind, isTreatKind, type DrinkKind, type TreatKind } from './props/specs'
+import { TableTreat } from './props/Treats'
 import { createAshtray, createCigar } from './props/Smoking'
 import type { Card } from '../engine/cards'
 import { createHeldCardFan } from './CardGrip'
 import { transform } from './diagnostics/SceneCapture'
 
 const smooth = (t: number, a: number, b: number) => THREE.MathUtils.smoothstep(t, a, b)
-export type LeisureAction = 'idle' | 'smoke' | 'drink' | 'return'
+export type LeisureAction = 'idle' | 'smoke' | 'drink' | 'consume' | 'return'
 /** A world-space presenter, not an animation owner. The director resolves each
  * prop and wrist once. Both arms now have shoulder/elbow/wrist chains rather
  * than short sleeves dangling from camera-local hands. Neither camera lean nor
@@ -30,6 +31,7 @@ export class FirstPerson {
   private cigarTip = new THREE.Object3D()
   private ember: THREE.MeshStandardMaterial
   private drink = new TableDrink('old-fashioned')
+  private treat: TableTreat | null = null
   private drinkHome = new THREE.Vector3(...PLAYER_LAYOUT.drink)
   private cigarHome = new THREE.Vector3(...PLAYER_LAYOUT.cigar)
   private smoke: { mesh: THREE.Sprite; birth: number; seed: number; origin: THREE.Vector3 }[] = []
@@ -76,12 +78,33 @@ export class FirstPerson {
     this.drink.dispose(); this.drink = next; this.tableProps.add(next.root)
     return true
   }
+  /** Cosmetic treats (#14) follow the drink's ordering contract exactly:
+   * build first, let the director arbitrate, and only then swap/dispose. */
+  orderTreat(kind: TreatKind): boolean {
+    if (!isTreatKind(kind) || !this.leisureAvailable) return false
+    const next = new TableTreat(kind)
+    if (!this.director.orderTreat(kind, this.now)) { next.dispose(); return false }
+    next.root.position.set(...PLAYER_LAYOUT.treat)
+    this.treat?.dispose(); this.treat = next; this.tableProps.add(next.root, next.held)
+    next.show(this.director.treat?.remaining ?? 0)
+    return true
+  }
+  /** Session end: remove the dish and its count (Room.endNight). */
+  clearTreat(): void {
+    this.director.clearTreat()
+    if (!this.director.treat) { this.treat?.dispose(); this.treat = null }
+  }
+  get treatState(): { kind: TreatKind; remaining: number } | null { return this.director.treat }
+  get canConsume(): boolean { return this.active && !this.inspecting && this.director.canConsume(this.now) }
+  consumeTreat(): boolean { return this.director.begin('consume', this.now) }
+  takeCompletedTreat() { return this.director.takeCompletedTreat() }
   get inspectionReady(): boolean { return this.resolved.inspectionReady }
   diagnosticPose() {
     return { action: this.resolved.action, phase: this.resolved.phase, active: this.active, inspecting: this.inspecting,
       root: transform(this.root), left: transform(this.left.root), right: transform(this.right.root),
       drink: transform(this.drink.root), cigar: transform(this.cigar), table: transform(this.tableProps),
       drinkOwner: this.resolved.drink.owner, cigarOwner: this.resolved.cigar.owner, drinkKind: this.drink.kind,
+      treat: this.treat ? { kind: this.treat.kind, owner: this.resolved.treat.owner, remaining: this.resolved.treat.remaining, held: transform(this.treat.held) } : null,
       arm: this.resolved.arm, drinkHome: this.drinkHome.toArray(), cigarHome: this.cigarHome.toArray(),
       mouth: [...PLAYER_LAYOUT.mouth],
       cigarBite: this.cigar.localToWorld(new THREE.Vector3(...CIGAR.bite)).toArray(),
@@ -143,6 +166,17 @@ export class FirstPerson {
     // can accidentally apply a camera or body transform a second time.
     this.drink.root.position.set(...pose.drink.position); this.drink.root.quaternion.set(...pose.drink.rotation)
     this.cigar.position.set(...pose.cigar.position); this.cigar.quaternion.set(...pose.cigar.rotation)
+    // Lift progress 0 (on the coaster) → 1 (at the lips), from the actual
+    // world pose, so steam fades out before the rim reaches the face.
+    const lift = THREE.MathUtils.clamp((pose.drink.position[1] - this.drinkHome.y) / (PLAYER_LAYOUT.mouth[1] - this.drinkHome.y), 0, 1)
+    this.drink.frame(now, reduced, lift)
+    if (this.treat) {
+      // The dish shows what rests in it; the held piece exists only while the
+      // director says the hand owns it (eaten = hidden, not dropped).
+      this.treat.show(pose.treat.remaining)
+      this.treat.held.visible = this.active && pose.treat.owner === 'right-hand'
+      this.treat.held.position.set(...pose.treat.position); this.treat.held.quaternion.set(...pose.treat.rotation)
+    }
     this.cigar.visible = this.active && !(pose.inspectionReady && pose.cigar.owner === 'right-hand')
     this.ember.emissiveIntensity = pose.phase === 'puff' ? 1.8 : .3
     const exhale = pose.action === 'smoke' && pose.phase === 'lower-cigar'
@@ -162,5 +196,5 @@ export class FirstPerson {
       p.mesh.material.opacity = Math.sin(life / 2.6 * Math.PI) * .20
     }
   }
-  dispose(): void { this.smokeTexture.dispose() }
+  dispose(): void { this.smokeTexture.dispose(); this.treat?.dispose() }
 }

@@ -2,7 +2,8 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { SkinnedMesh, Vector2, Vector3 } from 'three'
 import { AnatomicalHand } from '../src/scene/Hand'
-import { CIGAR_HAND_CONTACT, GLASS_HAND_CONTACT } from '../src/scene/HandGrips'
+import { CIGAR_HAND_CONTACT, GLASS_HAND_CONTACT, PINCH_HAND_CONTACT, TREAT_PINCH_ENVELOPE } from '../src/scene/HandGrips'
+import { pinchClearance } from '../testing/fit-pinch'
 import { CIGAR, DRINKS } from '../src/scene/props/specs'
 
 /** Minimum distance of a projected skin triangle to the glass axis. Testing
@@ -72,4 +73,20 @@ test('negative control retains the old matching-anchor but penetrating glass gri
   hand.fingers.forEach((digit, f) => digit.forEach((bone, j) => { bone.rotation.x = curls[f][j] }))
   hand.thumb[0].rotation.set(.45, -.90, -.75); hand.thumb[1].rotation.x = .35; hand.thumb[2].rotation.x = .245
   assert.ok(Math.min(...radialClearance(hand, .079, .083)) < -.020, 'negative control must expose the old >20mm penetration')
+})
+
+test('treat pinch closes thumb and index pads on the piece envelope without entering it', () => {
+  // The glass wrap cannot hold a 1.5cm piece, so #14 fitted its own pose.
+  // Sphere envelope = the largest piece bounding sphere (tests/props pins every
+  // piece inside it), measured against every deformed skin triangle.
+  const hand = new AnatomicalHand('right', '#ae8165', .0025); hand.pose('pinch')
+  const centre = new Vector3(...PINCH_HAND_CONTACT)
+  const gaps = pinchClearance(hand, centre, TREAT_PINCH_ENVELOPE)
+  assert.ok(gaps.every(g => g >= .0008), `skin enters the pinched piece: ${gaps.map(g => (g * 1000).toFixed(2))}mm`)
+  assert.ok(gaps[1] < .003 && gaps[5] < .003, `index ${gaps[1] * 1000}mm / thumb ${gaps[5] * 1000}mm must both support the piece`)
+  assert.ok(Math.min(gaps[2], gaps[3], gaps[4]) > .008, 'only thumb and index hold it; the other fingers stay tucked away')
+  // Opposition, not two digits on one side: the pads sit on opposite sides
+  // of the centre along the line between them.
+  const index = hand.tips[0].getWorldPosition(new Vector3()), thumb = hand.thumb[2].localToWorld(new Vector3(0, .018, 0))
+  assert.ok(index.clone().sub(centre).dot(thumb.clone().sub(centre)) < 0, 'thumb and index must oppose across the piece')
 })
