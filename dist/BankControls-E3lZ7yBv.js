@@ -23958,7 +23958,7 @@ function Dy() {
   const x = -4.2, O = 0.98 + 0.0125;
   S("#1a1a1a", 0.15, O + 0.03, x, 0.06, 0.06, 0.07), S("#8a1f24", 0.15, O + 0.12, x, 0.07, 0.12, 0.08), S("#d9bf8f", 0.15, O + 0.21, x, 0.05, 0.06, 0.06), S("#1a1a1a", 0.15, O + 0.27, x, 0.06, 0.07, 0.065), S("#c9a24e", 0.15, O + 0.12, x, 0.072, 0.015, 0.082, M), S("#9a2a2a", 0.15, O + 0.05, -4.08, 0.07, 0.09, 0.07), R("#ffb15c", St.left + 0.15, O + 0.11, -4.08, 0.018, 0.03, 0.018, 4.5, "candle");
   const W = -2, N = 1.9, z = 1.5, j = 1.8;
-  a.push({ kind: "snowscape", position: [St.left + 4e-3, N, W], size: [z, j], facing: "+x", lit: !1 }), S("#3a2a1e", 0.04, N + j / 2 + 0.04, W, 0.08, 0.08, z + 0.12), S("#3a2a1e", 0.04, N, W - z / 2 - 0.04, 0.08, j + 0.16, 0.08), S("#3a2a1e", 0.04, N, W + z / 2 + 0.04, 0.08, j + 0.16, 0.08), S("#4a3526", 0.11, N - j / 2 - 0.03, W, 0.22, 0.06, z + 0.26);
+  a.push({ kind: "snowscape", position: [St.left + 0.016, N, W], size: [z, j], facing: "+x", lit: !1 }), S("#3a2a1e", 0.04, N + j / 2 + 0.04, W, 0.08, 0.08, z + 0.12), S("#3a2a1e", 0.04, N, W - z / 2 - 0.04, 0.08, j + 0.16, 0.08), S("#3a2a1e", 0.04, N, W + z / 2 + 0.04, 0.08, j + 0.16, 0.08), S("#4a3526", 0.11, N - j / 2 - 0.03, W, 0.22, 0.06, z + 0.26);
   for (const v of [W - z / 6, W + z / 6]) S("#2a2019", 0.045, N, v, 0.03, j, 0.03);
   for (const v of [N - j / 6, N + j / 6]) S("#2a2019", 0.045, v, W, 0.03, 0.03, z);
   for (const v of [W - 0.45, W, W + 0.45]) {
@@ -24025,7 +24025,7 @@ function Dy() {
   };
   e0(St.right - 0.3, 0.91, -0.98, 0.8), e0(St.right - 0.28, 0, -0.62, 1.5), i.push({ name: "sideboard-candles", color: "#ffa95a", power: 2.8, range: 5, position: [St.right - 0.45, 1.35, m0], flicker: "candle" }), _(St.right, 1.9, m0, 1.2, 0.8, "village", "-x"), c.push({ from: [St.right - 0.12, 2.45, m0 - 0.75], to: [St.right - 0.12, 2.45, m0 + 0.75], sag: 0.12 });
   const S0 = 0.65, Q = 1.3, h0 = 1.7, c0 = 1.9;
-  a.push({ kind: "snowscape", position: [St.right - 4e-3, c0, S0], size: [Q, h0], facing: "-x", lit: !1 }), d("#3a2a1e", 0.04, c0 + h0 / 2 + 0.04, S0, 0.08, 0.08, Q + 0.12);
+  a.push({ kind: "snowscape", position: [St.right - 0.016, c0, S0], size: [Q, h0], facing: "-x", lit: !1 }), d("#3a2a1e", 0.04, c0 + h0 / 2 + 0.04, S0, 0.08, 0.08, Q + 0.12);
   for (const v of [-1, 1]) d("#3a2a1e", 0.04, c0, S0 + v * (Q / 2 + 0.04), 0.08, h0 + 0.16, 0.08);
   d("#4a3526", 0.11, c0 - h0 / 2 - 0.03, S0, 0.22, 0.06, Q + 0.26), d("#2a2019", 0.045, c0, S0, 0.03, h0, 0.03);
   for (const v of [c0 - h0 / 6, c0 + h0 / 6]) d("#2a2019", 0.045, v, S0, 0.03, 0.03, Q);
