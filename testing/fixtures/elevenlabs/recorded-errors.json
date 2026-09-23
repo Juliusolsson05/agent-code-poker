@@ -1,0 +1,27 @@
+{
+  "source": "Recorded 2026-09-23 with curl against https://api.elevenlabs.io/v1/text-to-speech/{voice_id}?output_format=mp3_22050_32 WITHOUT any real key. Bodies are verbatim; request_id values are ElevenLabs trace ids, not secrets. No success or quota response could be recorded: those need a real key (user's verification step).",
+  "cors": {
+    "preflight": "OPTIONS -> 200, access-control-allow-origin: *, access-control-allow-headers: *, access-control-allow-methods: POST, PATCH, OPTIONS, DELETE, GET, PUT",
+    "note": "The 401 response also carries access-control-allow-origin: *, so a browser page can read the error body."
+  },
+  "responses": [
+    {
+      "case": "invalid key (xi-api-key: invalid-key-for-shape-check)",
+      "status": 401,
+      "contentType": "application/json",
+      "body": {"detail":{"type":"authentication_error","code":"unauthorized","message":"Invalid API key","status":"invalid_api_key","request_id":"8f3f724efdeaeecfbab94e7a328f8b51"}}
+    },
+    {
+      "case": "missing key (no xi-api-key header)",
+      "status": 401,
+      "contentType": "application/json",
+      "body": {"detail":{"type":"authentication_error","code":"unauthorized","message":"Neither authorization header nor xi-api-key received, please provide one.","status":"needs_authorization","request_id":"9fc3e2b1e432cec4c10b06d10db0986e"}}
+    },
+    {
+      "case": "malformed voice id (/v1/text-to-speech/not-a-voice)",
+      "status": 400,
+      "contentType": "application/json",
+      "body": {"detail":{"type":"invalid_request","code":"bad_request","message":"An invalid ID has been received: 'not-a-voice'. Make sure to provide a correct one.","status":"invalid_uid","request_id":"288b70833113c184d5d48174c5c27ce5"}}
+    }
+  ]
+}
