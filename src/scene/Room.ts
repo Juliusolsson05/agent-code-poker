@@ -19,7 +19,7 @@ import { createFeltPrint } from './TablePrint'
 import { SeatedLook, yawLimitForView } from './camera/SeatedLook'
 import { SurroundDecor } from './environment/SurroundDecor'
 import { EffectEngine, type EffectSetting } from '../interaction/effects/EffectEngine'
-import { applySway } from './rendering/EffectCamera'
+import { applySway, calmEffect } from './rendering/EffectCamera'
 import type { DrinkKind, TreatKind } from './props/specs'
 
 import { createRoomPlan, type RoomBlock } from './environment/RoomPlan'
@@ -381,7 +381,17 @@ export class PokerRoom {
     }
     const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy(); this.textures.set(key, texture); return texture
   }
-  setPlaying(playing: boolean): void { if (playing) this.capture?.cancelProbe('entered-game'); this.capture?.event('playing', { playing }); this.hero.setActive(playing); this.lookPlaying = playing; this.seatedLook.setContext({ playing }); if (!playing) {this.suspendLook();this.hero.takeCompletedSip();this.hero.takeCompletedTreat();this.effects.reset();this.paintDrinkEffect(this.effects.sample(this.visualTime, this.reduced.matches).tint)} }
+  setPlaying(playing: boolean): void { if (playing) this.capture?.cancelProbe('entered-game'); this.capture?.event('playing', { playing }); this.hero.setActive(playing); this.lookPlaying = playing; this.seatedLook.setContext({ playing }); if (!playing) {this.suspendLook();this.hero.takeCompletedSip();this.endNight()} }
+  /** Leaving the table (or starting a fresh one) ends the night: the effect
+   * and the treat dish go together, so a stale "Mushrooms · 0" dish can never
+   * outlive the session it was ordered in (#15 review). Receipt high-water
+   * marks survive, so nothing is replayed on return. */
+  endNight(): void {
+    this.hero.takeCompletedSip(); this.hero.takeCompletedTreat()
+    this.hero.clearTreat(); this.effects.reset()
+    this.paintDrinkEffect(this.effects.sample(this.visualTime, this.reduced.matches).tint)
+    this.pausedRendered = false; this.publishLeisure()
+  }
   setPaused(paused: boolean): void { if (paused) { this.capture?.cancelProbe('paused'); this.suspendLook() } this.capture?.event('pause', { paused }); this.paused = paused; this.seatedLook.setContext({ paused }); this.pausedRendered = false }
   private publishLeisure(): void {
     const free = !this.paused && !this.inspecting && !this.seatedLook.contactPending
@@ -517,12 +527,14 @@ export class PokerRoom {
       this.camera.fov = 75; this.camera.updateProjectionMatrix()
     }
     // Sway is applied last, to the render camera only (after look yaw/pitch).
-    // Inspection fades it out so reading your own cards stays easy; the wide
-    // diagnostic view is a furniture check and never sways.
+    // Inspection fades sway AND the motion post channels out (calmEffect), so
+    // reading your own cards stays easy; the wide diagnostic view never sways.
     const calm = this.diagnosticWide ? 0 : 1 - peek
-    applySway(this.camera, this.renderCamera, effect?.active && calm > 0 ? {
-      yaw: effect.sway.yaw * calm, pitch: effect.sway.pitch * calm, roll: effect.sway.roll * calm, bob: effect.sway.bob * calm } : null)
-    this.post.setEffect(effect?.active && !this.diagnosticWide ? effect.post : null)
+    const calmed = effect ? calmEffect(effect, calm) : null
+    applySway(this.camera, this.renderCamera, calmed?.active ? calmed.sway : null)
+    this.post.setEffect(calmed?.active ? calmed.post : null)
+    // The HRTF listener follows the LOGICAL camera: a woozy view must not make
+    // the fire's position wobble in your ears (#15 review).
     if (t - this.lastAudioPose >= 1 / 30 || this.lastAudioPose > t) {
       this.lastAudioPose = t; this.camera.updateMatrixWorld()
       this.onAudioListener?.(this.camera.matrixWorld.elements)
@@ -530,10 +542,14 @@ export class PokerRoom {
     if (this.experimentalLook) {
       // Project labels in the same frame as the scene without React frame
       // updates. Out-of-view anchors disappear instead of sticking to an edge.
-      this.camera.updateMatrixWorld()
+      // Labels follow the RENDER camera: they are drawn over the swayed image,
+      // so projecting through the steady logical camera left name tags
+      // drifting against the heads they label (#15 review). They move with
+      // the picture, exactly like the heads, which is what keeps them glued.
+      // tests/effects pins that every projection here uses renderCamera.
       for (const [seat, element] of this.worldLabels) {
         const point = seat < 0 ? this.labelPoint.set(0, .94, -.36) : this.labelPoint.set(SEATS[seat][0], 1.79, SEATS[seat][1])
-        point.project(this.camera)
+        point.project(this.renderCamera)
         element.style.visibility = Math.abs(point.x) > .94 || Math.abs(point.y) > .9 || point.z > 1 || point.z < -1 ? 'hidden' : ''
         element.style.left = `${(point.x + 1) * 50}%`; element.style.top = `${(1 - point.y) * 50}%`
       }

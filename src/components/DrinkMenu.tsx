@@ -1,4 +1,4 @@
-import type { KeyboardEvent } from 'react'
+import { useEffect, useRef, type KeyboardEvent } from 'react'
 import { DRINKS, DRINK_SECTIONS, TREATS, type DrinkKind, type OrderKind, type TreatKind } from '../scene/props/specs'
 
 /** Roving arrow focus across the order buttons. The card is NOT an ARIA menu:
@@ -32,14 +32,26 @@ function moveFocus(event: KeyboardEvent<HTMLDivElement>): void {
 export function DrinkMenu({ kind, treat = null, available, onOrder, onClose }: {
   kind: DrinkKind; treat?: TreatKind | null; available: boolean; onOrder: (kind: OrderKind) => void; onClose: () => void
 }) {
+  // When availability drops (a sip/cigar starts, the table pauses) every option
+  // becomes disabled, and a disabled button silently loses focus to <body>, so
+  // Tab/Escape stop meaning anything. If focus was in the list, park it on the
+  // close button: still inside the card, still one Enter from dismissing it.
+  const list = useRef<HTMLDivElement>(null), close = useRef<HTMLButtonElement>(null), focusInList = useRef(false)
+  useEffect(() => {
+    if (available || !focusInList.current) return
+    const active = document.activeElement
+    if (!active || active === document.body || list.current?.contains(active)) close.current?.focus()
+  }, [available])
   const option = (value: OrderKind, label: string, note: string, current: boolean) =>
     <button key={value} disabled={!available} aria-pressed={current} onClick={() => onOrder(value)}>
       <strong>{label}<span aria-hidden="true">{current ? '✓' : '↗'}</span></strong><small>{note}</small>
     </button>
   return <section className="drink-menu" aria-label="Drink menu">
-    <header><div><span>THE RIVER CLUB</span><h3>On the house.</h3></div><button autoFocus onClick={onClose} aria-label="Close drink menu">×</button></header>
+    <header><div><span>THE RIVER CLUB</span><h3>On the house.</h3></div><button ref={close} autoFocus onClick={onClose} aria-label="Close drink menu">×</button></header>
     <p>Choose a drink. No chips spent.</p>
-    <div className="drink-options" onKeyDown={moveFocus}>
+    <div className="drink-options" ref={list} onKeyDown={moveFocus}
+      onFocus={() => { focusInList.current = true }}
+      onBlur={event => { if (event.relatedTarget) focusInList.current = list.current?.contains(event.relatedTarget as Node) ?? false }}>
       {DRINK_SECTIONS.map(section => <div key={section.id} role="group" aria-labelledby={`drink-section-${section.id}`}>
         <h4 id={`drink-section-${section.id}`}>{section.title}</h4>
         {(Object.keys(DRINKS) as DrinkKind[]).filter(value => DRINKS[value].section === section.id)
@@ -48,10 +60,12 @@ export function DrinkMenu({ kind, treat = null, available, onOrder, onClose }: {
       {/* Fictional, cosmetic items (#14). The heading says so up front, so no
           one reads them as anything with real-world meaning or poker effect. */}
       <div role="group" aria-labelledby="drink-section-curiosities">
-        <h4 id="drink-section-curiosities">Curiosities <small>cosmetic · no effect on play</small></h4>
+        <h4 id="drink-section-curiosities">Curiosities <span>cosmetic · no effect on play</span></h4>
         {(Object.keys(TREATS) as TreatKind[]).map(value => option(value, TREATS[value].label, TREATS[value].note, value === treat))}
       </div>
     </div>
-    <p role="status">{available ? 'Delivered to your table. D sips · E takes a treat.' : 'Finish returning your drink or cigar first.'}</p>
+    {/* Mention E only when there is a dish to take from; otherwise the hint
+        advertises a key that does nothing. */}
+    <p role="status">{available ? `Delivered to your table. D sips${treat ? ' · E takes a treat' : ''}.` : 'Finish returning your drink or cigar first.'}</p>
   </section>
 }

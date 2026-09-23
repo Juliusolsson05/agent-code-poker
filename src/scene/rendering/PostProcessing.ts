@@ -12,8 +12,12 @@ import type { EffectFrame } from '../../interaction/effects/EffectEngine'
  * deterministic, frozen on pause and bounded by the engine's frequency table.
  *  - double: two taps averaged, so overall luminance is preserved (a soft
  *    double image, not a brightening ghost).
- *  - hue: a YIQ chroma rotation leaves Y (luma) untouched; cycling hue is
- *    therefore not a luminance flicker for photosensitivity purposes.
+ *  - hue: a YIQ chroma rotation, which on its own keeps Y (luma). It is NOT
+ *    exactly luma-preserving end to end: clamping negative channels
+ *    (max(rotated, 0)) and the saturation extrapolation both shift luma on
+ *    strongly saturated HDR emissives (fire, bulbs). That shift follows the
+ *    0.04 Hz hue cycle, two orders of magnitude below the 3 Hz flash band, so
+ *    it is a slow colour drift, not a flicker. Do not claim more than that.
  *  - warp/breath: low-spatial-frequency UV displacement ("walls breathing"),
  *    clamped to the frame so edges never sample garbage. */
 const IntoxicationShader = {

@@ -99,6 +99,7 @@ export class InteractionDirector {
     if (!isTreatKind(kind) || !this.leisure.stockTreat(TREATS[kind].slots.map(s => [...s] as [number, number, number]), now)) return false
     this.collectSip(); this.treatKind = kind; return true
   }
+  clearTreat(): void { if (this.leisure.clearTreat()) { this.collectSip(); this.treatKind = null; this.completedTreat = null } }
   canConsume(now: number): boolean { const allowed = this.leisure.canConsume(now); this.collectSip(); return allowed }
   setActive(active: boolean, now: number): void { this.leisure.setActive(active, now) }
   begin(action: 'drink' | 'smoke' | 'consume', now: number): boolean { return this.leisure.begin(action, now) }

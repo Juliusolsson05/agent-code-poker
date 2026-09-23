@@ -129,9 +129,16 @@ Tests pinned to four kinds (`lan-leisure`, `props`) are updated with the reason.
   high-water marks, so one cannot swallow the other.
 - **Default:** Normal (not Off), in solo and on LAN. It stays inert until the
   player's own receipts arrive, and Off is one click away.
-- **Labels vs sway:** world labels and the audio listener stay on the logical
-  camera by design, so they do not jitter. At Strong, a label can sit a few
-  pixels off its swaying head; that is the accepted cost.
+- **Labels vs sway (changed in review):** the audio listener stays on the
+  logical camera. World labels are now projected through the render camera,
+  so they move with the swayed picture and stay on their heads. The first
+  version kept them on the logical camera, and they drifted.
+- **Review round:** inspection now calms every motion post channel, not just
+  sway. The tint colour blends between sources instead of snapping to the
+  leader. `Room.endNight` removes the dish together with the effect, both on
+  leaving the table and on starting a new one. Steam fades out as the glass
+  rises. The menu gets scroll padding, a focus fallback when options become
+  disabled, and shows the E hint only when a dish exists.
 - **NPC drinks are unchanged.** `npc-drinking` replays recordings made with
   the original four kinds; giving NPCs new kinds would invalidate those
   fixtures without new recordings.

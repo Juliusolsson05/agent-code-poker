@@ -49,6 +49,16 @@ const PROFILES: Record<EffectSource, { onset: number; decay: number; perReceipt:
   lsd: { onset: 1 / 60, decay: 1 / 900, perReceipt: .8 },
 }
 const TINT: Record<EffectSource, string> = { drink: '#ad582b', mushroom: '#b8862b', lsd: '#7a4fb0' }
+const hex = (value: string) => [1, 3, 5].map(i => parseInt(value.slice(i, i + 2), 16))
+/** Contribution-weighted RGB mix; all-zero weights fall back to drink amber
+ * (the colour the tint had before #15), so an idle tint never flickers hue. */
+export function blendTint(parts: [string, number][]): string {
+  const total = parts.reduce((sum, [, w]) => sum + Math.max(0, w), 0)
+  if (!(total > 0)) return TINT.drink
+  const rgb = [0, 0, 0]
+  for (const [color, weight] of parts) hex(color).forEach((c, i) => { rgb[i] += c * Math.max(0, weight) / total })
+  return '#' + rgb.map(c => Math.round(c).toString(16).padStart(2, '0')).join('')
+}
 const SCALE: Record<EffectSetting, number> = { off: 0, normal: .55, strong: 1 }
 const TWO_PI = Math.PI * 2
 const clamp = (value: number, limit: number) => Math.max(-limit, Math.min(limit, value))
@@ -124,7 +134,10 @@ export class EffectEngine {
     // immediate dose tint above. The sum is capped well short of a wash-out.
     const treatTint = (mushroom + lsd) * .16
     const opacity = Math.min(.3, this.drinkTintOpacity + treatTint)
-    const color = lsd > Math.max(mushroom, drink) ? TINT.lsd : mushroom > drink ? TINT.mushroom : TINT.drink
+    // Blend the source colours by their current contribution instead of
+    // snapping to the leader: as a drink fades and a treat comes on, the edge
+    // glides from amber to violet rather than jumping at the crossover.
+    const color = blendTint([[TINT.drink, this.drinkTintOpacity], [TINT.mushroom, mushroom * .16], [TINT.lsd, lsd * .16]])
     const tint = { opacity, color }
     const zero: EffectFrame = { tint, sway: { yaw: 0, pitch: 0, roll: 0, bob: 0 },
       post: { double: [0, 0], hueAngle: 0, hueMix: 0, saturation: 0, warp: 0, warpPhase: [0, 0], breath: 0 }, active: false }

@@ -231,6 +231,8 @@ export function App({ api }: { api: PokerApi }) {
     if (locked.current || loading || sceneFailed) return
     game.current = new PokerGame(); bank.current=freshSoloBank(game.current); game.current.startHand()
     audio.current?.resetEvents()
+    // A fresh table is a fresh night: effect and treat dish end with the old one.
+    scene.current?.endNight()
     setConfirmNew(false); setPanel(null); setError(''); setLoadFailed(false); setPaused(false); setLobby(false)
     audio.current?.unlock(); audio.current?.play('card'); root.current?.focus({ preventScroll: true }); publish()
   }

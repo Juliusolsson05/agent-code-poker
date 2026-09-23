@@ -89,6 +89,11 @@ export class FirstPerson {
     next.show(this.director.treat?.remaining ?? 0)
     return true
   }
+  /** Session end: remove the dish and its count (Room.endNight). */
+  clearTreat(): void {
+    this.director.clearTreat()
+    if (!this.director.treat) { this.treat?.dispose(); this.treat = null }
+  }
   get treatState(): { kind: TreatKind; remaining: number } | null { return this.director.treat }
   get canConsume(): boolean { return this.active && !this.inspecting && this.director.canConsume(this.now) }
   consumeTreat(): boolean { return this.director.begin('consume', this.now) }
@@ -161,7 +166,10 @@ export class FirstPerson {
     // can accidentally apply a camera or body transform a second time.
     this.drink.root.position.set(...pose.drink.position); this.drink.root.quaternion.set(...pose.drink.rotation)
     this.cigar.position.set(...pose.cigar.position); this.cigar.quaternion.set(...pose.cigar.rotation)
-    this.drink.frame(now, reduced)
+    // Lift progress 0 (on the coaster) → 1 (at the lips), from the actual
+    // world pose, so steam fades out before the rim reaches the face.
+    const lift = THREE.MathUtils.clamp((pose.drink.position[1] - this.drinkHome.y) / (PLAYER_LAYOUT.mouth[1] - this.drinkHome.y), 0, 1)
+    this.drink.frame(now, reduced, lift)
     if (this.treat) {
       // The dish shows what rests in it; the held piece exists only while the
       // director says the hand owns it (eaten = hidden, not dropped).

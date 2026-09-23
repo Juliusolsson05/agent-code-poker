@@ -8,6 +8,10 @@ import { TableTreat } from '../src/scene/props/Treats'
 import { TREATS, type TreatKind } from '../src/scene/props/specs'
 import { TREAT_PINCH_ENVELOPE } from '../src/scene/HandGrips'
 import { PLAYER_LAYOUT } from '../src/scene/environment/layout'
+import { TableDrink } from '../src/scene/Drinks'
+import { createElement } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { DrinkMenu } from '../src/components/DrinkMenu'
 
 const v = (p: number[]) => new THREE.Vector3(...p)
 const kinds = Object.keys(TREATS) as TreatKind[]
@@ -92,4 +96,39 @@ test('treats stay out of the engine, bots, saves and LAN authority', () => {
     const text = readFileSync(file, 'utf8')
     for (const word of ['TREATS', 'TreatKind', 'EffectEngine', 'mushroom', 'lsd']) assert.ok(!text.includes(word), `${file} references ${word}`)
   }
+})
+
+test('ending the night removes the dish and its count, so no stale "· 0" survives', () => {
+  const d = new InteractionDirector(); d.setActive(true, 0); d.orderTreat('lsd', 0)
+  d.begin('consume', 0); d.sample(5); d.takeCompletedTreat()
+  assert.deepEqual(d.treat, { kind: 'lsd', remaining: 0 })
+  d.setActive(false, 5); d.clearTreat()
+  assert.equal(d.treat, null); assert.equal(d.canConsume(5), false)
+  // Mid-lift, the owner refuses to drop a held piece; Room deactivates first.
+  const busy = new InteractionDirector(); busy.setActive(true, 0); busy.orderTreat('mushrooms', 0); busy.begin('consume', 0); busy.sample(1.5)
+  busy.clearTreat(); assert.equal(busy.treat?.kind, 'mushrooms')
+  // Room.endNight is the single place the effect and the dish both end, and
+  // both leaving the table and starting a fresh one go through it.
+  const room = readFileSync(resolve('src/scene/Room.ts'), 'utf8'), app = readFileSync(resolve('src/App.tsx'), 'utf8')
+  const endNight = room.slice(room.indexOf('endNight(): void {'), room.indexOf('}', room.indexOf('endNight(): void {')))
+  assert.match(endNight, /this\.hero\.clearTreat\(\)/); assert.match(endNight, /this\.effects\.reset\(\)/)
+  assert.match(room, /if \(!playing\) \{[^}]*this\.endNight\(\)/)
+  assert.match(app.slice(app.indexOf('const newTable'), app.indexOf('const newTable') + 600), /endNight\(\)/)
+})
+
+test('steam fades out as the glass is lifted toward the eye', () => {
+  const drink = new TableDrink('mulled-wine')
+  drink.frame(3, false, 0); assert.ok(drink.vapourOpacity > .05)
+  drink.frame(3, false, .5); const mid = drink.vapourOpacity
+  drink.frame(3, false, 1); assert.equal(drink.vapourOpacity, 0, 'no vapour sheet across the near plane at the sip')
+  assert.ok(mid > 0 && mid < .1)
+  drink.dispose()
+})
+
+test('the menu only advertises E when a dish exists, and headings keep their own style', () => {
+  const noDish = renderToStaticMarkup(createElement(DrinkMenu, { kind: 'wine', available: true, onOrder: () => {}, onClose: () => {} }))
+  assert.doesNotMatch(noDish, /E takes a treat/); assert.match(noDish, /D sips\./)
+  const dish = renderToStaticMarkup(createElement(DrinkMenu, { kind: 'wine', treat: 'mushrooms', available: true, onOrder: () => {}, onClose: () => {} }))
+  assert.match(dish, /E takes a treat/)
+  assert.doesNotMatch(dish, /<h4[^>]*>[^<]*<small/, 'heading note must not inherit the option-note style')
 })

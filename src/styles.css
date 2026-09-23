@@ -264,16 +264,18 @@ h2 { font-family: Georgia, serif; font-size: 33px; font-weight: 400; letter-spac
 .drink-menu h3 { font: 25px Georgia, serif; margin: 5px 0 0; }
 .drink-menu header button { border: 0; background: none; color: #c5b697; font-size: 21px; padding: 0 5px; }
 .drink-menu p { color: #a9a18f; font-size: 11px; line-height: 1.5; margin: 8px 0; }
-.drink-options { display: grid; gap: 4px; margin: 4px -6px 6px 0; padding-right: 6px; overflow-y: auto; min-height: 0; flex: 1 1 auto; overscroll-behavior: contain; }
+.drink-options { display: grid; gap: 4px; margin: 4px -6px 6px 0; padding-right: 6px; overflow-y: auto; min-height: 0; flex: 1 1 auto; overscroll-behavior: contain; scroll-padding-top: 30px; }
+/* scroll-padding-top = the sticky h4's height, so arrow/Tab focus scrolls a
+ * button into view BELOW the heading instead of underneath it. */
 .drink-options [role="group"] { display: grid; gap: 4px; }
 /* Sticky headings keep "Warm"/"Soft" readable while their items scroll. */
 .drink-options h4 { position: sticky; top: 0; z-index: 1; margin: 8px 0 2px; padding: 4px 0; background: #181b18; color: #c9ad78; font: 600 9px/1.2 system-ui, sans-serif; letter-spacing: 1.8px; text-transform: uppercase; }
-.drink-options h4 small { color: #8f887a; font-weight: 400; letter-spacing: .4px; text-transform: none; margin-left: 4px; }
+.drink-options h4 span { color: #8f887a; font-weight: 400; letter-spacing: .4px; text-transform: none; margin-left: 4px; }
 .drink-options button { text-align: left; padding: 8px 10px; color: #daccb1; background: #282b2455; border: 1px solid #b39b6630; border-radius: 3px; }
 .drink-options button:focus-visible { outline: 2px solid #d8b878; outline-offset: -2px; }
 .drink-options button[aria-pressed="true"] { background: #55473355; border-color: #c1a77280; }
 .drink-options strong { display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; }
-.drink-options small { display: block; margin-top: 3px; color: #a29c8f; font-size: 10px; }
+.drink-options button small { display: block; margin-top: 3px; color: #a29c8f; font-size: 10px; }
 .drink-options button:disabled { opacity: .45; cursor: not-allowed; }
 @media (max-width: 850px) { .room-top-right { gap: 5px; right: 12px; } .room-top-right button { padding: 7px; } .community-board, .drink-menu { right: 12px; } }
 /* At narrower widths the centered betting buttons use the same horizontal

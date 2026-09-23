@@ -53,7 +53,13 @@ export class Leisure {
     this.slots = slots.map(s => [...s] as Vec3); this.remaining = slots.length
     return true
   }
-  clearTreat(): void { if (this.action === 'idle') { this.slots = []; this.remaining = 0 } }
+  /** The dish leaves with the session (Room.endNight). Only when idle: a
+   * piece still in the fingers keeps a consistent owner until setActive(false)
+   * has returned the action to idle, which Room does first. */
+  clearTreat(): boolean {
+    if (this.action !== 'idle') return false
+    this.slots = []; this.remaining = 0; return true
+  }
   get treatRemaining(): number { return this.remaining }
   canConsume(now: number): boolean { return this.canReplaceDrink(now) && this.remaining > 0 }
 

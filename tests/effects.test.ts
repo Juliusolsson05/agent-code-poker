@@ -1,8 +1,10 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import * as THREE from 'three'
-import { EffectEngine, EFFECT_FREQUENCIES, ROLL_CAP, type EffectFrame } from '../src/interaction/effects/EffectEngine'
-import { applySway } from '../src/scene/rendering/EffectCamera'
+import { readFileSync } from 'node:fs'
+import ts from 'typescript'
+import { EffectEngine, EFFECT_FREQUENCIES, ROLL_CAP, blendTint, type EffectFrame } from '../src/interaction/effects/EffectEngine'
+import { applySway, calmEffect } from '../src/scene/rendering/EffectCamera'
 import { PostProcessing } from '../src/scene/rendering/PostProcessing'
 
 // The worst case the engine can reach: every source at its cap on Strong,
@@ -111,12 +113,12 @@ test('profiles are distinct: drinks sway, mushrooms saturate and breathe, LSD cy
   assert.equal(soft.active, false, 'soft drinks never intoxicate')
 })
 
-test('sway moves only the render camera; the logical camera (audio, labels) stays put', () => {
+test('sway moves only the render camera; the logical camera (audio listener) stays put', () => {
   const logical = new THREE.PerspectiveCamera(70, 1.6, .035, 35), view = new THREE.PerspectiveCamera()
   logical.position.set(0, 1.43, 1.5); logical.lookAt(0, 1.03, -.6); logical.rotateOnWorldAxis(new THREE.Vector3(0, 1, 0), .3); logical.updateMatrixWorld()
   const before = logical.matrixWorld.clone()
   applySway(logical, view, { yaw: .02, pitch: .01, roll: ROLL_CAP, bob: .01 })
-  assert.ok(logical.matrixWorld.equals(before), 'the listener/label camera must not be touched')
+  assert.ok(logical.matrixWorld.equals(before), 'the listener camera must not be touched')
   assert.ok(!view.matrixWorld.equals(before))
   // Roll is about the view axis: the forward direction is unchanged by roll,
   // the horizon tilts by exactly the capped angle.
@@ -139,4 +141,64 @@ test('post pass is bypassed at zero intensity and enabled only by real parameter
   pipeline.setEffect(saturated().sample(3, true).post); assert.equal(pipeline.diagnostics().effectEnabled, false, 'reduced motion bypasses the pass')
   pipeline.setEffect(null); assert.equal(pipeline.diagnostics().effectEnabled, false)
   pipeline.dispose()
+})
+
+test('Room projects world labels through the swayed render camera and keeps audio on the logical one', () => {
+  // Behaviour first: under real sway a head lands somewhere else on screen,
+  // so a tag projected through the steady camera visibly drifts off it.
+  const logical = new THREE.PerspectiveCamera(70, 1.6, .035, 35), view = new THREE.PerspectiveCamera()
+  logical.position.set(0, 1.43, 1.5); logical.lookAt(0, 1.03, -.6); logical.updateMatrixWorld()
+  applySway(logical, view, { yaw: .03, pitch: .015, roll: ROLL_CAP, bob: .01 })
+  const head = new THREE.Vector3(-1.10, 1.79, -1.03)
+  const drift = head.clone().project(view).distanceTo(head.clone().project(logical))
+  assert.ok(drift > .02, `sway must move a head on screen (${drift}); otherwise this contract is vacuous`)
+  // Then the wiring: every projection inside Room.frame must use renderCamera,
+  // and the listener must read the logical camera. A regression to
+  // `.project(this.camera)` fails here (the review found exactly that).
+  const source = readFileSync(new URL('../src/scene/Room.ts', import.meta.url), 'utf8')
+  const file = ts.createSourceFile('Room.ts', source, ts.ScriptTarget.Latest, true)
+  let frameBody: ts.Node | undefined
+  const find = (node: ts.Node) => {
+    if (ts.isPropertyDeclaration(node) && node.name.getText(file) === 'frame') frameBody = node.initializer
+    ts.forEachChild(node, find)
+  }
+  find(file); assert.ok(frameBody, 'Room.frame not found')
+  const projections: string[] = [], listener: string[] = []
+  const visit = (node: ts.Node) => {
+    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
+      if (node.expression.name.text === 'project') projections.push(node.arguments[0].getText(file))
+      if (node.expression.getText(file).includes('onAudioListener')) listener.push(node.arguments[0].getText(file))
+    }
+    ts.forEachChild(node, visit)
+  }
+  visit(frameBody!)
+  assert.ok(projections.length > 0)
+  assert.deepEqual([...new Set(projections)], ['this.renderCamera'], 'world labels must follow the rendered (swayed) image')
+  assert.deepEqual(listener, ['this.camera.matrixWorld.elements'], 'the HRTF listener must stay on the steady logical camera')
+})
+
+test('card inspection calms every motion channel, not just the camera', () => {
+  const frame = saturated().sample(21.7, false)
+  const leaning = calmEffect(frame, 0)
+  // Magnitudes, not deepEqual: a negative phase times 0 is -0, which is still still.
+  for (const value of [...Object.values(leaning.sway), ...leaning.post.double, leaning.post.warp, leaning.post.breath, leaning.post.hueMix])
+    assert.equal(Math.abs(value), 0)
+  assert.equal(leaning.post.saturation, frame.post.saturation, 'static colour may remain')
+  const half = calmEffect(frame, .5)
+  assert.ok(Math.abs(half.sway.roll - frame.sway.roll / 2) < 1e-12 && Math.abs(half.post.warp - frame.post.warp / 2) < 1e-12)
+  assert.deepEqual(calmEffect(frame, 1), frame)
+  const sober = new EffectEngine().sample(3, false)
+  assert.equal(calmEffect(sober, 1).active, false, 'calming never activates a bypassed pass')
+})
+
+test('the edge tint colour glides between sources instead of snapping at the crossover', () => {
+  // Sweep the drink/LSD balance through the point where LSD takes the lead.
+  let previous: number[] | null = null
+  const rgb = (c: string) => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16))
+  for (let i = 0; i <= 100; i++) {
+    const colour = rgb(blendTint([['#ad582b', 1 - i / 100], ['#b8862b', 0], ['#7a4fb0', i / 100]]))
+    if (previous) assert.ok(Math.max(...colour.map((c, k) => Math.abs(c - previous![k]))) <= 3, `tint jumped at step ${i}`)
+    previous = colour
+  }
+  assert.equal(blendTint([['#ad582b', 0], ['#7a4fb0', 0]]), '#ad582b', 'idle tint keeps the old amber')
 })

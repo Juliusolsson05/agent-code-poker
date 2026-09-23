@@ -75,11 +75,19 @@ export class TableDrink {
   /** Presentation-only drift for vapour. Driven by the Room's paused visual
    * clock, so pause freezes it and reduced motion keeps it still. The opacity
    * breath is 0.2 Hz, far below the 3 Hz photosensitivity bound. */
-  frame(time: number, reduced: boolean): void {
+  /** `lift` is 0 on the coaster and 1 at the lips. Steam fades to nothing as
+   * the glass rises: at the sip it rises ~3cm above a rim that sits 95mm
+   * under the eye, i.e. through the camera's 35mm near plane, where a
+   * translucent sheet would smear across the whole view. Vapour you are
+   * drinking through is not worth that artefact. */
+  frame(time: number, reduced: boolean, lift = 0): void {
     if (!this.steam) return
+    const fade = 1 - THREE.MathUtils.smoothstep(lift, .15, .7)
     this.steam.rotation.y = reduced ? 0 : time * .25
-    ;(this.steam.material as THREE.MeshStandardMaterial).opacity = reduced ? .09 : .085 + .025 * Math.sin(time * Math.PI * 2 * .2)
+    this.steam.visible = fade > 0
+    ;(this.steam.material as THREE.MeshStandardMaterial).opacity = fade * (reduced ? .09 : .085 + .025 * Math.sin(time * Math.PI * 2 * .2))
   }
+  get vapourOpacity(): number { return this.steam?.visible ? (this.steam.material as THREE.MeshStandardMaterial).opacity : 0 }
   private add(mesh: THREE.Mesh, name: string): void {
     mesh.name = name; mesh.castShadow = false; mesh.receiveShadow = true; this.root.add(mesh)
   }
