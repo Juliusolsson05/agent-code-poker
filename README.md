@@ -61,7 +61,7 @@ hand clears them. The human-dealer experiment was rejected because its seating
 layout did not work well and has been removed. The poker button and dealing
 rules remain unchanged; the engine still owns every chip balance.
 
-This is an evolving visual/gameplay implementation, not a finished realism benchmark. WebGL2 is required. The camera is desktop seated perspective, not headset/WebXR support. The extension remains solo; the standalone LAN website is an integration candidate, not a verified multiplayer release. There is no real money or public remote service. Blinds stay at 10/20 with a moving button. Bots sample equity and have different risk profiles; they are not a solver or a claim of professional-level play.
+This is an evolving visual/gameplay implementation, not a finished realism benchmark. WebGL2 is required. The camera is desktop seated perspective, not headset/WebXR support. The extension also offers LAN play (**Play Agent Code Poker with friends (LAN)**), but two-device acceptance inside the installed app is still open. The standalone LAN website is likewise an integration candidate, not a verified multiplayer release. There is no real money or public remote service. Blinds stay at 10/20 with a moving button. Bots sample equity and have different risk profiles; they are not a solver or a claim of professional-level play.
 
 `src/engine/` owns the ledger and legal decisions; `src/scene/` projects state into cards, chips, voxel humans and first-person hands; `src/App.tsx` owns controls, pacing and storage. Rendering never changes chip balances. Keep WHY comments beside these invariants. Full Electron-host verification is separate from the browser preview.
 
@@ -126,11 +126,46 @@ command stream as wagers. Old host checkpoints migrate with zero debt and
 unchanged chips. Solo bank integration and live multi-client bank acceptance
 remain open; passing HTTP tests is not browser verification.
 Actual recovery/two-browser3D acceptance and separate-device
-LAN acceptance remain open. Starting a LAN game INSIDE the installed extension,
-without a terminal, is now required for release. The current SDK has no
-network-hosting API and does not load this standalone server. The proposed
-permission-gated Agent Code transport requires separately authorized host/SDK
-work; terminal hosting is a development adapter, not the final experience.
+LAN acceptance remain open.
+
+### LAN inside the extension
+
+The extension hosts the same server as a declared service (`server/service.ts`,
+`dist-service/lan-host.mjs`) through Agent Code's permission-gated APIs:
+
+- `service.run` starts it on loopback;
+- `net.listen` has Agent Code expose it on the private LAN;
+- `service.transport` connects the host player's own view;
+- `net.connect` lets a guest join a friend's table through a brokered fetch.
+
+The share line shows `http://<LAN IP>:<port>`. The service reports the IP,
+because the sandboxed view cannot list network interfaces; `expose()` returns
+the port.
+
+Every in-app request reaches the server through Agent Code's main process from
+127.0.0.1. Agent Code therefore marks each request (`x-agent-code-transport`)
+and forwards the guest's real address and Host. `server/http.ts`
+(`resolveCaller`) turns those facts into the same peer, Host and same-origin
+rules the website uses, so a LAN guest can never take the loopback-only host
+seat. The markers only count on a loopback socket, and the server must never
+answer CORS preflights; `tests/lan-proxy-contract.test.ts` pins both.
+The markers are read only when the server runs as the extension's service
+(`agentCodeHost`); the standalone CLI never reads them. A `lan` marker is
+trusted only with the Host the listener always sends, `127.0.0.1:<port>`.
+
+Loopback callers get local-user trust and no more. Any local program can speak
+to the loopback port, and a client on this computer that dials the listener on
+127.x may create the table, like the host computer's own browser.
+
+LAN play is IPv4 only. Agent Code's listener admits private IPv6 peers, but
+this server refuses them, just as the standalone server does, and the share
+line lists IPv4 addresses. The limit lives here rather than in the listener
+because the listener is shared by every extension service.
+
+Two-device acceptance in the installed app is still open.
+`testing/manual/agent-code-lan-e2e.mts` runs Agent Code's real proxy, listener
+and `net.fetch` code in front of this server (`AGENT_CODE_DIR=…`, see the file
+header).
 
 The CLI stores its private checkpoint in ignored `.poker-lan/` on local disk.
 It contains private cards and credentials: never share, serve, export or commit
