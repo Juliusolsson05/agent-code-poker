@@ -5,6 +5,7 @@ import { BettingControls } from '../../src/components/BettingControls'
 import { SeatRecovery } from './SeatRecovery'
 import { ResponseOrder, ObsoleteResponse } from './ResponseOrder'
 import { LeisureControls, leisureShortcut } from './LeisureControls'
+import { isDrinkKind } from '../../src/scene/props/specs'
 import { BankControls } from '../../src/components/BankControls'
 import { PokerHeader, TableInfo, SeatContents, PotContents, TableReadout } from '../../src/components/PokerChrome'
 import { evaluate } from '../../src/engine/cards'
@@ -28,7 +29,7 @@ const responses = new ResponseOrder()
 const hex = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), v => v.toString(16).padStart(2, '0')).join('')
 let token = '', admissionNonce = hex(), state = null, pending = false, polling = false, ended = false
 let room = null, renderFailed = false, inspected = false, menuOpen = false, connectionLost = false, controlsRevision = 0, authorityRevision = -1
-let drinkMenuOpen = false, wagerOpen = false, leisure = { kind: 'old-fashioned', available: false }
+let drinkMenuOpen = false, wagerOpen = false, leisure = { kind: 'old-fashioned', available: false, treat: null, canConsume: false }
 const labels = new Map(), bettingRef = createRef(), bettingRoot = createRoot(el('actions'))
 const leisureRoot = createRoot(el('leisure'))
 const bankRoot = createRoot(el('bank'))
@@ -173,41 +174,58 @@ async function api(path, body) {
   return data
 }
 function leisureContext() {
-  return { available: leisure.available, menuOpen: drinkMenuOpen,
+  return { available: leisure.available, menuOpen: drinkMenuOpen, treatsAllowed: !!state?.features?.treats,
     blocked: !state || !room || renderFailed || pending || connectionLost || ended ||
       state.paused || state.view.phase==='ready' || state.view.self.waiting || inspected || menuOpen || wagerOpen }
 }
 function renderLeisure() {
   if (!state) { leisureRoot.render(null);return }
-  leisureRoot.render(createElement(LeisureControls,{...leisureContext(),kind:leisure.kind,
-    onSmoke:()=>requestLeisure('smoke'),onSip:()=>requestLeisure('drink'),onMenuChange:drinkMenu,
+  leisureRoot.render(createElement(LeisureControls,{...leisureContext(),kind:leisure.kind,treat:leisure.treat,canConsume:leisure.canConsume,
+    onSmoke:()=>requestLeisure('smoke'),onSip:()=>requestLeisure('drink'),onConsume:()=>requestLeisure('consume'),onMenuChange:drinkMenu,
     onOrder:kind=>{
       // Recheck current context on dispatch, not the last React frame. Polls
       // may pause/disconnect the table between rendering and a queued click.
+      // Treats (#14) are local cosmetic props exactly like drinks: nothing is
+      // sent to the host, and the effect they feed stays on this screen.
       const context=leisureContext()
-      if(!context.blocked && context.available && room?.orderDrink(kind)) { sendLeisure({action:'order',kind});drinkMenu(false) }
+      // Only drink orders reach the host (other players see the glass); a treat
+      // order stays local like the treat itself (see Room.onLeisureStarted).
+      if(!isDrinkKind(kind) && !context.treatsAllowed)return
+      if(!context.blocked && context.available && (isDrinkKind(kind)?room?.orderDrink(kind):room?.orderTreat(kind))) {
+        if(isDrinkKind(kind))sendLeisure({action:'order',kind})
+        drinkMenu(false)
+      }
     }}))
 }
-// Other players only see this avatar's gestures through the host. Send AFTER
-// the local room accepted (never instead of it: the local animation owner may
-// refuse, e.g. mid-inspection) and outside run()/pending, so a cigar can never
-// disable wagering or show "Sending…". Fire-and-forget: the reply is a bare
-// receipt (no envelope), the next poll carries the projected result, and a
-// refusal (paused, rate-limited) only means the others miss one cosmetic
-// gesture. Never retried: replaying a puff late is worse than missing it.
+// Other players only see this avatar's gestures through the host. Sent from
+// the room's onLeisureStarted (wired in ensureRoom), i.e. when the gesture
+// ACTUALLY starts locally, never at request time: with mouse-look a request is
+// only queued until the view re-centres, and an interruption before that
+// (pause, hand end, a panel, inspection) must not have been broadcast. Outside
+// run()/pending, so a cigar can never disable wagering or show "Sending…".
+// Fire-and-forget: the reply is a bare receipt (no envelope), the next poll
+// carries the projected result, and a refusal only means the others miss one
+// cosmetic gesture. Never retried: replaying a puff late is worse than missing it.
 let leisureSending=false,lastLeisureHeal=-Infinity
 function sendLeisure(body) {
   if(!token || ended)return
-  leisureSending=true
+  // Any send already tells the host our glass; do not let the heal fire a
+  // redundant order right behind a user's own sip or order.
+  leisureSending=true;lastLeisureHeal=performance.now()
   void api('/api/leisure',body).catch(()=>{}).finally(()=>{leisureSending=false})
+}
+function leisureStarted(kind) {
+  // publishLeisure ran synchronously before the start, so leisure.kind is the
+  // glass actually being lifted, which is what the others must see.
+  sendLeisure(kind==='smoke'?{action:'smoke'}:{action:'sip',kind:leisure.kind})
 }
 function requestLeisure(kind) {
   const context=leisureContext()
   if(context.blocked || context.menuOpen || !context.available)return
-  const accepted=kind==='smoke'?room?.smokeCigar():room?.sipDrink()
-  // publishLeisure ran synchronously inside the call, so leisure.kind is the
-  // glass actually being lifted, which is what the others must see.
-  if(accepted)sendLeisure(kind==='smoke'?{action:'smoke'}:{action:'sip',kind:leisure.kind})
+  // Treats off (host switch): the E button is hidden and leisureShortcut drops
+  // E, and this is the last check before the Room, for any other caller.
+  if(kind==='consume' && !context.treatsAllowed)return
+  if(kind==='smoke')room?.smokeCigar();else if(kind==='consume')room?.consumeTreat();else room?.sipDrink()
   focusTable()
 }
 /** The host remembers the drink it last heard about; this tab's glass resets
@@ -238,7 +256,9 @@ function ensureRoom(viewer,neutral=false) {
     room=new PokerRoom(el('scene'),failed,undefined,value=>{leisure=value;renderLeisure()},viewer)
     // Viewer changes rebuild the room, but should not undo this browser's
     // comfort preference. It stays local: camera settings are never host state.
-    room.setLookEnabled(lookEnabled)
+    room.setLookEnabled(lookEnabled);room.onLeisureStarted=leisureStarted
+    // Rebuilt rooms keep the chosen effect level too (a new room starts Off).
+    room.setDrinkEffect(el('drink-effect').value)
     sceneViewer=identity
     for(let seat=1;seat<6;seat++) {
       const node=document.createElement('div');node.className='seat';el('labels').append(node)
@@ -262,7 +282,7 @@ function render() {
   if (!state) {
     ensureRoom(0,true);room?.setPlaying(false);bettingRoot.render(null);audio.resetEvents()
     hudRoot.render(null);potRoot.render(null);infoRoot.render(null);el('actions').hidden=el('deal-actions').hidden=true
-    inspected=false;menuOpen=false;drinkMenuOpen=false;wagerOpen=false;leisure={kind:'old-fashioned',available:false}
+    inspected=false;menuOpen=false;drinkMenuOpen=false;wagerOpen=false;leisure={kind:'old-fashioned',available:false,treat:null,canConsume:false}
     connectionLost=false;authorityRevision=-1;el('menu').hidden=true;leisureRoot.render(null);bankRoot.render(null)
     chatOpen=false;chatStatus='';chatVoice.reset();chatRoot.render(null);featuresRoot.render(null);renderVoiceSettings();showSaved(); return
   }
@@ -281,7 +301,7 @@ function render() {
     label.node.classList.toggle('active',v.actor===p.seat);label.node.classList.toggle('folded',p.folded)
     label.node.classList.toggle('out',p.stack===0 && !p.committed);label.node.style.setProperty('--seat-color',CHARACTERS[p.seat].color)
     // The bubble is a child of the label node, so it rides whatever projection
-    // Room applies to that node (PR #20 moves it to the render camera); chat
+    // Room applies to that node (since PR #20, the render camera's projection); chat
     // needs no second world-to-screen path that could drift from the label.
     const bubble=bubbleFor(v.chat??[],p.displaySeat)
     label.root.render(createElement(Fragment,null,createElement(SeatContents,{name:p.name,dealer:v.dealer===p.seat,blind:v.smallBlindSeat===p.seat?'SB':v.bigBlindSeat===p.seat?'BB':'',
@@ -402,6 +422,9 @@ el('details').onclick=()=>menu(!menuOpen);el('close-menu').onclick=()=>menu(fals
 for(const id of ['ambience-level','effects-level'])el(id).onchange=()=>{
   audio.setLevels(Number(el('ambience-level').value),Number(el('effects-level').value))
 }
+// Same local setting and engine as solo (#15). It only reacts to THIS
+// browser's completed sips/treats; no peer can drive another screen's effect.
+el('drink-effect').onchange=()=>room?.setDrinkEffect(el('drink-effect').value)
 el('look-enabled').onclick=()=>{
   lookEnabled=!lookEnabled;room?.setLookEnabled(lookEnabled)
   el('look-enabled').setAttribute('aria-pressed',String(lookEnabled))

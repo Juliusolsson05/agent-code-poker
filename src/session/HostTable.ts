@@ -1,7 +1,7 @@
 import { chooseAction, observe, type Observation } from '../engine/bots'
 import { CHARACTERS, PokerGame, type Action } from '../engine/game'
 import { projectTable, type SeatLeisure, type TableView } from './view'
-import { isDrinkKind, type DrinkKind } from '../scene/props/specs'
+import { GESTURE_SECONDS, isDrinkKind, type DrinkKind } from '../scene/props/specs'
 import { createPracticeBank, planBankTransfer, restorePracticeBank, REBUY_CHIPS, type BankState, type BankOperation } from '../bank/PracticeBank'
 
 type Identity = { id: string; name: string }
@@ -18,17 +18,34 @@ type Code = 'accepted' | 'duplicate' | 'unauthorized' | 'invalid' | 'disconnecte
   'sequence-conflict' | 'out-of-order' | 'stale' | 'not-your-turn' | 'illegal'
 export type Receipt = { ok: boolean; code: Code; revision: number }
 type LeisureRequest = { action: 'smoke' } | { action: 'sip' | 'order'; kind: DrinkKind }
-type LeisureCode = 'accepted' | 'unauthorized' | 'invalid' | 'disconnected' | 'waiting' | 'paused' | 'rate-limited'
+type LeisureCode = 'accepted' | 'unauthorized' | 'invalid' | 'disconnected' | 'waiting' | 'paused' | 'busy' | 'rate-limited'
 /** Deliberately carries no revision: a leisure receipt must not look like, or
  * be ordered against, a wager acknowledgement. */
 export type LeisureReceipt = { ok: boolean; code: LeisureCode }
-/** Per-member spacing, not a UI debounce: one browser (or a script holding the
- * token) cannot make its avatar strobe for everybody else. 2.5s is shorter
- * than one sip (6s), so a real player is never refused a deliberate repeat;
- * the renderer queues the second gesture until the hand is free. Orders are
- * a glass swap with no gesture, so they get their own shorter spacing. The
- * age cap only bounds the projected number; older gestures are long finished. */
-export const LEISURE_LIMITS = { animatedMs: 2500, orderMs: 1000, maxAgeMs: 60_000 } as const
+/** One coherent spacing rule (review of #21): a new smoke/sip is refused
+ * ('busy') while the member's previous gesture is still within its AUTHORED
+ * length (GESTURE_SECONDS, shared with the hero and the opponent copies).
+ * - It never refuses a real gesture: the local player cannot start a second
+ *   gesture before the first one ends either, so an honest client's requests
+ *   are always at least that far apart. The one exception is a local
+ *   interruption (inspection cuts a gesture short); then the next gesture is
+ *   simply not shown to others, which is a missing cosmetic, not a phantom.
+ * - It keeps every other screen honest: remote copies last exactly as long,
+ *   so no remote copy ever has to queue behind the previous one and drift,
+ *   and at most one can be waiting for a hand at a time.
+ * The old flat 2.5s limit accepted chains that remote bodies could not keep
+ * up with (drift, then a newer gesture overwriting an unseen queued one).
+ * jitterMs absorbs request timing noise between two back-to-back local
+ * starts; the renderer queues that sub-second overlap behind the busy hand.
+ * Orders are a glass swap with no gesture, so they keep a plain spacing. The
+ * age cap only bounds the projected number. */
+export const LEISURE_LIMITS = { jitterMs: 250, orderMs: 1000, maxAgeMs: 60_000 } as const
+export const gestureSpacingMs = (action: 'smoke' | 'sip') =>
+  (action === 'sip' ? GESTURE_SECONDS.drink : GESTURE_SECONDS.smoke) * 1000 - LEISURE_LIMITS.jitterMs
+/** The last ANIMATED gesture and the current drink are separate facts. An
+ * order must never overwrite a smoke/sip that a viewer has not polled yet
+ * (a latest-only record hid it), so orders only change drinkKind. */
+type LeisureRecord = { gesture: { seq: number; action: 'smoke' | 'sip'; at: number } | null; drinkKind: DrinkKind | null; orderedAt: number }
 /** Chat is table talk, not poker state: like leisure it never touches
  * PokerGame, the member command sequence, #revision or the checkpoint.
  * - maxChars counts code points after normalisation, so an emoji is one.
@@ -48,7 +65,6 @@ type ChatRecord = { seq: number; memberId: string; seat: number; name: string; t
  * sender chose, the seat everyone can see, and an age instead of a host
  * timestamp. voice says the host currently holds a relayed clip for seq. */
 export type ChatLine = { seq: number; seat: number; displaySeat: number; name: string; text: string; ageMs: number; voice: boolean }
-type LeisureRecord = { seq: number; action: 'smoke' | 'sip' | 'order'; at: number; drinkKind: DrinkKind | null; animatedAt: number; orderedAt: number }
 export type SessionView = Omit<TableView, 'players'> & {
   revision: number; chat: ChatLine[]; self: { seat: number; waiting: boolean; nextSequence: number;
     bank: { debt: number; borrowAmount: number; canBorrow: boolean; repayMax: number; reason: string | null } }
@@ -137,11 +153,18 @@ export class HostTable {
   // not part of exportHostCheckpoint. A sip must never cost a disk commit, and a
   // host restart simply forgets who was holding a cigar.
   #leisure = new Map<string, LeisureRecord>()
-  #leisureSeq = 0
+  // Random 32-bit start, then +1 per gesture. Leisure is volatile, so a host
+  // restart restarts the counter; a random start makes a post-restart seq equal
+  // to the one a browser saw before the restart (and so skipped as already
+  // animated) a 1-in-2^32 event. The earlier clock seed did the same job but
+  // published the host's wall clock to every player.
+  #leisureSeq = globalThis.crypto.getRandomValues(new Uint32Array(1))[0]
   // Volatile for the same reasons as #leisure. A host restart forgets the
-  // conversation; nobody's chips or seat depend on it.
+  // conversation; nobody's chips or seat depend on it. Random start for the
+  // same reason as #leisureSeq: projected seqs must not publish the host clock,
+  // and a restart must not reuse a seq a browser already spoke.
   #chat: ChatRecord[] = []
-  #chatSeq = 0
+  #chatSeq = globalThis.crypto.getRandomValues(new Uint32Array(1))[0]
   #chatBuckets = new Map<string, { tokens: number; at: number }>()
 
   constructor(host: Identity, options: Options = {}) {
@@ -319,17 +342,16 @@ export class HostTable {
     if (!m.connected) return reply('disconnected')
     if (!m.active) return reply('waiting')
     if (context.paused) return reply('paused')
-    const at = this.#now(), prior = this.#leisure.get(id)
-    const animated = parsed.action !== 'order'
-    if (prior && (animated ? at - prior.animatedAt < LEISURE_LIMITS.animatedMs : at - prior.orderedAt < LEISURE_LIMITS.orderMs)) return reply('rate-limited')
-    // Monotonic within a process AND across a host restart (which forgets this
-    // map and restarts the counter): seeding from the clock keeps a new
-    // gesture's seq from equalling the one a browser saw before the restart,
-    // which would otherwise be silently skipped as "already animated".
-    this.#leisureSeq = Math.max(this.#leisureSeq + 1, Math.floor(at))
-    this.#leisure.set(id, { seq: this.#leisureSeq, action: parsed.action, at,
-      drinkKind: parsed.action === 'smoke' ? prior?.drinkKind ?? null : parsed.kind,
-      animatedAt: animated ? at : prior?.animatedAt ?? -Infinity, orderedAt: animated ? prior?.orderedAt ?? -Infinity : at })
+    const at = this.#now(), prior = this.#leisure.get(id) ?? { gesture: null, drinkKind: null, orderedAt: -Infinity }
+    if (parsed.action === 'order') {
+      if (at - prior.orderedAt < LEISURE_LIMITS.orderMs) return reply('rate-limited')
+      this.#leisure.set(id, { ...prior, drinkKind: parsed.kind, orderedAt: at })
+      return reply('accepted')
+    }
+    const last = prior.gesture
+    if (last && at - last.at < gestureSpacingMs(last.action)) return reply('busy')
+    this.#leisure.set(id, { gesture: { seq: ++this.#leisureSeq, action: parsed.action, at },
+      drinkKind: parsed.action === 'sip' ? parsed.kind : prior.drinkKind, orderedAt: prior.orderedAt })
     return reply('accepted')
   }
 
@@ -350,9 +372,7 @@ export class HostTable {
     bucket.tokens = Math.min(CHAT_LIMITS.burst, bucket.tokens + Math.max(0, at - bucket.at) / CHAT_LIMITS.refillMs); bucket.at = at
     if (bucket.tokens < 1) { this.#chatBuckets.set(id, bucket); return reply('rate-limited') }
     bucket.tokens -= 1; this.#chatBuckets.set(id, bucket)
-    // Clock-seeded like #leisureSeq: a restarted host must not reuse a seq a
-    // browser already spoke, or that browser would skip the new line's voice.
-    this.#chatSeq = Math.max(this.#chatSeq + 1, Math.floor(at))
+    this.#chatSeq += 1
     this.#chat.push({ seq: this.#chatSeq, memberId: id, seat: m.seat, name: m.name, text, at })
     if (this.#chat.length > CHAT_LIMITS.keep) this.#chat.splice(0, this.#chat.length - CHAT_LIMITS.keep)
     return reply('accepted', this.#chatSeq)
@@ -394,9 +414,9 @@ export class HostTable {
       // whose human is queued, disconnected or leaving.
       if (!occupant?.active || !occupant.connected || occupant.leaving) return null
       const l = this.#leisure.get(occupant.id)
-      if (!l) return { seq: 0, action: null, ageMs: null, drinkKind: null }
-      return { seq: l.seq, action: l.action, drinkKind: l.drinkKind,
-        ageMs: Math.min(LEISURE_LIMITS.maxAgeMs, Math.max(0, Math.floor(at - l.at))) }
+      const g = l?.gesture
+      return { seq: g?.seq ?? 0, action: g?.action ?? null, drinkKind: l?.drinkKind ?? null,
+        ageMs: g ? Math.min(LEISURE_LIMITS.maxAgeMs, Math.max(0, Math.floor(at - g.at))) : null }
     })
     const view = projectTable(state, privateSeat, this.#game.legal(privateSeat), member.seat, leisure)
     const debt=this.#bank.accounts.find(a=>a.id===id)?.debt??0, stack=state.players[member.seat].stack

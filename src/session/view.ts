@@ -11,15 +11,17 @@ export type VisibleCards = { kind: 'absent' } | { kind: 'hidden'; count: number 
  * - A human-controlled seat is never null, even before its first gesture
  *   (seq 0, action null): renderers must know to SUPPRESS ambient sips for a
  *   real person, otherwise their avatar drinks on a timer they never chose.
- * - seq changes once per accepted gesture and is never reused by a later
- *   occupant, so a viewer can detect "a new gesture" by inequality alone.
+ * - seq/action/ageMs describe the last ANIMATED gesture (smoke or sip) only.
+ *   An order changes drinkKind and nothing else, so it can never hide a
+ *   gesture a viewer has not polled yet. seq changes once per gesture and is
+ *   never reused by a later occupant: "new gesture" is detected by inequality.
  * - ageMs, not a host timestamp: host and browser clocks are unrelated, and
  *   a poll that arrives late must start the gesture part-way through instead
  *   of replaying it from the beginning. Capped and integral.
  * - drinkKind is what the person currently drinks (null: never chose, keep
  *   the character's own glass). */
 export type SeatLeisure = {
-  seq: number; action: 'smoke' | 'sip' | 'order' | null; ageMs: number | null; drinkKind: DrinkKind | null
+  seq: number; action: 'smoke' | 'sip' | null; ageMs: number | null; drinkKind: DrinkKind | null
 }
 export type TablePlayer = {
   seat: number; displaySeat: number; stack: number; bet: number; committed: number

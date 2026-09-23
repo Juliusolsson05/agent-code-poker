@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { HostTable, LEISURE_LIMITS } from '../src/session/HostTable'
+import { gestureSpacingMs, HostTable, LEISURE_LIMITS } from '../src/session/HostTable'
 import { RoomProjection } from '../src/presentation/RoomProjection'
 import { DRINKS } from '../src/scene/props/specs'
 
@@ -39,15 +39,17 @@ test('accepted gestures reach every other viewer as a public cosmetic record, bo
   const smoke = seatLeisure(t, 0, 2)!
   assert.equal(smoke.action, 'smoke'); assert.equal(smoke.ageMs, 400); assert.equal(smoke.drinkKind, null)
   assert.deepEqual(seatLeisure(t, 1, 2), smoke, 'every viewer receives the same record for that seat')
-  advance(LEISURE_LIMITS.animatedMs)
+  // An order right after an unseen smoke changes the glass and NOTHING else:
+  // a latest-only record used to replace the smoke before anyone polled it.
+  assert.equal(t.leisure(ids[2].id, { action: 'order', kind: 'water' }, { paused: false }).code, 'accepted')
+  assert.deepEqual(seatLeisure(t, 0, 2), { ...smoke, drinkKind: 'water' })
+  advance(gestureSpacingMs('smoke'))
   assert.equal(t.leisure(ids[2].id, { action: 'sip', kind: 'wine' }, { paused: false }).code, 'accepted')
   const sip = seatLeisure(t, 1, 2)!
-  assert.ok(sip.seq > smoke.seq); assert.equal(sip.action, 'sip'); assert.equal(sip.drinkKind, 'wine'); assert.equal(sip.ageMs, 0)
-  assert.equal(t.leisure(ids[2].id, { action: 'order', kind: 'water' }, { paused: false }).code, 'accepted')
-  assert.equal(seatLeisure(t, 0, 2)!.drinkKind, 'water')
-  advance(LEISURE_LIMITS.animatedMs)
+  assert.equal(sip.seq, smoke.seq + 1); assert.equal(sip.action, 'sip'); assert.equal(sip.drinkKind, 'wine'); assert.equal(sip.ageMs, 0)
+  advance(gestureSpacingMs('sip'))
   assert.equal(t.leisure(ids[2].id, { action: 'smoke' }, { paused: false }).code, 'accepted')
-  assert.equal(seatLeisure(t, 0, 2)!.drinkKind, 'water', 'smoking keeps the glass the player ordered')
+  assert.equal(seatLeisure(t, 0, 2)!.drinkKind, 'wine', 'smoking keeps the glass the player drinks')
   // Every authored drink is orderable: the check is DRINKS itself, not a copy.
   for (const kind of Object.keys(DRINKS)) {
     advance(LEISURE_LIMITS.orderMs)
@@ -86,16 +88,22 @@ test('rejections: unknown, forged, malformed, disconnected, queued, paused and t
   assert.equal(t.leisure(ids[1].id, { action: 'smoke' }, ok).code, 'disconnected')
   t.reconnect(ids[1].id)
   assert.equal(t.leisure(ids[1].id, { action: 'smoke' }, ok).code, 'accepted')
-  advance(LEISURE_LIMITS.animatedMs - 1)
-  assert.equal(t.leisure(ids[1].id, { action: 'sip', kind: 'beer' }, ok).code, 'rate-limited')
-  // Orders have their own spacing, so a glass swap right after a puff works.
+  // Spacing is the previous gesture's authored length (minus jitter), so an
+  // honest client, which cannot overlap its own gestures, is never refused.
+  advance(gestureSpacingMs('smoke') - 1)
+  assert.equal(t.leisure(ids[1].id, { action: 'sip', kind: 'beer' }, ok).code, 'busy')
+  // Orders have their own spacing, so a glass swap mid-gesture works.
   assert.equal(t.leisure(ids[1].id, { action: 'order', kind: 'beer' }, ok).code, 'accepted')
   advance(LEISURE_LIMITS.orderMs - 2)
   assert.equal(t.leisure(ids[1].id, { action: 'order', kind: 'wine' }, ok).code, 'rate-limited')
   advance(2)
   assert.equal(t.leisure(ids[1].id, { action: 'sip', kind: 'wine' }, ok).code, 'accepted')
+  advance(gestureSpacingMs('sip') - 1)
+  assert.equal(t.leisure(ids[1].id, { action: 'smoke' }, ok).code, 'busy', 'a sip blocks for the longer drink length')
+  advance(1)
+  assert.equal(t.leisure(ids[1].id, { action: 'smoke' }, ok).code, 'accepted')
   // Rejections leave no trace in the record other viewers receive.
-  assert.equal(seatLeisure(t, 0, 1)!.action, 'sip')
+  assert.equal(seatLeisure(t, 0, 1)!.action, 'smoke')
   t.leave(ids[5].id)
   assert.equal(t.leisure(ids[5].id, { action: 'smoke' }, ok).code, 'unauthorized')
 })
@@ -136,7 +144,7 @@ test('the wire carries only the allowlisted fields and the renderer adapter vali
   const { t } = table(2)
   t.leisure(ids[1].id, { action: 'sip', kind: 'beer' }, { paused: false })
   const wire = t.view(ids[0].id), json = JSON.stringify(wire)
-  for (const secret of ['animatedAt', 'orderedAt', 'principal-', '"at"', 'deck', 'hole']) assert.equal(json.includes(secret), false, secret)
+  for (const secret of ['orderedAt', 'gesture', 'principal-', '"at"', 'deck', 'hole']) assert.equal(json.includes(secret), false, secret)
   assert.deepEqual(Object.keys(wire.players[1].leisure!).sort(), ['action', 'ageMs', 'drinkKind', 'seq'])
   const scene = new RoomProjection().remote(structuredClone(wire), 0)
   assert.deepEqual(scene.players[1].leisure, wire.players[1].leisure)
@@ -146,7 +154,7 @@ test('the wire carries only the allowlisted fields and the renderer adapter vali
   assert.equal(rotated.players.find(p => p.sourceSeat === 1)!.leisure!.drinkKind, 'beer')
   for (const bad of [
     { seq: -1, action: 'sip', ageMs: 0, drinkKind: 'beer' }, { seq: 1, action: 'dance', ageMs: 0, drinkKind: null },
-    { seq: 1, action: 'sip', ageMs: 1.5, drinkKind: null }, { seq: 1, action: 'sip', ageMs: 0, drinkKind: 'absinthe' },
+    { seq: 1, action: 'sip', ageMs: 1.5, drinkKind: null }, { seq: 1, action: 'order', ageMs: 0, drinkKind: 'wine' }, { seq: 1, action: 'sip', ageMs: 0, drinkKind: 'absinthe' },
     { seq: 1, action: null, ageMs: 5, drinkKind: null }, { seq: 1, action: 'smoke', ageMs: null, drinkKind: null }, 'smoke', 7,
   ]) {
     const tampered = structuredClone(wire) as any; tampered.players[1].leisure = bad
@@ -155,4 +163,17 @@ test('the wire carries only the allowlisted fields and the renderer adapter vali
   const copy = structuredClone(wire), adapted = new RoomProjection().remote(copy, 0)
   adapted.players[1].leisure!.seq = 999
   assert.deepEqual(copy, wire, 'the adapter copies instead of aliasing the wire object')
+})
+
+test('seq starts at a random 32-bit value instead of publishing the host clock', () => {
+  const firsts = new Set<number>()
+  for (let i = 0; i < 8; i++) {
+    const { t } = table(2)
+    t.leisure(ids[1].id, { action: 'smoke' }, { paused: false })
+    const seq = seatLeisure(t, 0, 1)!.seq
+    assert.ok(Number.isSafeInteger(seq) && seq >= 1 && seq <= 2 ** 32, String(seq))
+    assert.ok(Math.abs(seq - 10_000) > 1_000, 'not derived from the injected clock')
+    firsts.add(seq)
+  }
+  assert.ok(firsts.size >= 7, 'independent tables start from independent random values')
 })

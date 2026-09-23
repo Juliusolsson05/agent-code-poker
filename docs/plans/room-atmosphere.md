@@ -102,11 +102,81 @@ artifacts).
   test: no real knee clears it, the pre-existing thighs sat in it too, and the
   tabletop hides it. Side seats' origins sit inside the rail's outer lip;
   that seat-layout overlap predates this work and is only noted, not changed.
-- **Light budget:** rig 6 (+felt bounce) + tree 1 + sconces 2 + surround 3 =
-  12, pinned in `tests/surround.test.ts`; still one shadow-casting light.
+- **Light budget:** rig 6 (including felt bounce) + tree 1 + sconces 2 + surround 3 + hearth 1 =
+  13, pinned in `tests/surround.test.ts`; still one shadow-casting light.
 - **Fire:** 8cd over 7m with ±1.5 breath/flutter (was 1.7cd over 3.2m, which
   never reached a chair).
 - **Key light:** moved from behind the player's shoulder to over the table's
   near edge, so opponents' faces get top-down modelling.
-- **Window views:** must sit in front of the 12mm wallpaper (a regression test
+- **Window views:** must sit in front of the 13mm masonry finish (a regression test
   pins this after both windows first rendered black).
+
+## Surround quality pass for PR #11
+
+The original surround met the coverage checklist but its large box furniture,
+flat canvas pictures and bright snowy cutouts did not match the crafted hearth.
+The user asked for fireplace-like warmth, much darker windows, richer walls,
+detailed side furniture and a more festive rear wall. Cozy game atmosphere
+is the visual target; bright physically plausible winter light is not.
+
+- Keep `createRoomPlan()` byte-for-byte unchanged. Rounded furniture volumes
+  live in the pure surround plan and are sampled by `VoxelSculpt` into one
+  mesh: tufted wingback leather, rolled arms, cushions, clock crown, piano,
+  cabinet insets, bench padding and stockings. Fine joinery, book bindings,
+  brass handles, piano pedals, ceramic mug detail and textile hems stay in
+  the existing instanced batches.
+- Replace wallpaper motifs with individually varied, staggered warm bricks
+  over dark mortar, above walnut panels with recessed moulding and grain.
+  Rear timber bays, evergreen swags and a framed wreath/stocking hanging
+  finish the entrance and piano wall.
+- Rebuild the entrance with an opaque rebate, fluted casing, cornice dentils,
+  raised panels, recessed glass, hinges, handles, keyholes and threshold.
+  The old backing shared its front face with the dado moulding at 60mm,
+  causing flashing during camera movement. The new backing covers every
+  finish with positive depth separation; a regression test checks this.
+- All three windows show dark procedural voxel landscapes with snowy firs,
+  layered hills, cabins, footprints, frost and glass reflections. The main
+  window has a hanging amber lantern behind its original snowfall. Its
+  relief is compressed into the gap between existing panes and snow, leaving
+  the pinned room plan and original particles intact. Side snowfall uses
+  fewer, dimmer flakes. Snow and flicker follow the room clock and freeze
+  under reduced motion.
+- Windows use an authored low night luminance. Framed art, music and the
+  clock dial use ordinary lit materials, so they cannot become glowing
+  monitors. The three aggregate practicals stay warm and localized; there
+  is no uniform emissive fill on furniture or walls. Table pendant diffusers
+  render as subdued amber glass instead of white ceiling plates.
+- No external assets or new lights. The surround, including all three winter
+  views, remains within 18 mesh batches. The room retains at most 13 lights
+  and exactly one shadow caster. Collision, full 280° coverage, finish depth,
+  snow determinism and reduced-motion tests protect the construction.
+
+### Final validation and integration
+
+Committed the surround work before normally merging `origin/feat/room-atmosphere`
+with PR #20's drinks/effects. The Room.ts merge preserves its render camera and
+label projection as well as the amber pendant change. Rebuilt `dist/` and
+`lan-dist/` from source rather than resolving generated bundle conflicts by hand.
+The node_modules-path-only comment in `dist-service/lan-host.mjs` is restored.
+
+- 26 focused tests pass after integration: surround, environment, effects and
+  post-processing. These include the 13-light/one-shadow budget, pinned room
+  plan, closed room rays, clearance, door depth and snowfall regressions.
+- `npm run build` passes (typecheck plus SDK, LAN and service builds); both SDK
+  contract tests and the exact-byte production preview test pass.
+- `npm run verify` was attempted before and after integration. Each run was
+  stopped at 120 seconds in the unit-test phase without reporting results.
+  The full suite is **not verified** in this pass. Per the user's request,
+  do not leave repeated unbounded test runs consuming the machine.
+- Fresh source and shipped-production browser captures cover centre, both
+  look-around extremes and the ceiling. Production smoke checks exercise
+  card inspection, cigar, a legal fold, pause/resume and saved-table restore.
+  These are browser checks, not installed Electron acceptance or measured FPS.
+
+| View | Before | After (merged production build) |
+| --- | --- | --- |
+| Reading nook / piano | [Before](../evidence/room-atmosphere/before-left.png) | [After](../evidence/room-atmosphere/after-left.png) |
+| Sideboard / entrance | [Before](../evidence/room-atmosphere/before-right.png) | [After](../evidence/room-atmosphere/after-right.png) |
+
+Also: [main window and hearth](../evidence/room-atmosphere/after-main.png),
+[ceiling lighting](../evidence/room-atmosphere/after-ceiling.png).

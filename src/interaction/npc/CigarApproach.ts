@@ -1,5 +1,5 @@
 import { Euler, MathUtils, Matrix4, Quaternion, Vector3 } from 'three'
-import { CIGAR, ASHTRAY } from '../../scene/props/specs'
+import { CIGAR, ASHTRAY, GESTURE_SECONDS } from '../../scene/props/specs'
 import { CIGAR_HAND_CONTACT } from '../../scene/HandGrips'
 import { NPC_REST_ROTATION, NPC_REST_WRIST } from './GlassApproach'
 
@@ -72,9 +72,16 @@ export const NPC_CIGAR_SMOKE_ROTATION = basis(shaft, up, new Vector3().crossVect
   .multiply(new Quaternion().setFromAxisAngle(new Vector3(1, 0, 0), .66))
 
 /** Seconds from the start of a smoke. Phase boundaries are the ownership
- * contract: the tray owns the cigar before 'lift' and from 'withdraw' on. */
-export const NPC_SMOKE = { clear: .4, form: .95, approach: 1.25, lift: 1.55, raise: 2.4, puff: 3.4, lower: 4.25, set: 4.55, withdraw: 4.85, release: 5.4, settle: 5.8 } as const
-export const NPC_SMOKE_SECONDS = NPC_SMOKE.settle
+ * contract: the tray owns the cigar before 'lift' and from 'withdraw' on.
+ * Authored in proportions (the first cut ran 5.8s), then scaled to the hero's
+ * own smoke length: a remote copy must not outlast the local original, or a
+ * player's back-to-back gestures queue and drift on everyone else's screen
+ * (GESTURE_SECONDS explains the rule). Clearance is position-based and is
+ * re-verified at the scaled timing, so speed changes cannot hide a collision. */
+const AUTHORED = { clear: .4, form: .95, approach: 1.25, lift: 1.55, raise: 2.4, puff: 3.4, lower: 4.25, set: 4.55, withdraw: 4.85, release: 5.4, settle: 5.8 } as const
+const SMOKE_SCALE = GESTURE_SECONDS.smoke / AUTHORED.settle
+export const NPC_SMOKE = Object.fromEntries(Object.entries(AUTHORED).map(([k, v]) => [k, v * SMOKE_SCALE])) as { [K in keyof typeof AUTHORED]: number }
+export const NPC_SMOKE_SECONDS = GESTURE_SECONDS.smoke
 
 // Vertical clearance of the pre-formed pinch above its final contact. The
 // fingertips reach only 8mm past the cigar axis (skin y<=.128 vs contact .120),

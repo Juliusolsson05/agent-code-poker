@@ -146,6 +146,35 @@ try {
   t0 = Date.now(); await B.key('s')
   const reverse = await watch(A, 0, 'a-smoke', 6.5, t0)
   log('A saw seat 0 leisure', JSON.stringify(reverse.map(s => [s.ms, s.leisure?.action, s.leisure?.ageMs])))
-  writeFileSync(join(OUT, 'samples.json'), JSON.stringify({ smoke, sip, reverse }, null, 1))
+  // Interrupted smoke (review of #21): with mouse-look, S only QUEUES the
+  // gesture until the view re-centres. Look far away, press S and then Space
+  // (inspection) in the same task, so the queue is certainly cancelled before
+  // it starts. Nothing may reach the host or the other player.
+  const lookAway = async s => {
+    await s.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: 640, y: 420, button: 'left', buttons: 1, clickCount: 1 })
+    for (const x of [560, 460, 360, 260]) await s.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x, y: 420, button: 'left', buttons: 1 })
+    await s.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: 260, y: 420, button: 'left', buttons: 0, clickCount: 1 })
+    await sleep(600)
+  }
+  const keys = list => `(()=>{const a=document.getElementById('app');a.focus();for(const [type,key] of ${JSON.stringify(list)})a.dispatchEvent(new KeyboardEvent(type,{key,bubbles:true}))})()`
+  await sleep(1500)
+  const beforeInterrupt = await hostSeq()
+  await lookAway(A)
+  t0 = Date.now(); await A.evaluate(keys([['keydown', 's'], ['keydown', ' ']]))
+  await sleep(400); await A.evaluate(keys([['keyup', ' ']]))
+  const interrupted = await watch(B, 3, 'b-interrupted', 6, t0)
+  const afterInterrupt = await hostSeq()
+  log('interrupted smoke: host seq before/after', beforeInterrupt.seq, afterInterrupt.seq, 'B saw', JSON.stringify(interrupted.map(s => [s.ms, s.leisure?.seq])))
+  if (afterInterrupt.seq !== beforeInterrupt.seq || interrupted.some(s => s.leisure?.seq !== beforeInterrupt.seq)) throw new Error('interrupted smoke reached the other player')
+  // Positive control on the same path: look away, S, let it re-centre. The
+  // host must hear it only once it actually starts, after the re-centre.
+  await lookAway(A)
+  t0 = Date.now(); await A.evaluate(keys([['keydown', 's']]))
+  let queuedAccept = null
+  while (Date.now() - t0 < 4000) { const l = await hostSeq(); if (l.seq !== afterInterrupt.seq) { queuedAccept = { seenAt: Date.now() - t0, ageMs: l.ageMs }; break } await sleep(25) }
+  log('queued smoke: host accepted at press +', queuedAccept && queuedAccept.seenAt - queuedAccept.ageMs, 'ms (after the re-centre)')
+  if (!queuedAccept) throw new Error('queued smoke never reached the host')
+  const queued = await watch(B, 3, 'b-queued', 6, t0)
+  writeFileSync(join(OUT, 'samples.json'), JSON.stringify({ smoke, sip, reverse, interrupted, queuedAccept, queued }, null, 1))
   log('console A', A.consoleLines.slice(0, 10)); log('console B', B.consoleLines.slice(0, 10))
 } finally { A.close(); B.close() }

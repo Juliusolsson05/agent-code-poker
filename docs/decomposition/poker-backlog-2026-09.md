@@ -20,9 +20,9 @@ cosmetic parts are listed plainly.
 | 3 | LAN play inside the Agent Code plugin | not started, cross-repo | to file |
 | 4 | See other LAN players smoke (and drink) | not started | to file |
 | 5 | LAN chat with bubbles + host-enabled ElevenLabs voices | **blocked on a policy decision** | to file |
-| 6 | Twelve more drinks | not started | to file |
-| 7 | Orderable cosmetic "mushrooms" and "LSD" effects | not started | to file |
-| 8 | Much stronger drink/intoxication effect with screen wobble | not started | to file |
+| 6 | Twelve more drinks | implemented on `feat/drinks-and-effects` (stacked on #11), PR open | #13 |
+| 7 | Orderable cosmetic "mushrooms" and "LSD" effects | implemented, same PR | #14 |
+| 8 | Much stronger drink/intoxication effect with screen wobble | implemented, same PR | #15 |
 
 ---
 
