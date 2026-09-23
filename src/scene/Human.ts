@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { anatomyMaterial, VoxelSculpt } from './Voxel'
 import { SeatedArm } from './Arm'
 import { coaster, TableDrink, type DrinkKind } from './Drinks'
-import { GLASS_HAND_CONTACT, GLASS_HAND_ROTATION } from './HandGrips'
+import { GLASS_HAND_CONTACT, GLASS_HAND_ROTATION_FACING } from './HandGrips'
 import { glassApproach, NPC_REST_ROTATION, NPC_REST_WRIST } from '../interaction/npc/GlassApproach'
 
 export const humanMaterial = () => anatomyMaterial(.91)
@@ -137,8 +137,8 @@ export function buildHuman(seat: number, _geometry: THREE.BoxGeometry, material:
   // Drinks are character-specific, while animation cadence is driven by public
   // time/actions only. A sip is never a hidden-strength tell.
   const kinds: DrinkKind[] = ['old-fashioned', 'beer', 'wine', 'water', 'old-fashioned', 'beer']
-  const drink = new TableDrink(kinds[seat]), drinkHome = new THREE.Vector3(.27, .796, .46)
-  drink.root.position.copy(drinkHome); drink.root.rotation.y = Math.PI; root.add(drink.root)
+  const drink = new TableDrink(kinds[seat], -1), drinkHome = new THREE.Vector3(.27, .796, .46)
+  drink.root.position.copy(drinkHome); root.add(drink.root)
   const mat = coaster(); mat.position.copy(drinkHome); mat.position.y -= .002; root.add(mat)
   return { root, head, leftArm: leftRig.forearm, rightArm: rightRig.forearm, leftRig, rightRig, cards, eyes, pupils, drink, drinkHome, seat, sipAt: -100, nextSip: 4 + seat * 3.7 }
 }
@@ -173,15 +173,18 @@ export function poseHuman(h: Human, time: number, options: { reduced: boolean; a
   let rightTarget = new THREE.Vector3(...NPC_REST_WRIST), rightRotation = new THREE.Euler(...NPC_REST_ROTATION)
   h.drinkContact = { phase:'rest',grip:0,sipAge,reachError:0 }
   rightRig.hand.pose('rest')
-  // The hero faces local -Z; an opponent faces local +Z. Rotate the complete
-  // vessel/contact frame, not just the wrist, so its near rim and grip remain on
-  // the body side. Copying the hero's unrotated frame sent the opponent wrist
-  // behind the far rim and hit the reach clamp 65mm before contact.
-  drink.root.position.copy(drinkHome); drink.root.rotation.set(0, Math.PI, 0)
+  // The hero faces local -Z; an opponent faces local +Z. The vessel itself is
+  // round and stays unturned: its near (mouth) rim is authored on -Z by the
+  // TableDrink facing, and the hand uses the half-turned contact frame. Copying
+  // the hero's frame verbatim sent the wrist behind the far rim (IK clamp 65mm
+  // short); spinning the whole vessel π about Y fixed the rim but put the palm
+  // on the inner face, so opponents held glasses from the inside (#7).
+  drink.root.position.copy(drinkHome); drink.root.rotation.set(0, 0, 0)
   if (sipping) {
     const lift = sipAge < 2 ? THREE.MathUtils.smoothstep(sipAge, .8, 2) : sipAge < 3.3 ? 1 : 1 - THREE.MathUtils.smoothstep(sipAge, 3.3, 4.8)
     const grip = sipAge < .8 ? THREE.MathUtils.smoothstep(sipAge, 0, .8) : sipAge < 4.8 ? 1 : 1 - THREE.MathUtils.smoothstep(sipAge, 4.8, 6)
     head.rotation.x -= lift * .035
+    // Negative X tips the top toward -Z, the opponent's mouth side.
     drink.root.rotation.x = -.24 * lift
     head.updateWorldMatrix(true, false)
     const mouth = h.root.worldToLocal(head.localToWorld(new THREE.Vector3(0, -.046, .076)))
@@ -190,7 +193,7 @@ export function poseHuman(h: Human, time: number, options: { reduced: boolean; a
     // The same local hand/glass frame must apply to hero and opponents. An
     // unrelated Euler wrist rotation matched one point while rotating fingers
     // through the vessel. The prop's rotation transports the entire grip frame.
-    const wristRotation = drink.root.quaternion.clone().multiply(new THREE.Quaternion(...GLASS_HAND_ROTATION))
+    const wristRotation = drink.root.quaternion.clone().multiply(new THREE.Quaternion(...GLASS_HAND_ROTATION_FACING))
     const contact = drink.grip.clone().applyQuaternion(drink.root.quaternion).add(drink.root.position)
     const wrist = contact.sub(new THREE.Vector3(...GLASS_HAND_CONTACT).applyQuaternion(wristRotation))
     // During the held interval the original full contact remains exact. Only

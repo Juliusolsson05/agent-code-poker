@@ -12,9 +12,14 @@ export class TableDrink {
   readonly root = new THREE.Group()
   readonly grip: THREE.Vector3
   readonly rim: THREE.Vector3
-  constructor(readonly kind: DrinkKind = 'old-fashioned') {
+  /** `near` names the vessel-local Z side the drinker sits on: +1 for the hero
+   * (who faces -Z), -1 for opponents (who face +Z). Only the mouth anchor
+   * depends on it. Opponents used to spin the whole vessel π about Y to reach
+   * the near rim, which also carried the grip to the inner face (#7); the
+   * vessel is round, so its geometry never needed that turn. */
+  constructor(readonly kind: DrinkKind = 'old-fashioned', near: 1 | -1 = 1) {
     const spec = DRINKS[kind], anchors = drinkAnchors(kind), step = .002
-    this.grip = new THREE.Vector3(...anchors.grip); this.rim = new THREE.Vector3(...anchors.rim)
+    this.grip = new THREE.Vector3(...anchors.grip); this.rim = new THREE.Vector3(anchors.rim[0], anchors.rim[1], anchors.rim[2] * near)
     this.root.name = `${kind}-drink`
     const radiusAt = (y: number) => spec.radius - .002 * (1 - Math.min(1, y / .030))
     const wall = new VoxelSculpt(step).volume([-spec.radius, step / 2, -spec.radius], [spec.radius, spec.height - .004, spec.radius], (x, y, z) => {
