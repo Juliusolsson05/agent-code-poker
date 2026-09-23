@@ -1,4 +1,4 @@
-import { createElement, createRef } from 'react'
+import { Fragment, createElement, createRef } from 'react'
 import { createRoot } from 'react-dom/client'
 import { PokerRoom } from '../../src/scene/Room'
 import { BettingControls } from '../../src/components/BettingControls'
@@ -13,6 +13,12 @@ import { PokerAudio } from '../../src/audio'
 import fireplaceRecording from '../../src/assets/audio/fireplace-creator-assets.mp3?inline'
 import { FIREPLACE_LAYOUT } from '../../src/scene/environment/layout'
 import { TAVERN_FEATURES } from '../../src/scene/environment/features'
+import { SEATS } from '../../src/scene/environment/layout'
+import { ChatVoice } from './ChatVoice'
+import { ChatBubble, ChatInput, ChatLog, FeatureSwitches, VoiceSettingsPanel, bubbleFor, chatShortcut } from './ChatControls'
+import { VOICE_FAILURE_TEXT, createElevenLabsProvider, normalizeVoiceSettings } from '../../src/voice/ElevenLabs'
+import { browserVoiceSettingsStore } from '../../src/voice/settingsStore'
+import { browserVoiceHttp } from '../../src/voice/transports'
 import '../../src/styles.css'
 import '../../dev/preview.css'
 import './style.css'
@@ -26,6 +32,7 @@ let drinkMenuOpen = false, wagerOpen = false, leisure = { kind: 'old-fashioned',
 const labels = new Map(), bettingRef = createRef(), bettingRoot = createRoot(el('actions'))
 const leisureRoot = createRoot(el('leisure'))
 const bankRoot = createRoot(el('bank'))
+const chatRoot = createRoot(el('chat')), featuresRoot = createRoot(el('features')), voiceRoot = createRoot(el('voice-settings'))
 const headerRoot=createRoot(el('header')),hudRoot=createRoot(el('hud')),potRoot=createRoot(el('pot')),infoRoot=createRoot(el('table-info'))
 const audio=new PokerAudio(TAVERN_FEATURES.fireplace?fireplaceRecording:undefined,
   [FIREPLACE_LAYOUT.position[0],.4,FIREPLACE_LAYOUT.position[2]+.05])
@@ -39,8 +46,64 @@ window.addEventListener('blur',()=>{focused=false;soundActive()})
 window.addEventListener('focus',()=>{focused=true;soundActive()})
 window.addEventListener('pagehide',()=>audio.dispose(),{once:true})
 const focusTable = () => el('app').focus()
-const syncLookBlocked = () => room?.setLookBlocked(wagerOpen || menuOpen || drinkMenuOpen)
+const syncLookBlocked = () => room?.setLookBlocked(wagerOpen || menuOpen || drinkMenuOpen || chatOpen)
 const onWagerOpen = open => { wagerOpen=open;syncLookBlocked();renderLeisure() }
+// ── Chat and voices ─────────────────────────────────────────────────────────
+// This player's ElevenLabs settings live ONLY in this tab/frame (see
+// src/voice/settingsStore.ts). The website default is this browser's storage
+// and a direct browser fetch; the Agent Code LAN view swaps in the extension's
+// secret storage and the host-brokered fetch via setVoiceEnvironment().
+let voiceEnv = { store: browserVoiceSettingsStore(() => localStorage), http: browserVoiceHttp() }
+let voiceSettings = null, voiceStatus = '', chatOpen = false, chatStatus = '', featuresPending = false
+const voiceProvider = () => voiceSettings ? createElevenLabsProvider(() => voiceSettings, voiceEnv.http) : null
+// Display seat -> head position. The room is built in display coordinates
+// (the viewer always sits at SEATS[0]), so the same index that places a label
+// places the voice. Seat 0 is this player: played in-head, no panner.
+const speakerPosition = seat => seat === 0 || !SEATS[seat] ? null : [SEATS[seat][0], 1.45, SEATS[seat][1]]
+const chatVoice = new ChatVoice({
+  hostApi: (path, body) => api(path, body), provider: voiceProvider,
+  play: (bytes, seat) => { void audio.playVoice(bytes, seat, speakerPosition(seat)) },
+})
+export function setVoiceEnvironment(env) { voiceEnv = env; voiceSettings = null; voiceStatus = ''; void loadVoiceSettings() }
+async function loadVoiceSettings() {
+  const env = voiceEnv, loaded = await env.store.load().catch(() => null)
+  if (env === voiceEnv) { voiceSettings = loaded; render() }
+}
+async function saveVoiceSettings(apiKey, voiceId) {
+  const next = normalizeVoiceSettings({ apiKey, voiceId })
+  if (!next) { voiceStatus = 'That key or voice ID does not look right. Copy both from your ElevenLabs account.'; render(); return }
+  const saved = await voiceEnv.store.save(next)
+  voiceSettings = next
+  voiceStatus = saved ? 'Voice saved.' : 'Could not save it here; it will be used in this tab until you close it.'
+  render()
+}
+async function forgetVoiceSettings() { await voiceEnv.store.clear(); voiceSettings = null; voiceStatus = 'Key forgotten on this device.'; render() }
+async function testVoice() {
+  const provider = voiceProvider()
+  if (!provider) return
+  voiceStatus = 'Asking ElevenLabs…'; render(); audio.unlock()
+  const result = await provider.synthesize('This is how I sound at the table.')
+  voiceStatus = !result.ok ? VOICE_FAILURE_TEXT[result.reason] : muted ? 'Voice works. Unmute sound (M) to hear it.' : 'Voice works.'
+  if (result.ok) void audio.playVoice(result.audio, 0, null)
+  render()
+}
+const CHAT_REFUSALS = { 'rate-limited': 'Slow down: one message every few seconds.', invalid: 'Messages are one line of plain text, up to 200 characters.',
+  disconnected: 'Reconnecting; message not sent.', unauthorized: 'You are no longer at this table.' }
+async function sendChat(text) {
+  const outcome = await chatVoice.send(text, !!state?.features?.voices)
+  if (!outcome.sent) { chatStatus = CHAT_REFUSALS[outcome.error] ?? outcome.error; render(); return false }
+  chatStatus = outcome.issue === 'too-long' ? 'Too long to relay: only you heard it; others see the text.'
+    : outcome.issue === 'relay-refused' ? 'Others see this line as text only.'
+    : outcome.issue ? VOICE_FAILURE_TEXT[outcome.issue] : ''
+  render(); return true
+}
+function openChat(open) { chatOpen = open; syncLookBlocked(); render(); if (!open) focusTable() }
+function setFeatures(next) {
+  if (!state?.isHost || featuresPending) return
+  featuresPending = true; render()
+  void api('/api/features', next).catch(error => { if (!(error instanceof ObsoleteResponse)) el('error').textContent = error.message })
+    .finally(() => { featuresPending = false; render() })
+}
 const currentKey = recovery.current()
 let savedKeys = [], playerName = currentKey?.name || 'Guest'
 if (currentKey) { token = currentKey.token; admissionNonce = currentKey.nonce; el('name').value = playerName }
@@ -100,7 +163,7 @@ async function api(path, body) {
     if (!responses.accept(request, data)) throw new ObsoleteResponse()
     const newGeneration = state && data.generation !== state.generation
     if (newGeneration || connectionLost) audio.resetEvents()
-    if (newGeneration) { controlsRevision++; authorityRevision=-1; inspected=false;room?.setInspection(false) }
+    if (newGeneration) { controlsRevision++; authorityRevision=-1; inspected=false;room?.setInspection(false);chatVoice.reset() }
     state = data; connectionLost = false; render()
   } else if (!response.ok && !responses.failureCurrent(request)) {
     throw new ObsoleteResponse()
@@ -200,7 +263,8 @@ function render() {
     ensureRoom(0,true);room?.setPlaying(false);bettingRoot.render(null);audio.resetEvents()
     hudRoot.render(null);potRoot.render(null);infoRoot.render(null);el('actions').hidden=el('deal-actions').hidden=true
     inspected=false;menuOpen=false;drinkMenuOpen=false;wagerOpen=false;leisure={kind:'old-fashioned',available:false}
-    connectionLost=false;authorityRevision=-1;el('menu').hidden=true;leisureRoot.render(null);bankRoot.render(null);showSaved(); return
+    connectionLost=false;authorityRevision=-1;el('menu').hidden=true;leisureRoot.render(null);bankRoot.render(null)
+    chatOpen=false;chatStatus='';chatVoice.reset();chatRoot.render(null);featuresRoot.render(null);renderVoiceSettings();showSaved(); return
   }
   const v = state.view, own = v.players[v.self.seat]
   if(v.revision !== authorityRevision) { authorityRevision=v.revision; controlsRevision++ }
@@ -216,11 +280,22 @@ function render() {
     if(!label)continue
     label.node.classList.toggle('active',v.actor===p.seat);label.node.classList.toggle('folded',p.folded)
     label.node.classList.toggle('out',p.stack===0 && !p.committed);label.node.style.setProperty('--seat-color',CHARACTERS[p.seat].color)
-    label.root.render(createElement(SeatContents,{name:p.name,dealer:v.dealer===p.seat,blind:v.smallBlindSeat===p.seat?'SB':v.bigBlindSeat===p.seat?'BB':'',
+    // The bubble is a child of the label node, so it rides whatever projection
+    // Room applies to that node (PR #20 moves it to the render camera); chat
+    // needs no second world-to-screen path that could drift from the label.
+    const bubble=bubbleFor(v.chat??[],p.displaySeat)
+    label.root.render(createElement(Fragment,null,createElement(SeatContents,{name:p.name,dealer:v.dealer===p.seat,blind:v.smallBlindSeat===p.seat?'SB':v.bigBlindSeat===p.seat?'BB':'',
       stack:p.stack,action:v.actor===p.seat?(p.kind==='human'?'DECIDING':'THINKING'):p.action||CHARACTERS[p.seat].title,
-      visibleCards:p.cards.kind==='visible'?p.cards.values:[]}))
+      visibleCards:p.cards.kind==='visible'?p.cards.values:[]}),bubble&&createElement(ChatBubble,{key:bubble.seq,line:bubble})))
   }
   el('labels').hidden=inspected
+  const voicesOn=!!state.features?.voices
+  chatVoice.observe(v.chat??[],voicesOn,!muted&&!document.hidden)
+  chatRoot.render(createElement(Fragment,null,createElement(ChatLog,{lines:v.chat??[],status:chatStatus}),
+    chatOpen&&createElement(ChatInput,{onSend:sendChat,onClose:()=>openChat(false),
+      voiceHint:voicesOn?(voiceSettings?'spoken in your voice':'voices are on: add your key in Table menu'):''})))
+  featuresRoot.render(createElement(FeatureSwitches,{isHost:!!state.isHost,features:state.features??{voices:false,treats:false},pending:featuresPending||pending,onChange:setFeatures}))
+  renderVoiceSettings()
   el('connection').textContent = connectionLost || ended ? 'Connection interrupted — wagering disabled' : !state.hostConnected ? 'Host disconnected — table suspended' : state.paused ? 'Table paused' : v.self.waiting ? 'Seat reserved — joining next hand' : v.actor===v.self.seat ? 'Your move' : 'Connected · LAN'
   el('invite').textContent = state.code ? `Lobby code: ${state.code.slice(0,5)}-${state.code.slice(5)}` : 'Six playing seats · empty seats are NPCs'
   el('host-storage').textContent = state.durable ? 'Host saves this table privately. A host restart pauses play until the host resumes.' : 'Disposable host: stopping its process ends this table.'
@@ -260,6 +335,10 @@ function render() {
   el('inspect').disabled=state.paused || v.self.waiting || connectionLost || ended || menuOpen
   el('inspect').setAttribute('aria-pressed',String(inspected));el('inspect').firstChild.nodeValue=inspected?'Look up ':'Cards & chips '
 }
+function renderVoiceSettings() {
+  voiceRoot.render(createElement(VoiceSettingsPanel,{where:voiceEnv.store.where,configured:!!voiceSettings,status:voiceStatus,
+    onSave:(key,voice)=>{void saveVoiceSettings(key,voice)},onForget:()=>{void forgetVoiceSettings()},onTest:()=>{void testVoice()}}))
+}
 async function run(work) {
   if (pending) return
   pending = true; el('error').textContent = ''; render()
@@ -279,9 +358,9 @@ async function enter(joining) {
 el('create').onclick = () => run(() => enter(false)); el('join').onclick = () => run(() => enter(true))
 el('start').onclick = () => run(() => api('/api/start', { revision: state.view.revision }))
 el('pause').onclick = () => run(() => api('/api/pause', { paused: !state.paused }))
-el('leave').onclick = () => run(async () => { await api('/api/leave', {}); responses.reset();forget(seatKey());token=''; state=null; admissionNonce=hex(); el('connection').textContent='Left table' })
+el('leave').onclick = () => run(async () => { await api('/api/leave', {}); responses.reset();forget(seatKey());token=''; state=null;chatVoice.reset(); admissionNonce=hex(); el('connection').textContent='Left table' })
 el('forget').onclick = () => {
-  responses.reset();forget(seatKey());token=''; state=null; ended=false; admissionNonce=hex()
+  responses.reset();forget(seatKey());token=''; state=null; ended=false; admissionNonce=hex();chatVoice.reset()
   el('forget').hidden=true; el('error').textContent=''; el('connection').textContent='Not connected'; render()
 }
 el('resume-seat').onclick = () => {
@@ -333,6 +412,7 @@ el('inspect').onclick=()=>{inspect(!inspected);focusTable()}
 el('app').addEventListener('keydown',event=>{
   const target=event.target.closest('input,select,textarea,[contenteditable=true]')?'editing':event.target.closest('button,a')?'control':'table'
   if(!state || target==='editing' || event.altKey || event.ctrlKey || event.metaKey || event.isComposing)return
+  if(chatShortcut(event,target,!state || ended || connectionLost || menuOpen || drinkMenuOpen || inspected || wagerOpen || chatOpen)){event.preventDefault();openChat(true);return}
   if(event.key.toLowerCase()==='m'&&!event.repeat){event.preventDefault();muted=!muted;audio.setMuted(muted);if(!muted)audio.unlock();render();return}
   if(event.key==='Escape' && drinkMenuOpen){event.preventDefault();event.stopPropagation();drinkMenu(false);return}
   if(event.key==='Escape' && menuOpen){event.preventDefault();menu(false);return}
@@ -363,4 +443,5 @@ async function poll() {
   }
   finally { polling=false }
 }
-setInterval(poll,500); render(); void poll()
+el('chat-open').onclick=()=>{if(state&&!chatOpen)openChat(true)}
+setInterval(poll,500); render(); void poll(); void loadVoiceSettings()

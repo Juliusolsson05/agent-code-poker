@@ -15,3 +15,20 @@
 #storage-warning{position:absolute;top:110px;left:20px;right:20px;z-index:12;background:#282314f2;color:#f1dda9;padding:10px;font-size:12px}
 #forget{position:absolute;top:160px;left:20px;z-index:13}
 #menu ol{padding-left:20px}#menu li{padding:5px 0;font-size:12px}
+/* Chat: bubbles ride the seat label node (absolute, pointer-events none), so
+ * they are positioned relative to it and never capture room drags. */
+.chat-bubble{position:absolute;left:50%;bottom:calc(100% + 9px);transform:translateX(-50%);width:max-content;max-width:220px;padding:7px 10px;border-radius:10px;background:#f1e6cdf2;color:#1b1a16;font-size:12px;line-height:1.35;text-align:left;overflow-wrap:anywhere;box-shadow:0 4px 14px #0006}
+.chat-bubble::after{content:'';position:absolute;left:50%;top:100%;transform:translateX(-50%);border:6px solid transparent;border-top-color:#f1e6cdf2}
+.chat-bubble.start{left:0;transform:none}.chat-bubble.start::after{left:22px}
+.chat-bubble.end{left:auto;right:0;transform:none}.chat-bubble.end::after{left:auto;right:10px;transform:none}
+.lan-chat{position:absolute;left:18px;bottom:150px;z-index:8;width:min(360px,calc(100% - 36px));display:grid;gap:6px}
+.lan-chat-log ol{list-style:none;margin:0;padding:0;display:grid;gap:3px}
+.lan-chat-log li{font-size:12px;line-height:1.4;color:#e6dcc5;background:#11141299;padding:3px 8px;border-radius:3px;overflow-wrap:anywhere}
+.lan-chat-log b{color:#d8b77e;font-weight:600;margin-right:4px}
+.lan-chat-status{margin:0;font-size:11px;color:#f1dda9}
+.lan-chat-input{display:grid;gap:4px;background:#111414e6;border:1px solid #b9a07855;border-radius:4px;padding:8px}
+.lan-chat-input label{display:flex;gap:8px;align-items:center;font-size:11px}
+.lan-chat-input input,.lan-voice-settings input{flex:1;font:inherit;padding:8px;border:1px solid #786b5355;border-radius:4px;background:#171a17;color:#e7dcc8}
+.lan-features,.lan-voice-settings{border-top:1px solid #b9a07835;margin-top:12px;padding-top:10px;display:grid;gap:8px}
+.lan-features label,.lan-voice-settings label{display:grid;gap:5px;font-size:12px}
+.lan-voice-settings h3{margin:0;font-size:13px}

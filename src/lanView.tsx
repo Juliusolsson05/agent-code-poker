@@ -5,7 +5,9 @@ import baseStyles from './styles.css?inline'
 import previewStyles from '../dev/preview.css?inline'
 import clientStyles from '../server/client/style.css?inline'
 import { privateHostDestination } from '../dev/multiplayer/hostDestination'
-import { SERVICE_ID, proxyTransport, netFetchTransport } from '../server/client/inAppTransport'
+import { SERVICE_ID, proxyTransport, netFetchTransport, type LanTransport } from '../server/client/inAppTransport'
+import { agentCodeVoiceSettingsStore, type AgentCodeStorageApi } from './voice/settingsStore'
+import { brokeredVoiceHttp, type BrokeredNetFetch } from './voice/transports'
 
 /** In-extension LAN view: the real multiplayer client, mounted inside the
  *  extension's own frame with its API seam re-routed.
@@ -37,7 +39,7 @@ type ServicesLike = {
   start(id: string): Promise<{ endpoints: Array<{ port: number }> }>
   expose(id: string, lan: boolean): Promise<{ lan: boolean; port?: number }>
 }
-type NetLike = { fetch(url: string, init?: { httpMethod?: 'GET' | 'POST'; headers?: Array<{ name: string; value: string }>; body?: string }): Promise<{ status: number; contentType: string; body: string }> }
+type NetLike = { fetch(url: string, init?: { httpMethod?: 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'; headers?: Array<{ name: string; value: string }>; body?: string; responseType?: 'text' | 'base64' }): Promise<{ status: number; contentType: string; body: string; bodyEncoding?: 'text' | 'base64' }> }
 
 export default defineView({
   mount(element, context) {
@@ -91,6 +93,23 @@ export default defineView({
     let booting = false
     let adoptedRuntimeHost = false
 
+    // Every path into the shared client goes through here, so the voice
+    // environment can never be left on the website default (localStorage +
+    // browser fetch, which the frame's CSP would block anyway). Inside Agent
+    // Code the ElevenLabs key lives in the host's per-extension secret store
+    // and ElevenLabs is reached only through the host broker, under the
+    // manifest's declared networkOrigins + net.origins consent.
+    const installClient = async (transport: LanTransport): Promise<void> => {
+      const client = await import('../server/client/client.js')
+      client.setVoiceEnvironment({
+        store: agentCodeVoiceSettingsStore(context.api as unknown as AgentCodeStorageApi),
+        http: brokeredVoiceHttp(net
+          ? (url, init) => net.fetch(url, init) as ReturnType<BrokeredNetFetch>
+          : async () => { throw new Error('This Agent Code build does not support brokered fetch.') }),
+      })
+      client.setApiTransport(transport)
+    }
+
     // Adopt a host that the RUNTIME already started (palette command or a
     // previous view): skip the role panel entirely, route through the proxy,
     // and keep the share line alive with the runtime heartbeat. The share
@@ -107,8 +126,7 @@ export default defineView({
         // Say the port BEFORE the heavy client import: an observer (human or
         // harness) must never wait on the 3D bundle to learn hosting is live.
         share(shareText(port, at))
-        const { setApiTransport } = await import('../server/client/client.js')
-        setApiTransport(proxyTransport())
+        await installClient(proxyTransport())
         overlay.hidden = true
         booting = false
       } catch (error) {
@@ -150,8 +168,7 @@ export default defineView({
           await services.start(SERVICE_ID)
           const exposure = await services.expose(SERVICE_ID, true)
           if (!exposure.lan || !exposure.port) throw new Error('LAN exposure was not granted.')
-          const { setApiTransport } = await import('../server/client/client.js')
-          setApiTransport(proxyTransport())
+          await installClient(proxyTransport())
           overlay.hidden = true
           // The LAN address of THIS machine is deliberately not exposed to
           // sandboxed views; name the share shape the way the CLI host does.
@@ -170,8 +187,10 @@ export default defineView({
       let origin: string
       try { origin = privateHostDestination(input.value) } catch (reason) { fail(reason instanceof Error ? reason.message : 'Invalid host address.'); return }
       void boot(async () => {
-        const { setApiTransport } = await import('../server/client/client.js')
-        setApiTransport(netFetchTransport(url => net.fetch(url), origin))
+        // Pass init THROUGH. `url => net.fetch(url)` dropped the method,
+        // headers and body, so every guest POST (join, wager, chat) reached
+        // the host as a bare unauthenticated GET.
+        await installClient(netFetchTransport((url, init) => net.fetch(url, init), origin))
       })
     })
 
