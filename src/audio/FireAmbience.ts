@@ -35,16 +35,32 @@
  * AudioWorklet) would be far more machinery for a one-minute loop. */
 
 /** Samples quieter than this on every channel count as codec padding or the
- * file's own lead-in (≈ -60 dBFS). Measured on the bundled MP3 with ffmpeg:
- * ~7.7k frames (~175 ms) of near-silence at the head and ~1.5k (~35 ms) at the
+ * file's own lead-in (≈ -60 dBFS). Measured on the bundled MP3 decoded at
+ * 48 kHz (Chrome's decodeAudioData and ffmpeg agree to the frame): 8412
+ * frames (0.17525 s) of near-silence at the head and 1669 (~35 ms) at the
  * tail. Looping the raw buffer would put a ~210 ms dropout into every minute.
- * The old media element had the same gap. The crackle bed itself never drops
- * this low (steady ~0.004 RMS), so the threshold cannot eat real content. */
+ * The old media element had the same gap.
+ *
+ * WHY THIS CANNOT EAT REAL CONTENT: not because the bed stays loud. Its median
+ * is about -43.6 dBFS, and plenty of individual samples dip below 1e-3 at zero
+ * crossings. It is safe because the scan only walks inward from each END and
+ * stops at the FIRST loud sample. Quiet samples inside the recording are
+ * never looked at, and nothing is cut from the middle. The only risk is a
+ * long quiet intro/outro, which SEAM_MAX_TRIM_SECONDS bounds.
+ * tests/fire-audio.test.ts pins these frame counts on the real file. */
 const SEAM_SILENCE = 1e-3
 /** Belt and braces: never trim more than this from either end. A future
  * recording with a genuinely quiet intro still loops in full instead of
  * silently shrinking to a fragment. */
 const SEAM_MAX_TRIM_SECONDS = 1
+/** Pause/mute/Off fade. A hard stop() cuts the waveform mid-cycle and clicks.
+ * This matches the 40 ms time constant setVolume always used, so every level
+ * change on this bus has the same feel. */
+const FADE_SECONDS = .04
+
+/** Shared onended handler, so a fade-out allocates no per-stop closure. It
+ * detaches the finished node from the bus. */
+function releaseEnded(this: AudioScheduledSourceNode): void { this.onended = null; this.disconnect() }
 
 /** Loop bounds in seconds, found once at decode time and never per frame. */
 export function audibleLoopWindow(buffer: AudioBuffer): { start: number; end: number } {
@@ -95,6 +111,11 @@ export class FireAmbience {
   // That is one small allocation per pause/resume, never per frame. The
   // AudioBuffer itself is shared.
   private source: AudioBufferSourceNode | null = null
+  // A source still fading out after a pause. It is kept only so that an
+  // immediate resume (within FADE_SECONDS) or a dispose can cut it at once.
+  // Otherwise its tail would overlap the new source on the shared bus, which is
+  // ramping back up, and double the same crackle.
+  private fading: AudioBufferSourceNode | null = null
   // The old media element kept its position across pause. We do the same, so
   // pausing for a dialog does not restart the minute at the same crackle every
   // time. `offset` is the buffer position to resume from. `startedAt` is the
@@ -114,7 +135,9 @@ export class FireAmbience {
    * MP3) and the fire fades in slightly after the table sounds. */
   attach(context: AudioContext, position?: readonly number[]): void {
     if (this.disposed || this.graph) return
-    const gain = context.createGain(); gain.gain.value = this.level
+    // Starts at zero: the first start() fades in over FADE_SECONDS like every
+    // resume does, so the fire never pops in at full level on the first gesture.
+    const gain = context.createGain(); gain.gain.value = 0
     let panner: PannerNode | null = null
     if (position && position.length === 3 && position.every(Number.isFinite)) {
       panner = context.createPanner()
@@ -173,8 +196,22 @@ export class FireAmbience {
   setVolume(level: number): void {
     if (!Number.isFinite(level)) return
     this.level = Math.max(0, Math.min(1, level))
-    if (this.graph) this.graph.gain.gain.setTargetAtTime(this.level, this.graph.context.currentTime, .04)
+    // Only ramp while audible. When this call silences the fire (Off), sync()
+    // below owns the fade-out, and when not playing, the next start ramps up
+    // to the new level.
+    if (this.graph && this.source && this.level > 0) this.rampBus(this.level)
     this.sync()
+  }
+
+  /** Linear ramp from the bus's current value. cancelScheduledValues first, or
+   * a pending fade-out and a new fade-in would both be in the automation
+   * timeline and the later one would jump. AudioParam writes only, no
+   * allocation. */
+  private rampBus(target: number): void {
+    const { context, gain } = this.graph!, at = context.currentTime
+    gain.gain.cancelScheduledValues(at)
+    gain.gain.setValueAtTime(gain.gain.value, at)
+    gain.gain.linearRampToValueAtTime(target, at + FADE_SECONDS)
   }
 
   private sync(): void {
@@ -185,6 +222,7 @@ export class FireAmbience {
     // decode therefore wins.
     if (this.source || !this.graph || !this.buffer) return
     const { context, input } = this.graph
+    this.cutFading()
     const source = context.createBufferSource()
     source.buffer = this.buffer; source.loop = true
     source.loopStart = this.loopStart; source.loopEnd = this.loopEnd
@@ -195,25 +233,51 @@ export class FireAmbience {
     // meanwhile, so the loop position bookkeeping below stays correct.
     source.start(0, this.offset)
     this.source = source; this.startedAt = context.currentTime
+    this.rampBus(this.level)
   }
 
-  private stopSource(): void {
+  /** `immediate` is for dispose only: the graph is about to be torn down, so
+   * there is no bus left to fade on. Every other stop fades the bus to zero
+   * and schedules stop() at the end of that fade. Stop and fade are on the
+   * same audio clock, so the node ends exactly when the bus reaches zero. */
+  private stopSource(immediate = false): void {
     const source = this.source, graph = this.graph
     if (!source || !graph) return
     this.source = null
+    const at = graph.context.currentTime
     const span = this.loopEnd - this.loopStart
     if (span > 0) {
-      const played = Math.max(0, graph.context.currentTime - this.startedAt)
+      // The resume point is where the pause was ASKED for, not the end of the
+      // fade. A resume replays at most 40 ms, which is inaudible on a crackle
+      // bed and keeps the maths independent of the fade.
+      const played = Math.max(0, at - this.startedAt)
       this.offset = this.loopStart + ((this.offset - this.loopStart + played) % span)
     }
-    // stop() on a node whose context was already closed is harmless in
-    // Chromium but has thrown in older engines. Teardown must not throw.
-    try { source.stop() } catch { /* already stopped */ }
-    source.disconnect()
+    this.cutFading()
+    if (immediate) { this.halt(source, 0); return }
+    this.rampBus(0)
+    source.onended = releaseEnded
+    this.fading = source
+    this.halt(source, at + FADE_SECONDS)
+  }
+
+  private cutFading(): void {
+    const fading = this.fading
+    if (!fading) return
+    this.fading = null
+    this.halt(fading, 0)
+  }
+
+  /** stop() on a node whose context was already closed is harmless in Chromium
+   * but has thrown in older engines. Teardown must not throw. A stop(0) after
+   * an earlier scheduled stop() replaces it (the last call wins). */
+  private halt(source: AudioBufferSourceNode, when: number): void {
+    try { source.stop(when) } catch { /* already stopped */ }
+    if (when === 0) { source.onended = null; source.disconnect() }
   }
 
   dispose(): void {
-    this.disposed = true; this.sync()
+    this.disposed = true; this.stopSource(true); this.cutFading()
     if (this.graph) { this.graph.panner?.disconnect(); this.graph.gain.disconnect(); this.graph = null }
     // Drop the ~20 MB of PCM and the base64 reference promptly. The module
     // string stays alive in the bundle anyway, but this owner no longer pins it.

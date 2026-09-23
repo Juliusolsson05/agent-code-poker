@@ -6,7 +6,8 @@ test('synthetic device mix keeps gesture, independent levels, mute and teardown 
   let contexts=0,starts=0,stops=0,closed=0,fireStarts=0,fireStops=0
   const gains:{gain:{value:number;setTargetAtTime:(n:number)=>void}}[]=[]
   const node=()=>({connect(){},disconnect(){}})
-  const parameter=()=>({value:0,setTargetAtTime(n:number){this.value=n},setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){}})
+  // Linear ramps collapse to their target: the fire bus fades with them (40 ms).
+  const parameter=()=>({value:0,setTargetAtTime(n:number){this.value=n},setValueAtTime(){},cancelScheduledValues(){},linearRampToValueAtTime(n:number){this.value=n},exponentialRampToValueAtTime(){}})
   class Device {
     state='running';sampleRate=48000;currentTime=1;destination={}
     constructor(){contexts++}

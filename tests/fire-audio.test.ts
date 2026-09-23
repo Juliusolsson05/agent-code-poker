@@ -2,6 +2,8 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { FireAmbience, audibleLoopWindow, inlineAudioBytes } from '../src/audio/FireAmbience'
 import { PokerAudio } from '../src/audio'
 import { PerspectiveCamera, Vector3 } from 'three'
@@ -21,12 +23,16 @@ function fakeBuffer(seconds = 10, lead = 0, tail = 0, sampleRate = 1000) {
   return { numberOfChannels: 2, length, sampleRate, duration: seconds, getChannelData: () => pcm } as unknown as AudioBuffer
 }
 
-type Source = { buffer: unknown; loop: boolean; loopStart: number; loopEnd: number; started: number[] | null; stopped: boolean; target: unknown; connect(t: unknown): void; disconnect(): void; start(when: number, offset: number): void; stop(): void }
+type Source = { buffer: unknown; loop: boolean; loopStart: number; loopEnd: number; started: number[] | null; stopped: boolean; stopAt: number | null; target: unknown; onended: unknown; connect(t: unknown): void; disconnect(): void; start(when: number, offset: number): void; stop(when?: number): void }
 
 /** Fake device. It records what the fire asks for and REFUSES every
  * media-element path, the way the Agent Code frame CSP does. */
 function fakeContext(decoded: AudioBuffer | Promise<AudioBuffer> = fakeBuffer()) {
-  const param = () => ({ value: 0, setTargetAtTime(value: number) { this.value = value } })
+  // Automation is collapsed to its end state (value = ramp target). `ramp`
+  // records the last linear ramp so fade timing can be asserted.
+  const param = () => ({ value: 0, ramp: null as null | { target: number; end: number }, cancelled: 0,
+    setTargetAtTime(value: number) { this.value = value }, setValueAtTime(value: number) { this.value = value },
+    cancelScheduledValues() { this.cancelled++ }, linearRampToValueAtTime(target: number, end: number) { this.value = target; this.ramp = { target, end } } })
   const links: unknown[] = []; let disconnected = 0
   const node = () => ({ connect(target: unknown) { links.push(target) }, disconnect() { disconnected++ } })
   const sources: Source[] = [], decodes: ArrayBuffer[] = []
@@ -38,8 +44,8 @@ function fakeContext(decoded: AudioBuffer | Promise<AudioBuffer> = fakeBuffer())
     createGain: () => ({ ...node(), gain: param() }),
     createPanner: () => ({ ...node(), panningModel: '', distanceModel: '', refDistance: 0, maxDistance: 0, rolloffFactor: 0, positionX: param(), positionY: param(), positionZ: param() }),
     createBufferSource() {
-      const source: Source = { buffer: null, loop: false, loopStart: 0, loopEnd: 0, started: null, stopped: false, target: null,
-        connect(t) { this.target = t }, disconnect() {}, start(when, offset) { this.started = [when, offset] }, stop() { this.stopped = true } }
+      const source: Source = { buffer: null, loop: false, loopStart: 0, loopEnd: 0, started: null, stopped: false, stopAt: null, target: null, onended: null,
+        connect(t) { this.target = t }, disconnect() {}, start(when, offset) { this.started = [when, offset] }, stop(when = 0) { this.stopped = true; this.stopAt = when } }
       sources.push(source); return source
     },
     decodeAudioData(bytes: ArrayBuffer) { decodes.push(bytes); return Promise.resolve(decoded) },
@@ -124,18 +130,72 @@ test('loop position wraps inside the trimmed loop window', async () => {
   assert.ok(Math.abs(device.playing()[0].started![1] - 2) < 1e-9)
 })
 
-test('autoplay-locked and racing contexts: suspended still schedules, pause/dispose during decode win', async () => {
+test('pause, mute and Off fade the bus for 40 ms before the source stops; dispose cuts at once', async () => {
+  const device = fakeContext(fakeBuffer(10))
+  const fire = new FireAmbience(inlined)
+  fire.setActive(true); fire.unlock(); fire.attach(device.asContext); await settle()
+  // No hearth position: the source feeds the quiet bus directly.
+  const bus = device.sources[0].target as { gain: { value: number; ramp: { target: number; end: number } | null } }
+  assert.deepEqual(bus.gain.ramp, { target: .045, end: 1.04 }, 'first start fades in instead of popping')
+  device.context.currentTime = 2
+  fire.setActive(false)
+  const [paused] = device.sources
+  assert.deepEqual(bus.gain.ramp, { target: 0, end: 2.04 })
+  assert.equal(paused.stopAt, 2.04, 'stop lands exactly when the fade reaches zero, not on the same tick')
+  assert.equal(typeof paused.onended, 'function', 'the faded node detaches itself from the bus when it ends')
+  fire.setActive(true) // resumed inside the fade window
+  assert.equal(paused.stopAt, 0, 'a still-fading tail is cut so it cannot double the new source')
+  device.context.currentTime = 3
+  fire.setVolume(0); assert.equal(device.sources[1].stopAt, 3.04, 'Off fades too')
+  fire.setVolume(.045); device.context.currentTime = 4
+  fire.setMuted(true); assert.equal(device.sources[2].stopAt, 4.04, 'mute fades too')
+  const fading = device.sources[2]
+  fire.setMuted(false); const live = device.sources[3]
+  fire.dispose()
+  assert.equal(live.stopAt, 0, 'dispose stops the playing source immediately')
+  assert.equal(fading.stopAt, 0)
+})
+
+// Electron can keep the context suspended until a gesture that its autoplay
+// policy accepts. In that state currentTime does not advance and nothing
+// renders. This fake models both, and only PokerAudio's resume() leaves the
+// state, so the test fails if the fire's bookkeeping ignores the frozen clock.
+test('autoplay-locked context: source waits for resume(), and the loop position respects the frozen clock', async () => {
+  const saved = globalThis.AudioContext
+  const device = fakeContext(fakeBuffer(10, 500, 0))
+  let gestureAccepted = false
+  device.context.state = 'suspended'
+  device.context.resume = () => { if (gestureAccepted) device.context.state = 'running'; return gestureAccepted ? Promise.resolve() : Promise.reject(new Error('NotAllowedError')) }
+  const advance = (seconds: number) => { if (device.context.state === 'running') device.context.currentTime += seconds }
+  const audible = () => device.context.state === 'running' ? device.playing() : []
+  globalThis.AudioContext = class { constructor() { return device.context } } as unknown as typeof AudioContext
+  try {
+    const audio = new PokerAudio(inlined)
+    audio.setAmbienceActive(true); audio.unlock(); await settle()
+    assert.equal(device.playing().length, 1, 'scheduled on the suspended context')
+    assert.equal(audible().length, 0, 'but silent until resume() succeeds')
+    advance(5)
+    audio.setAmbienceActive(false); audio.setAmbienceActive(true)
+    assert.equal(device.playing()[0].started![1], .5, 'no time passed on a frozen clock, so resume stays at loopStart')
+    gestureAccepted = true; audio.unlock(); await settle()
+    assert.equal(audible().length, 1, 'the next accepted gesture makes the same scheduled loop audible')
+    advance(3)
+    audio.setAmbienceActive(false); audio.setAmbienceActive(true)
+    assert.equal(device.playing()[0].started![1], 3.5, 'once running, played time counts from the context clock')
+    audio.dispose()
+  } finally { globalThis.AudioContext = saved }
+})
+
+test('a pause or dispose during decode wins over the decode result', async () => {
   let release: (b: AudioBuffer) => void = () => {}
-  const pending = new Promise<AudioBuffer>(resolve => { release = resolve })
-  const device = fakeContext(pending)
-  device.context.state = 'suspended' // Electron may hold the context until a later gesture's resume()
+  const device = fakeContext(new Promise<AudioBuffer>(resolve => { release = resolve }))
   const fire = new FireAmbience(inlined)
   fire.setActive(true); fire.unlock(); fire.attach(device.asContext)
   fire.setActive(false) // dialog opened while decoding
   release(fakeBuffer()); await settle()
   assert.equal(device.sources.length, 0, 'a decode finishing during a pause cannot start the fire')
   fire.setActive(true)
-  assert.equal(device.playing().length, 1, 'suspended context: source is scheduled and becomes audible on resume()')
+  assert.equal(device.playing().length, 1)
 
   let late: (b: AudioBuffer) => void = () => {}
   const slow = fakeContext(new Promise<AudioBuffer>(resolve => { late = resolve }))
@@ -157,6 +217,27 @@ test('decode failure is logged once, not retried, and never throws into the hand
     assert.equal(device.decodes.length, 1); assert.equal(warnings.length, 1); assert.equal(device.sources.length, 0)
     fire.dispose()
   } finally { console.warn = warn }
+})
+
+// Decision: decode the REAL file with ffmpeg rather than only pinning numbers.
+// Node has no decodeAudioData, and a pure-JS MP3 decoder would be a new
+// dependency for one test. ffmpeg at 48 kHz matches Chrome's decodeAudioData
+// to the frame on this file (both give 8412 head / 1669 tail frames; checked
+// in headless Chrome for PR #18). Where ffmpeg is missing the test SKIPS with
+// that reason, and the checksum test above still catches any re-encode. A
+// re-encode would change those counts and should make someone re-listen to the
+// seam.
+test('seam window on the real bundled MP3 trims exactly its codec padding', t => {
+  let pcm: Buffer
+  try {
+    pcm = execFileSync('ffmpeg', ['-v', 'error', '-i', fileURLToPath(new URL('../src/assets/audio/fireplace-creator-assets.mp3', import.meta.url)), '-ar', '48000', '-f', 'f32le', '-acodec', 'pcm_f32le', '-'], { maxBuffer: 64 * 1024 * 1024 })
+  } catch { t.skip('ffmpeg is not installed; the recording checksum test still pins the bytes'); return }
+  const frames = pcm.length / 8, left = new Float32Array(frames), right = new Float32Array(frames)
+  for (let i = 0; i < frames; i++) { left[i] = pcm.readFloatLE(i * 8); right[i] = pcm.readFloatLE(i * 8 + 4) }
+  const decoded = { numberOfChannels: 2, length: frames, sampleRate: 48000, duration: frames / 48000, getChannelData: (c: number) => c ? right : left } as unknown as AudioBuffer
+  const bounds = audibleLoopWindow(decoded)
+  assert.equal(Math.round(bounds.start * 48000), 8412, 'head: codec delay plus the file lead-in')
+  assert.equal(frames - Math.round(bounds.end * 48000), 1669, 'tail padding')
 })
 
 test('seam trimming finds codec padding but never eats real content', () => {
