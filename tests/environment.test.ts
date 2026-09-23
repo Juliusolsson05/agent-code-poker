@@ -54,7 +54,10 @@ test('complete authored tree and gifts clear the actual room furniture and walls
     const rig = createTavernLighting(), lights: Light[] = []
     rig.traverse(o => { if (o instanceof Light) lights.push(o) }); decor.root.traverse(o => { if (o instanceof Light) lights.push(o) })
     assert.equal(lights.filter(l => l.castShadow).length, 1, 'Christmas lighting must not add shadow passes')
-    assert.ok(lights.length + createRoomPlan().lights.length <= 8, 'one light per bulb would overwhelm fragment shading')
+    // ≤8 became ≤9 when #8 added the low felt bounce; the room-wide budget,
+    // including the 280° surround's three zone lights, is pinned at ≤12 in
+    // surround.test.ts. Either way, never one light per bulb.
+    assert.ok(lights.length + createRoomPlan().lights.length <= 9, 'one light per bulb would overwhelm fragment shading')
     const snow = decor.root.getObjectByName('window-snow') as Points, positions = snow.geometry.getAttribute('position') as BufferAttribute
     assert.equal(positions.count, 84, 'snow budget must not silently become a screen-filling blizzard')
     const originalArray = positions.array

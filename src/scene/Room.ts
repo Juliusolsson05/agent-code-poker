@@ -2,7 +2,9 @@ import * as THREE from 'three'
 import { rankLabel, suit, SUITS, type Card } from '../engine/cards'
 import { type GameState } from '../engine/game'
 import { RoomProjection, cardCount, type SceneState } from '../presentation/RoomProjection'
-import { buildHuman, humanMaterial, poseHuman, type Human } from './Human'
+import { buildHuman, humanMaterial, poseHuman, requestNpcGesture, type Human } from './Human'
+import { RemoteLeisure } from './RemoteLeisure'
+import { LeisureStarts } from './camera/LeisureStarts'
 import { FirstPerson } from './FirstPerson'
 import { ChipField } from './Chips'
 import { CardField } from './Cards'
@@ -16,14 +18,21 @@ import { SceneCapture, transform } from './diagnostics/SceneCapture'
 import type { TraceValue } from './diagnostics/Recorder'
 import { CHAIR_BLOCKS, PLAYER_LAYOUT, SEATS, seatYaw } from './environment/layout'
 import { createFeltPrint } from './TablePrint'
-import { SeatedLook } from './camera/SeatedLook'
-import { DrinkWarmth, type DrinkEffectLevel } from '../interaction/drinking/DrinkWarmth'
+import { SeatedLook, yawLimitForView } from './camera/SeatedLook'
+import { SurroundDecor } from './environment/SurroundDecor'
+import { EffectEngine, type EffectSetting } from '../interaction/effects/EffectEngine'
+import { applySway, calmEffect } from './rendering/EffectCamera'
+import type { DrinkKind, TreatKind } from './props/specs'
 
 import { createRoomPlan, type RoomBlock } from './environment/RoomPlan'
 import { createTavernLighting, TAVERN_EXPOSURE } from './environment/Lighting'
 import { renderPixelRatio } from './rendering/RenderQuality'
 import type { ProbeMode } from './diagnostics/RenderProbe'
 import { PostProcessing, RENDERER_OPTIONS } from './rendering/PostProcessing'
+
+/** What the leisure controls need, published on transitions only. `treat`
+ * is the cosmetic dish on the table (#14) and `canConsume` its E/button gate. */
+export type LeisureState = { kind: DrinkKind; available: boolean; treat: { kind: TreatKind; remaining: number } | null; canConsume: boolean }
 
 /** Everything is authored in metres, from a seated human's eye line. The first
  * room was orthographic with toy proportions: that erased physical presence.
@@ -32,17 +41,23 @@ import { PostProcessing, RENDERER_OPTIONS } from './rendering/PostProcessing'
 export class PokerRoom {
   onAudioListener?: (matrix: ArrayLike<number>) => void
   private lastAudioPose = -Infinity
-  private drinkWarmth = new DrinkWarmth()
+  // One owner for every cosmetic intoxication channel (#15). It only ever
+  // hears the hero director's completed receipts and the paused visual clock.
+  private effects = new EffectEngine()
   private drinkTint = document.createElement('div')
   private tintOpacity = ''
-  setDrinkEffect(level:DrinkEffectLevel):void {
-    this.drinkWarmth.setLevel(level);this.paintDrinkEffect()
-    this.capture?.event('drink-effect-setting',{level})
+  private tintColor = ''
+  setDrinkEffect(level: EffectSetting): void {
+    this.effects.setSetting(level); this.paintDrinkEffect(this.effects.sample(this.visualTime, this.reduced.matches).tint)
+    // Off must take effect even on a paused (not re-rendering) table.
+    this.pausedRendered = false
+    this.capture?.event('drink-effect-setting', { level })
   }
-  private paintDrinkEffect():void {
-    const opacity=this.drinkWarmth.opacity.toFixed(3)
-    if(opacity===this.tintOpacity)return
-    this.tintOpacity=opacity;this.drinkTint.style.opacity=opacity
+  private paintDrinkEffect(tint: { opacity: number; color: string }): void {
+    // Quantized opacity avoids rewriting style on every tiny decay frame.
+    const opacity = tint.opacity.toFixed(3)
+    if (opacity !== this.tintOpacity) { this.tintOpacity = opacity; this.drinkTint.style.opacity = opacity }
+    if (tint.color !== this.tintColor) { this.tintColor = tint.color; this.drinkTint.style.setProperty('--effect-tint', tint.color) }
   }
   // Actual canvas-drag evidence now covers retained intent, inspection and
   // centered contact dispatch. Keep one product capability across all builds:
@@ -52,6 +67,17 @@ export class PokerRoom {
   readonly experimentalLook = TAVERN_FEATURES.mouseLook
   private readonly experimentalFireplace = TAVERN_FEATURES.fireplace
   private seatedLook = new SeatedLook()
+  // Local gestures reach other players only through onLeisureStarted, which
+  // fires when a gesture really starts (see LeisureStarts), never on request.
+  private leisureStarts = new LeisureStarts(this.experimentalLook ? this.seatedLook : null, kind => this.startLeisure(kind))
+  /** Only smoke and sip are LAN gestures. A treat (E, #14) is deliberately
+   * local-only: #20 keeps treats isolated from networking (its isolation test),
+   * opponents have no treat dish or pinch rig to mirror it with, and the host's
+   * leisure route has no treat action to validate or rate-limit. So consume
+   * starts never reach this listener. */
+  set onLeisureStarted(listener: (kind: 'smoke' | 'drink') => void) {
+    this.leisureStarts.onStarted = kind => { if (kind !== 'consume') listener(kind) }
+  }
   private lookPlaying = false
   private lookBlocked = false
   private lookPointer: number | null = null
@@ -60,6 +86,9 @@ export class PokerRoom {
   private worldUp = new THREE.Vector3(0, 1, 0)
   private scene = new THREE.Scene()
   private camera = new THREE.PerspectiveCamera(70, 1.4, .035, 35)
+  // What the GPU sees: the logical camera plus cosmetic sway (EffectCamera.ts).
+  // Audio, labels and capture diagnostics stay on `camera` so they never jitter.
+  private renderCamera = new THREE.PerspectiveCamera(70, 1.4, .035, 35)
   private labelCamera = new THREE.PerspectiveCamera(70, 1.4, .035, 35)
   private renderer: THREE.WebGLRenderer
   private post: PostProcessing
@@ -67,6 +96,9 @@ export class PokerRoom {
   private materials = new Map<string, THREE.MeshStandardMaterial>()
   private textures = new Map<string, THREE.CanvasTexture>()
   private people: Human[] = []
+  // Projected opponent gestures, anchored in wall time and converted by the
+  // first rendering frame (see RemoteLeisure for why not at poll time).
+  private remoteLeisure = new RemoteLeisure<Human>()
   private hero: FirstPerson
   private chips: ChipField
   private cardField: CardField
@@ -92,6 +124,7 @@ export class PokerRoom {
   private dust: THREE.Points
   private christmas: ChristmasTavern
   private fireplace?: Fireplace
+  private surround: SurroundDecor
   private stats: HTMLOutputElement | null = null
   private measuredAt = performance.now()
   private measuredFrames = 0
@@ -103,7 +136,7 @@ export class PokerRoom {
 
   private leisureKey = ''
   constructor(private container: HTMLElement, private onFailure: () => void, private onLayout: () => void = () => {},
-    private onLeisure: (value: { kind: import('./props/specs').DrinkKind; available: boolean }) => void = () => {}, viewerSeat = 0) {
+    private onLeisure: (value: LeisureState) => void = () => {}, viewerSeat = 0) {
     // Canonical14-12-39/14-13-19 browser PNGs are byte-identical; actual context
     // diagnostics confirm canvas samples4→0. Geometry still resolves4x in the
     // post target. Remove only the redundant fullscreen-triangle allocation,
@@ -124,7 +157,7 @@ export class PokerRoom {
     // blur. HUD/cards/readouts outside this container keep their original CSS.
     // Quantized opacity avoids rewriting style on every tiny decay frame.
     this.drinkTint.className='drink-warmth';this.drinkTint.setAttribute('aria-hidden','true')
-    container.append(this.drinkTint);this.paintDrinkEffect()
+    container.append(this.drinkTint);this.paintDrinkEffect(this.effects.sample(0, this.reduced.matches).tint)
     this.renderer.domElement.addEventListener('webglcontextlost', this.lost)
     container.parentElement?.addEventListener('pointermove', this.look)
     container.parentElement?.addEventListener('pointerleave', this.centerLook)
@@ -140,7 +173,9 @@ export class PokerRoom {
       this.renderer.domElement.style.touchAction = 'none'
       this.renderer.domElement.style.cursor = 'grab'
     }
-    this.scene.fog = new THREE.FogExp2('#0a0b10', .048)
+    // Warm, thinner haze (#8): blue-black fog greyed the far practicals out;
+    // a smoky amber haze keeps depth while letting candles reach the eye.
+    this.scene.fog = new THREE.FogExp2('#150e0a', .036)
     RectAreaLightUniformsLib.init()
     this.scene.add(createTavernLighting())
     this.buildRoom()
@@ -151,6 +186,9 @@ export class PokerRoom {
     if (this.experimentalFireplace) {
       this.fireplace = new Fireplace(); this.scene.add(this.fireplace.root)
     }
+    // Look-around sweeps 280° (#10): side walls end to end and the rear
+    // corners. Every build gets the same finished room, like the hearth.
+    this.surround = new SurroundDecor(); this.scene.add(this.surround.root)
     const skinMaterial = humanMaterial(); this.materials.set('humans', skinMaterial)
     for (let seat = 1; seat < 6; seat++) {
       // Identity follows the authority seat, geometry follows the viewer slot.
@@ -175,7 +213,7 @@ export class PokerRoom {
     for (let i = 0; i < 150; i++) { positions[i * 3] = Math.sin(i * 78.23) * 3.4; positions[i * 3 + 1] = .85 + (Math.sin(i * 12.87) + 1) * 1.2; positions[i * 3 + 2] = Math.cos(i * 61.23) * 2.7 - 1.5 }
     dustGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
     this.dust = new THREE.Points(dustGeometry, new THREE.PointsMaterial({ color: '#b69a70', size: .005, transparent: true, opacity: .26, depthWrite: false })); this.scene.add(this.dust)
-    this.post = new PostProcessing(this.renderer, this.scene, this.camera)
+    this.post = new PostProcessing(this.renderer, this.scene, this.renderCamera)
     if (import.meta.env.DEV && new URLSearchParams(location.search).has('record')) {
       this.renderer.info.autoReset = false
       this.capture = new SceneCapture(this.renderer, () => this.visualTime, () => ({
@@ -284,7 +322,17 @@ export class PokerRoom {
     mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh
   }
   private glow(color: string, x: number, y: number, z: number, sx: number, sy: number, sz: number, strength = 3): void {
-    const mesh = new THREE.Mesh(this.geometry, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: strength }))
+    // createRoomPlan() is pinned to recorded captures, including the two broad
+    // table pendants. Their underside used the generic glow strength 5, which
+    // bloomed into stark white plates against a cozy timber ceiling. Interpret
+    // only that authored pendant shape as amber diffusing glass here; all
+    // positions and the immutable room plan remain byte-for-byte unchanged.
+    const pendant = y > 2.6 && sx > .4 && sz > .25
+    const surface = pendant ? '#b87942' : color
+    const mesh = new THREE.Mesh(this.geometry, new THREE.MeshStandardMaterial({
+      color: surface, emissive: surface, emissiveIntensity: pendant ? 1.25 : strength,
+      roughness: pendant ? .86 : 1,
+    }))
     mesh.position.set(x, y, z); mesh.scale.set(sx, sy, sz); this.scene.add(mesh)
   }
   private buildRoom(): void {
@@ -292,7 +340,9 @@ export class PokerRoom {
     plan.glows.forEach(args => this.glow(...args))
     plan.signs.forEach(args => this.sign(...args))
     plan.lights.forEach(([color, power, x, y, z]) => {
-      const light = new THREE.PointLight(color, power, 2.5, 1.5)
+      // Back-wall sconces: a longer reach (2.5 → 3.4m) so they pool on the
+      // brick and bottles instead of lighting only their own brackets.
+      const light = new THREE.PointLight(color, power * 1.3, 3.4, 1.5)
       light.position.set(x, y, z); this.scene.add(light)
     })
     this.scene.add(createTableSurface())
@@ -333,6 +383,10 @@ export class PokerRoom {
     this.renderer.setPixelRatio(ratio); this.post.setSize(width, height, ratio)
     this.camera.aspect = width / height; this.camera.position.set(this.orbit * .12, PLAYER_LAYOUT.eye[1], PLAYER_LAYOUT.eye[2]); this.camera.lookAt(this.orbit * .3, PLAYER_LAYOUT.look[1], PLAYER_LAYOUT.look[2])
     this.camera.updateProjectionMatrix(); this.camera.updateMatrixWorld(); this.renderer.setSize(width, height)
+    // The seated lens is 70° vertical (inspection narrows it, but inspection
+    // also centres the view). Re-derive on every aspect change so the swept
+    // edge stays on finished decor on narrow and ultrawide windows alike.
+    this.seatedLook.setYawLimit(yawLimitForView(70, this.camera.aspect))
     this.labelCamera.aspect = this.camera.aspect; this.labelCamera.position.copy(this.camera.position)
     this.labelCamera.lookAt(this.orbit * .3, 1.03, -.60); this.labelCamera.updateProjectionMatrix(); this.labelCamera.updateMatrixWorld()
     this.onLayout()
@@ -353,30 +407,52 @@ export class PokerRoom {
     }
     const texture = new THREE.CanvasTexture(canvas); texture.colorSpace = THREE.SRGBColorSpace; texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy(); this.textures.set(key, texture); return texture
   }
-  setPlaying(playing: boolean): void { if (playing) this.capture?.cancelProbe('entered-game'); this.capture?.event('playing', { playing }); this.hero.setActive(playing); this.lookPlaying = playing; this.seatedLook.setContext({ playing }); if (!playing) {this.suspendLook();this.hero.takeCompletedSip();this.drinkWarmth.reset();this.paintDrinkEffect()} }
+  setPlaying(playing: boolean): void { if (playing) this.capture?.cancelProbe('entered-game'); this.capture?.event('playing', { playing }); this.hero.setActive(playing); this.lookPlaying = playing; this.seatedLook.setContext({ playing }); if (!playing) {this.suspendLook();this.hero.takeCompletedSip();this.endNight()} }
+  /** Leaving the table (or starting a fresh one) ends the night: the effect
+   * and the treat dish go together, so a stale "Mushrooms · 0" dish can never
+   * outlive the session it was ordered in (#15 review). Receipt high-water
+   * marks survive, so nothing is replayed on return. */
+  endNight(): void {
+    this.hero.takeCompletedSip(); this.hero.takeCompletedTreat()
+    this.hero.clearTreat(); this.effects.reset()
+    this.paintDrinkEffect(this.effects.sample(this.visualTime, this.reduced.matches).tint)
+    this.pausedRendered = false; this.publishLeisure()
+  }
   setPaused(paused: boolean): void { if (paused) { this.capture?.cancelProbe('paused'); this.suspendLook() } this.capture?.event('pause', { paused }); this.paused = paused; this.seatedLook.setContext({ paused }); this.pausedRendered = false }
   private publishLeisure(): void {
-    const value = { kind: this.hero.drinkKind, available: !this.paused && !this.inspecting && !this.seatedLook.contactPending && this.hero.leisureAvailable }
-    const key = value.kind + ':' + value.available
+    const free = !this.paused && !this.inspecting && !this.seatedLook.contactPending
+    const value: LeisureState = { kind: this.hero.drinkKind, available: free && this.hero.leisureAvailable,
+      treat: this.hero.treatState, canConsume: free && this.hero.canConsume }
+    const key = [value.kind, value.available, value.treat?.kind, value.treat?.remaining, value.canConsume].join(':')
     // React only hears transitions, not every animation frame. The renderer
     // owns availability; a UI timeout cannot predict interrupted return length.
     if (key !== this.leisureKey) { this.leisureKey = key; this.onLeisure(value) }
   }
-  private requestLeisure(kind: 'smoke' | 'drink'): boolean {
+  private startLeisure(kind: 'smoke' | 'drink' | 'consume'): boolean {
+    return kind === 'smoke' ? this.hero.smokeCigar() : kind === 'drink' ? this.hero.sipDrink() : this.hero.consumeTreat()
+  }
+  private requestLeisure(kind: 'smoke' | 'drink' | 'consume'): boolean {
     if (this.paused || this.inspecting || this.seatedLook.contactPending) return false
-    if (!this.experimentalLook) return kind === 'smoke' ? this.hero.smokeCigar() : this.hero.sipDrink()
+    // Queuing an E press with an empty dish would recenter the view for nothing.
+    if (kind === 'consume' && !this.hero.canConsume) return false
+    if (!this.experimentalLook) return this.leisureStarts.request(kind)
     // Queue a request, not a prop animation. Body contacts stay exactly where
     // their established owner authored them; begin only after the view centers.
     this.syncLook()
-    const accepted = this.seatedLook.requestContact(kind)
+    const accepted = this.leisureStarts.request(kind)
     if (accepted) this.cancelLook()
     return accepted
   }
   smokeCigar(): boolean { const accepted = this.requestLeisure('smoke'); this.capture?.event('smoke', { accepted, queued: this.experimentalLook }); this.publishLeisure(); return accepted }
   sipDrink(): boolean { const accepted = this.requestLeisure('drink'); this.capture?.event('drink', { accepted, queued: this.experimentalLook }); this.publishLeisure(); return accepted }
-  orderDrink(kind: import('./props/specs').DrinkKind): boolean {
+  orderDrink(kind: DrinkKind): boolean {
     const accepted = !this.paused && !this.inspecting && !this.seatedLook.contactPending && this.hero.orderDrink(kind)
     this.capture?.event('order-drink', { kind, accepted }); this.publishLeisure(); return accepted
+  }
+  consumeTreat(): boolean { const accepted = this.requestLeisure('consume'); this.capture?.event('consume', { accepted, queued: this.experimentalLook }); this.publishLeisure(); return accepted }
+  orderTreat(kind: TreatKind): boolean {
+    const accepted = !this.paused && !this.inspecting && !this.seatedLook.contactPending && this.hero.orderTreat(kind)
+    this.capture?.event('order-treat', { kind, accepted }); this.publishLeisure(); return accepted
   }
   recordBettingInput(data: { [key: string]: TraceValue }): void {
     // Only opt-in local QA has a capture. The UI supplies bounded command/focus
@@ -409,6 +485,16 @@ export class PokerRoom {
         this.gestures.set(p.seat, { kind: 'win', time: now })
     }
     this.state = state
+    // Remote humans' cosmetic gestures. This runs on every poll, before the
+    // static-card signature early return below: a sip changes no card or chip.
+    // Starting them is left to the next rendering frame (RemoteLeisure).
+    const wall = performance.now()
+    for (const human of this.people) {
+      const leisure = state.players[human.seat]?.leisure ?? null
+      human.driven = !!leisure
+      human.wantDrink = leisure?.drinkKind ?? human.characterDrink
+      this.remoteLeisure.observe(human, leisure, wall)
+    }
     // Checks change engine revision without changing any visible amount. The
     // physical ledger still needs that revision; skipping it made the next bet
     // look like a restore and replaced the entire inventory instead of sliding
@@ -438,11 +524,15 @@ export class PokerRoom {
     if (!this.probeMode) this.visualTime += dt
     const t = this.probeMode ? 12 : this.visualTime, now = t * 1000
     this.hero.setInspection(this.inspecting); this.hero.frame(t, this.reduced.matches)
-    this.drinkWarmth.advance(dt)
-    const sip=this.hero.takeCompletedSip()
-    if(sip)this.drinkWarmth.accept(sip)
-    const sipOpacity=this.drinkWarmth.opacity
-    this.paintDrinkEffect()
+    // dt is 0 while paused, so neither build-up nor fade can happen off-table.
+    this.effects.advance(dt)
+    const sip=this.hero.takeCompletedSip(), treat = this.hero.takeCompletedTreat()
+    if(sip)this.effects.acceptSip(sip)
+    if (treat) this.effects.acceptTreat(treat)
+    const sipOpacity=this.effects.drinkTintOpacity
+    // Probe comparisons must measure the pipeline, not a woozy frame.
+    const effect = this.probeMode ? null : this.effects.sample(t, this.reduced.matches)
+    this.paintDrinkEffect(effect?.tint ?? { opacity: 0, color: this.tintColor })
     this.publishLeisure()
     // Inspection is a presentation-only lean, never a second gameplay mode.
     // Time-based damping avoids different transition speeds on 60/144Hz screens.
@@ -451,11 +541,8 @@ export class PokerRoom {
     const peek = this.inspectionBlend
     if (this.experimentalLook) this.syncLook()
     const look = this.experimentalLook ? this.seatedLook.sample(dt) : null
-    const contact = this.experimentalLook ? this.seatedLook.takeContact() : null
-    let contactAccepted = false
-    if (contact) {
-      contactAccepted = contact === 'smoke' ? this.hero.smokeCigar() : this.hero.sipDrink()
-    }
+    const dispatched = this.leisureStarts.frame()
+    const contact = dispatched?.kind ?? null, contactAccepted = dispatched?.accepted ?? false
     if (this.probeMode) this.gaze.set(0, 0)
     else this.gaze.lerp(this.reduced.matches ? new THREE.Vector2() : this.pointer, .045)
     this.camera.position.set(this.orbit * .12 * (1 - peek), THREE.MathUtils.lerp(PLAYER_LAYOUT.eye[1], 1.95, peek), THREE.MathUtils.lerp(PLAYER_LAYOUT.eye[2], 1.05, peek))
@@ -472,6 +559,15 @@ export class PokerRoom {
       this.camera.position.set(3.8, 2.7, 2.8); this.camera.lookAt(0, 1.35, -3.15)
       this.camera.fov = 75; this.camera.updateProjectionMatrix()
     }
+    // Sway is applied last, to the render camera only (after look yaw/pitch).
+    // Inspection fades sway AND the motion post channels out (calmEffect), so
+    // reading your own cards stays easy; the wide diagnostic view never sways.
+    const calm = this.diagnosticWide ? 0 : 1 - peek
+    const calmed = effect ? calmEffect(effect, calm) : null
+    applySway(this.camera, this.renderCamera, calmed?.active ? calmed.sway : null)
+    this.post.setEffect(calmed?.active ? calmed.post : null)
+    // The HRTF listener follows the LOGICAL camera: a woozy view must not make
+    // the fire's position wobble in your ears (#15 review).
     if (t - this.lastAudioPose >= 1 / 30 || this.lastAudioPose > t) {
       this.lastAudioPose = t; this.camera.updateMatrixWorld()
       this.onAudioListener?.(this.camera.matrixWorld.elements)
@@ -479,10 +575,14 @@ export class PokerRoom {
     if (this.experimentalLook) {
       // Project labels in the same frame as the scene without React frame
       // updates. Out-of-view anchors disappear instead of sticking to an edge.
-      this.camera.updateMatrixWorld()
+      // Labels follow the RENDER camera: they are drawn over the swayed image,
+      // so projecting through the steady logical camera left name tags
+      // drifting against the heads they label (#15 review). They move with
+      // the picture, exactly like the heads, which is what keeps them glued.
+      // tests/effects pins that every projection here uses renderCamera.
       for (const [seat, element] of this.worldLabels) {
         const point = seat < 0 ? this.labelPoint.set(0, .94, -.36) : this.labelPoint.set(SEATS[seat][0], 1.79, SEATS[seat][1])
-        point.project(this.camera)
+        point.project(this.renderCamera)
         element.style.visibility = Math.abs(point.x) > .94 || Math.abs(point.y) > .9 || point.z > 1 || point.z < -1 ? 'hidden' : ''
         element.style.left = `${(point.x + 1) * 50}%`; element.style.top = `${(1 - point.y) * 50}%`
       }
@@ -490,6 +590,12 @@ export class PokerRoom {
     // The director returns held props before allowing the lean. Body/prop poses
     // stay world-space; the camera never translates the arm or re-parents glass.
     this.cardField.setInspection(peek > .45)
+    // Hidden and paused frames returned above, so a gesture that finished in
+    // wall time meanwhile arrives here with its full age and is dropped.
+    for (const g of this.remoteLeisure.take(wallTime)) {
+      const result = requestNpcGesture(g.key, g.action, t - g.ageSeconds, t)
+      this.capture?.event('remote-leisure', { seat: g.key.seat, action: g.action, ageSeconds: g.ageSeconds, result })
+    }
     this.people.forEach(human => {
       const seat = human.seat, player = this.state?.players[seat], gesture = this.gestures.get(seat)
       const showing = this.state?.publicShowdown
@@ -508,10 +614,11 @@ export class PokerRoom {
     this.dust.rotation.y = this.reduced.matches ? 0 : Math.sin(t * .02) * .08
     this.christmas.frame(t, this.reduced.matches)
     this.fireplace?.frame(t, this.reduced.matches)
+    this.surround.frame(t, this.reduced.matches)
     this.chips.frame(now / 1000, this.reduced.matches); this.cardField.frame(now / 1000, this.reduced.matches)
     if (this.stats || this.capture) this.renderer.info.reset()
     this.capture?.beforeRender()
-    if (this.probeMode === 'direct') this.renderer.render(this.scene, this.camera)
+    if (this.probeMode === 'direct') this.renderer.render(this.scene, this.renderCamera)
     else this.post.render()
     this.capture?.afterRender()
     this.capture?.frame(wallTime, frameMs, performance.now() - wallTime, () => ({
@@ -519,7 +626,8 @@ export class PokerRoom {
       tableCards: this.cardField.diagnosticPose(),
       look: this.experimentalLook ? this.seatedLook.diagnostic() : null,
       people: this.people.map(h => ({ seat: h.seat, root: transform(h.root), drink: transform(h.drink.root),
-        drinkContact: h.drinkContact ?? null,
+        drinkContact: h.drinkContact ?? null, drinkKind: h.drink.kind, driven: h.driven,
+        cigar: transform(h.cigar.root), smokeContact: h.smokeContact ?? null,
         rightHand: transform(h.rightRig.hand.root), shoulder: h.rightRig.shoulder.toArray(), elbow: h.rightRig.elbow.toArray(), wrist: h.rightRig.wrist.toArray() })),
     }))
     // frame() retains frame-start wall time. Emitting a performance.now() event
@@ -527,6 +635,7 @@ export class PokerRoom {
     // the receipt after that frame, preserving actual clocks without sorting
     // or rewriting raw evidence. The visual completion time remains identical.
     if(sip)this.capture?.event('completed-player-sip',{...sip,opacity:sipOpacity})
+    if (treat) this.capture?.event('completed-player-treat', { ...treat, levels: { ...this.effects.levels() } })
     // The real turned-sip baseline exposed the same ordering issue for queued
     // contact starts. Dispatch stays before render; only diagnostics wait until
     // the frame-start sample has been written. Never sort captured evidence.
@@ -556,7 +665,7 @@ export class PokerRoom {
     window.removeEventListener('blur', this.suspendLook)
     // Snow owns its private resources and detaches before the shared static
     // scene sweep, so neither disposal path double-frees the same geometry.
-    this.christmas.dispose()
+    this.christmas.dispose(); this.surround.dispose()
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>()
     this.scene.traverse(object => {
       if (object instanceof THREE.Mesh || object instanceof THREE.Points || object instanceof THREE.Sprite) {

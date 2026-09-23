@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { gunzipSync } from 'node:zlib'
 import { Matrix4, Quaternion, Euler, SkinnedMesh, Vector3 } from 'three'
 import { AnatomicalHand } from '../src/scene/Hand'
-import { GLASS_HAND_ROTATION } from '../src/scene/HandGrips'
+import { GLASS_HAND_ROTATION, GLASS_HAND_ROTATION_FACING } from '../src/scene/HandGrips'
 import { DRINKS, type DrinkKind } from '../src/scene/props/specs'
 
 // Offline diagnosis, NOT a new browser recording. The raw trace supplies real
@@ -20,12 +20,17 @@ const out:any[]=[]
 for(const e of trace.entries.filter((e:any)=>e.kind==='pose'))for(const actor of e.data.people){
   const glass=new Matrix4().fromArray(actor.drink.local),wrist=new Matrix4().fromArray(actor.rightHand.local)
   glass.decompose(p,q,scale)
-  const held=q.clone().multiply(new Quaternion(...GLASS_HAND_ROTATION))
+  // Recordings made before #7 used the hero frame on a π-about-Y glass; later
+  // ones use the half-turned facing frame. Try both so a new recording can't
+  // silently drop every sample and report a false clean.
+  const glassQ=q.clone()
   wrist.decompose(p,q,scale)
-  const blend=Math.min(1,rest.angleTo(q)/rest.angleTo(held))
-  if(blend<.03 || blend>.97)continue
-  const residual=rest.clone().slerp(held,blend).angleTo(q)
-  if(residual>1e-5)continue
+  let blend=0,matched=false
+  for(const frame of [GLASS_HAND_ROTATION,GLASS_HAND_ROTATION_FACING]){
+    const held=glassQ.clone().multiply(new Quaternion(...frame)),b=Math.min(1,rest.angleTo(q)/rest.angleTo(held))
+    if(rest.clone().slerp(held,b).angleTo(q)<=1e-5){blend=b;matched=true;break}
+  }
+  if(!matched||blend<.03||blend>.97)continue
   hand.pose('rest');hand.pose('glass',blend)
   const transform=glass.clone().invert().multiply(wrist), spec=DRINKS[kinds[actor.seat]]
   let deepest=0,inside=0

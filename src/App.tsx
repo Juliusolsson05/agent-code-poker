@@ -8,13 +8,14 @@ import { evaluate } from './engine/cards'
 import { chooseAction, observe } from './engine/bots'
 import { CHARACTERS, PokerGame, STREETS, type Action, type GameState, type Legal } from './engine/game'
 import { PokerRoom } from './scene/Room'
-import { DRINKS, type DrinkKind } from './scene/props/specs'
+import { DRINKS, TREATS, isDrinkKind } from './scene/props/specs'
 import { DrinkMenu } from './components/DrinkMenu'
 import { PokerHeader, TableInfo, SeatContents, PotContents, TableReadout } from './components/PokerChrome'
 import { BettingControls, type BettingHandle } from './components/BettingControls'
 import { BankControls } from './components/BankControls'
 import { restoreSoloSave, soloCheckpoint, freshSoloBank, soloBankOffer, transferSoloBank, type BankState, type BankOperation, type Preferences } from './solo/table'
-import type { DrinkEffectLevel } from './interaction/drinking/DrinkWarmth'
+import type { EffectSetting } from './interaction/effects/EffectEngine'
+import type { LeisureState } from './scene/Room'
 
 const SAVE_KEY = 'poker.table.v1'
 type Save = Preferences
@@ -46,11 +47,13 @@ export function App({ api }: { api: PokerApi }) {
   const betting = useRef<BettingHandle>(null)
   const [inspecting, setInspecting] = useState(false)
   const [drinkMenu, setDrinkMenu] = useState(false)
-  const [leisure, setLeisure] = useState<{ kind: DrinkKind; available: boolean }>({ kind: 'old-fashioned', available: false })
+  const [leisure, setLeisure] = useState<LeisureState>({ kind: 'old-fashioned', available: false, treat: null, canConsume: false })
   const inspectionHeld = useRef(false)
   const [orbit, setOrbit] = useState(0)
   const [lookEnabled, setLookEnabled] = useState(true)
-  const [drinkEffect,setDrinkEffect]=useState<DrinkEffectLevel>('subtle')
+  // Normal by default: the effect only starts after the player's own completed
+  // alcoholic sips or treats, and Off is one click away in Settings (#15).
+  const [drinkEffect,setDrinkEffect]=useState<EffectSetting>('normal')
   const [sceneReady, setSceneReady] = useState(0)
   const stage = useRef<HTMLDivElement>(null)
   const root = useRef<HTMLDivElement>(null)
@@ -235,6 +238,8 @@ export function App({ api }: { api: PokerApi }) {
     if (locked.current || loading || sceneFailed) return
     game.current = new PokerGame(); bank.current=freshSoloBank(game.current); game.current.startHand()
     audio.current?.resetEvents()
+    // A fresh table is a fresh night: effect and treat dish end with the old one.
+    scene.current?.endNight()
     setConfirmNew(false); setPanel(null); setError(''); setLoadFailed(false); setPaused(false); setLobby(false)
     audio.current?.unlock(); audio.current?.play('card'); root.current?.focus({ preventScroll: true }); publish()
   }
@@ -314,12 +319,18 @@ export function App({ api }: { api: PokerApi }) {
       if (drinkMenu) return
       // Sizing owns the interaction; don't start inspection or prop motion
       // behind the draft. Tab/native buttons remain usable without a focus trap.
-      if (raiseOpen && ['s', 'd', 'r', ' '].includes(key)) return
+      if (raiseOpen && ['s', 'd', 'e', 'r', ' '].includes(key)) return
       if (event.key.toLowerCase() === 's' && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed && !(event.target instanceof HTMLElement && event.target.closest('input, select, textarea, [contenteditable]'))) {
         event.preventDefault(); if (!event.repeat) scene.current?.smokeCigar(); return
       }
       if (event.key.toLowerCase() === 'd' && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed && !(event.target instanceof HTMLElement && event.target.closest('input, select, textarea, [contenteditable]'))) {
         event.preventDefault(); if (!event.repeat) scene.current?.sipDrink(); return
+      }
+      // E takes a cosmetic treat from the dish (#14); same guards as D, plus
+      // the same canConsume gate as the on-screen button. Room also refuses,
+      // but one rule for key and button keeps the two paths from drifting.
+      if (event.key.toLowerCase() === 'e' && leisure.treat && leisure.canConsume && !lobby && !paused && !panel && !confirmNew && !error && !sceneFailed && !(event.target instanceof HTMLElement && event.target.closest('input, select, textarea, [contenteditable]'))) {
+        event.preventDefault(); if (!event.repeat) scene.current?.consumeTreat(); return
       }
       if (isEditing(event.target)) return
       if (event.key.toLowerCase() === 'r' && scene.current?.experimentalLook && !lobby && !paused && !panel && !raiseOpen && !inspecting) {
@@ -350,12 +361,13 @@ export function App({ api }: { api: PokerApi }) {
           <button onClick={() => { setDrinkMenu(false); setInspecting(value => !value); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed} aria-pressed={inspecting} title="Hold Space to inspect cards and chips">{inspecting ? 'Look up' : 'Cards & chips'} <kbd>Space</kbd></button>
           <button onClick={() => scene.current?.smokeCigar()} disabled={paused || !!panel || !!error || sceneFailed || inspecting || !leisure.available} title="Smoke cigar (S)">Cigar <kbd>S</kbd></button>
           <button onClick={() => { scene.current?.sipDrink(); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed || inspecting || !leisure.available} title="Sip current drink (D)">{DRINKS[leisure.kind].label} <kbd>D</kbd></button>
+          {leisure.treat && <button onClick={() => { scene.current?.consumeTreat(); root.current?.focus({ preventScroll: true }) }} disabled={paused || !!panel || !!error || sceneFailed || inspecting || !leisure.canConsume} title="Take a cosmetic treat (E)">{TREATS[leisure.treat.kind].label} · {leisure.treat.remaining} <kbd>E</kbd></button>}
           <button onClick={() => setDrinkMenu(value => !value)} disabled={paused || !!panel || !!error || sceneFailed || inspecting} aria-expanded={drinkMenu}>Drinks ▾</button>
           <button onClick={() => openPanel('bank')} disabled={saving || !!error || sceneFailed}>Bank{bankOffer?.debt ? ` · ${chips(bankOffer.debt)} owed` : ''}</button>
           <button onClick={() => openPanel('history')}>Hand history ↗</button>
         </div>
-        {drinkMenu && <DrinkMenu kind={leisure.kind} available={leisure.available} onClose={() => { setDrinkMenu(false); root.current?.focus({ preventScroll: true }) }} onOrder={kind => {
-          if (scene.current?.orderDrink(kind)) { setDrinkMenu(false); root.current?.focus({ preventScroll: true }) }
+        {drinkMenu && <DrinkMenu kind={leisure.kind} treat={leisure.treat?.kind ?? null} available={leisure.available} onClose={() => { setDrinkMenu(false); root.current?.focus({ preventScroll: true }) }} onOrder={kind => {
+          if (isDrinkKind(kind) ? scene.current?.orderDrink(kind) : scene.current?.orderTreat(kind)) { setDrinkMenu(false); root.current?.focus({ preventScroll: true }) }
         }} />}
         {s.players.map((p, i) => {
           if (i === 0) return null // Your seat is the camera; bankroll/cards already live in the foreground HUD.
@@ -409,7 +421,7 @@ export function App({ api }: { api: PokerApi }) {
         <label>Sound<button onClick={toggleMute} disabled={saving || loading || loadFailed} aria-pressed={!muted}>{muted ? 'Off' : 'On'}</button></label>
         <label>Fire ambience<select value={ambienceLevel} onChange={event=>{const value=Number(event.target.value);setAmbienceLevel(value);scene.current?.recordAudio({ambience:value,effects:effectsLevel})}}><option value={0}>Off</option><option value={.5}>Quiet</option><option value={1}>Normal</option></select></label>
         <label>Game effects<select value={effectsLevel} onChange={event=>{const value=Number(event.target.value);setEffectsLevel(value);scene.current?.recordAudio({ambience:ambienceLevel,effects:value})}}><option value={0}>Off</option><option value={.5}>Quiet</option><option value={1}>Normal</option></select></label><p>Fire and game sounds have separate levels. Sound Off mutes both. Levels last until reload.</p>
-        <label>Drink effect<select aria-label="Drink effect" value={drinkEffect} onChange={event=>setDrinkEffect(event.target.value as DrinkEffectLevel)}><option value="off">Off</option><option value="subtle">Subtle</option><option value="soft">Soft</option></select></label><p>A gentle edge warmth only after your completed alcoholic sips. No camera sway or blur. Water and ordering do not add it. Off clears it; this preference lasts until reload.</p>
+        <label>Drink &amp; treat effect<select aria-label="Drink and treat effect" value={drinkEffect} onChange={event=>setDrinkEffect(event.target.value as EffectSetting)}><option value="off">Off</option><option value="normal">Normal</option><option value="strong">Strong</option></select></label><p>Builds only after your own completed alcoholic sips and treats: a slow sway, soft double vision and colour shifts. It never flashes, never moves chips or props, and fades over several minutes. Reduced-motion devices get a colour tint only. Off clears it at once; this lasts until reload.</p>
         <label>Camera angle<input type="range" min={-1} max={1} step={0.1} value={orbit} onChange={event => setOrbit(Number(event.target.value))} /></label>
         {scene.current?.experimentalLook && <><label>Mouse-look<button aria-pressed={lookEnabled} onClick={() => setLookEnabled(value => !value)}>{lookEnabled ? 'On' : 'Off'}</button></label><p>Hold the left mouse button and drag the room. R centers your view. Controls never steer the camera. This setting lasts until reload.</p></>}
         <p>Motion follows your device’s reduced-motion preference.</p>

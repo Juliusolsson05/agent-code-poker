@@ -3,8 +3,10 @@ import assert from 'node:assert/strict'
 import * as THREE from 'three'
 import { AnatomicalHand } from '../src/scene/Hand'
 import { createHeldCardFan } from '../src/scene/CardGrip'
-import { buildHuman, humanMaterial, poseHuman } from '../src/scene/Human'
+import { buildHuman, humanMaterial, NPC_SIP_SCALE, poseHuman } from '../src/scene/Human'
 import { GLASS_HAND_CONTACT } from '../src/scene/HandGrips'
+import { createRoomPlan } from '../src/scene/environment/RoomPlan'
+import { CHAIR_BLOCKS, SEATS, seatYaw } from '../src/scene/environment/layout'
 
 function dispose(root: THREE.Object3D): void {
   root.traverse(o => { if (o instanceof THREE.Mesh) { o.geometry.dispose(); (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.dispose()); if (o instanceof THREE.SkinnedMesh) o.skeleton.dispose() } })
@@ -20,13 +22,14 @@ test('every opponent keeps the shared glass contact attached throughout lift, si
     human.root.position.set(1.3, 0, -.4); human.root.rotation.y = 1.7
     human.sipAt = 0; human.nextSip = 100
     for (let frame = 0; frame <= 80; frame++) {
-      const time = .8 + frame * .05
+      // Authored 6s sip units, scaled to the shared gesture length.
+      const time = (.8 + frame * .05) * NPC_SIP_SCALE
       poseHuman(human, time, { reduced: false, active: false, folded: false, showing: false, hasCards: true, dealt: 1, actionAge: time, gaze: 0 })
       human.root.updateMatrixWorld(true)
       const hand = human.rightRig.hand.root.localToWorld(new THREE.Vector3(...GLASS_HAND_CONTACT))
       const glass = human.drink.root.localToWorld(human.drink.grip.clone())
       assert.ok(hand.distanceTo(glass) < 1e-7, `seat ${seat} at ${time}: ${hand.distanceTo(glass) * 1000}mm detached grip`)
-      if (time >= 2 && time <= 3.3) {
+      if (time >= 2 * NPC_SIP_SCALE && time <= 3.3 * NPC_SIP_SCALE) {
         const lip = human.head.localToWorld(new THREE.Vector3(0, -.046, .076))
         const rim = human.drink.root.localToWorld(human.drink.rim.clone())
         assert.ok(lip.distanceTo(rim) < 1e-7, `seat ${seat}: rim misses the animated mouth`)
@@ -100,4 +103,48 @@ test('continuous sleeves and hand roots meet at the same wrist through rest, bet
     }
   }
   dispose(human.root); material.dispose(); box.dispose()
+})
+
+test('seated bodies rest on the chair and floor and clear the chair frame and table', () => {
+  // #9: the old barrel torso sat on two floating ellipsoid thighs with no legs.
+  // The replacement is judged by physical contacts in the production room
+  // placement, not by a picture: pelvis on the seat, soles on the floor, and
+  // no body vertex inside the chair blocks, the table's hidden skirt/pedestal
+  // or under the rail's lip.
+  const material = humanMaterial(), box = new THREE.BoxGeometry(), p = new THREE.Vector3()
+  const plan = createRoomPlan({ fireplace: true }).blocks
+  // Of the two blocks under the table, only the pedestal is judged. The 3.0 x
+  // 1.7m under-skirt reaches within 20cm of the near seats: no real knee can
+  // clear it (the pre-#9 thighs sat inside it too). It is fully hidden under
+  // the tabletop and rail from every seated eye, which the rail check covers.
+  const under = plan.filter(b => Math.abs(b.position[0]) < .01 && Math.abs(b.position[2]) < .01)
+  assert.equal(under.length, 2, 'expected the table skirt and pedestal blocks')
+  const tableSolids = under.filter(b => b.size[0] < 2)
+    .map(b => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(...b.position), new THREE.Vector3(...b.size)))
+  // The rail/felt slab spans y=.755–.843; leaning torsos above it are fine.
+  const insideRail = (v: THREE.Vector3) => v.y > .75 && v.y < .85 && (Math.abs(v.x) / 1.91) ** 2.7 + (Math.abs(v.z) / 1.135) ** 2.7 < 1
+  for (let seat = 1; seat <= 5; seat++) {
+    const human = buildHuman(seat, box, material), [x, z] = SEATS[seat]
+    human.root.position.set(x, 0, z); human.root.rotation.y = seatYaw(x, z); human.root.updateMatrixWorld(true)
+    const body = human.root.getObjectByName('seated-body') as THREE.Mesh, positions = body.geometry.getAttribute('position')
+    const chairs = CHAIR_BLOCKS.map(b => new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(...b.position), new THREE.Vector3(...b.size)).expandByScalar(-.001))
+    let lowest = Infinity, lowestTorso = Infinity
+    for (let i = 0; i < positions.count; i++) {
+      p.fromBufferAttribute(positions, i)
+      lowest = Math.min(lowest, p.y)
+      if (Math.abs(p.z) < .06 && Math.abs(p.x) < .05) lowestTorso = Math.min(lowestTorso, p.y)
+      for (const chair of chairs) assert.ok(!chair.containsPoint(p), `seat ${seat}: body inside chair at ${p.toArray()}`)
+      const world = p.clone().applyMatrix4(body.matrixWorld)
+      for (const solid of tableSolids) assert.ok(!solid.containsPoint(world), `seat ${seat}: body inside table solid at ${world.toArray()}`)
+      // Only the legs (in front of the jacket, local z>.13) are judged against
+      // the rail. The side seats' origins already sit inside the rail's outer
+      // lip (x=±1.82 vs ≈±1.88), so their torsos met that lip before #9 too;
+      // that is a seat-layout question, not something new anatomy can fix.
+      if (p.z > .13) assert.ok(!insideRail(world), `seat ${seat}: knee/thigh inside the rail at ${world.toArray()}`)
+    }
+    assert.ok(lowest >= 0 && lowest < .01, `seat ${seat}: soles at ${lowest}, not on the floor`)
+    assert.ok(Math.abs(lowestTorso - .62) < .005, `seat ${seat}: pelvis at ${lowestTorso}, not on the seat`)
+    dispose(human.root)
+  }
+  material.dispose(); box.dispose()
 })

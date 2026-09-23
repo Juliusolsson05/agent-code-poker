@@ -1,6 +1,7 @@
 import { chooseAction, observe, type Observation } from '../engine/bots'
 import { CHARACTERS, PokerGame, type Action } from '../engine/game'
-import { projectTable, type TableView } from './view'
+import { projectTable, type SeatLeisure, type TableView } from './view'
+import { GESTURE_SECONDS, isDrinkKind, type DrinkKind } from '../scene/props/specs'
 import { createPracticeBank, planBankTransfer, restorePracticeBank, REBUY_CHIPS, type BankState, type BankOperation } from '../bank/PracticeBank'
 
 type Identity = { id: string; name: string }
@@ -8,7 +9,7 @@ type Member = Identity & {
   seat: number; active: boolean; connected: boolean; leaving: boolean
   sequence: number; lastRequest: string | null
 }
-type Options = { random?: () => number; bot?: (observation: Observation) => Action }
+type Options = { random?: () => number; bot?: (observation: Observation) => Action; now?: () => number }
 // This is an intentionally private-storage schema, NOT a transport DTO. Only
 // the standalone host may persist it. Never spread it into a SessionView.
 export type HostCheckpoint = { version: 2; host: string; revision: number; members: Member[]; game: ReturnType<PokerGame['snapshot']>; bank: BankState }
@@ -16,6 +17,35 @@ type Intent = { sequence: number; revision: number; action: Action | BankOperati
 type Code = 'accepted' | 'duplicate' | 'unauthorized' | 'invalid' | 'disconnected' | 'waiting' |
   'sequence-conflict' | 'out-of-order' | 'stale' | 'not-your-turn' | 'illegal'
 export type Receipt = { ok: boolean; code: Code; revision: number }
+type LeisureRequest = { action: 'smoke' } | { action: 'sip' | 'order'; kind: DrinkKind }
+type LeisureCode = 'accepted' | 'unauthorized' | 'invalid' | 'disconnected' | 'waiting' | 'paused' | 'busy' | 'rate-limited'
+/** Deliberately carries no revision: a leisure receipt must not look like, or
+ * be ordered against, a wager acknowledgement. */
+export type LeisureReceipt = { ok: boolean; code: LeisureCode }
+/** One coherent spacing rule (review of #21): a new smoke/sip is refused
+ * ('busy') while the member's previous gesture is still within its AUTHORED
+ * length (GESTURE_SECONDS, shared with the hero and the opponent copies).
+ * - It never refuses a real gesture: the local player cannot start a second
+ *   gesture before the first one ends either, so an honest client's requests
+ *   are always at least that far apart. The one exception is a local
+ *   interruption (inspection cuts a gesture short); then the next gesture is
+ *   simply not shown to others, which is a missing cosmetic, not a phantom.
+ * - It keeps every other screen honest: remote copies last exactly as long,
+ *   so no remote copy ever has to queue behind the previous one and drift,
+ *   and at most one can be waiting for a hand at a time.
+ * The old flat 2.5s limit accepted chains that remote bodies could not keep
+ * up with (drift, then a newer gesture overwriting an unseen queued one).
+ * jitterMs absorbs request timing noise between two back-to-back local
+ * starts; the renderer queues that sub-second overlap behind the busy hand.
+ * Orders are a glass swap with no gesture, so they keep a plain spacing. The
+ * age cap only bounds the projected number. */
+export const LEISURE_LIMITS = { jitterMs: 250, orderMs: 1000, maxAgeMs: 60_000 } as const
+export const gestureSpacingMs = (action: 'smoke' | 'sip') =>
+  (action === 'sip' ? GESTURE_SECONDS.drink : GESTURE_SECONDS.smoke) * 1000 - LEISURE_LIMITS.jitterMs
+/** The last ANIMATED gesture and the current drink are separate facts. An
+ * order must never overwrite a smoke/sip that a viewer has not polled yet
+ * (a latest-only record hid it), so orders only change drinkKind. */
+type LeisureRecord = { gesture: { seq: number; action: 'smoke' | 'sip'; at: number } | null; drinkKind: DrinkKind | null; orderedAt: number }
 export type SessionView = Omit<TableView, 'players'> & {
   revision: number; self: { seat: number; waiting: boolean; nextSequence: number;
     bank: { debt: number; borrowAmount: number; canBorrow: boolean; repayMax: number; reason: string | null } }
@@ -57,6 +87,15 @@ function intent(value: unknown): Intent | null {
   if (!keys(a, ['type']) || a.type !== 'fold' && a.type !== 'check' && a.type !== 'call') return null
   return { sequence: Number(value.sequence), revision: Number(value.revision), action: { type: a.type } }
 }
+function leisureRequest(value: unknown): LeisureRequest | null {
+  // Exact shapes only. In particular there is no seat field to forge: the seat
+  // always comes from the authenticated member, exactly as for wagers.
+  if (!record(value)) return null
+  if (value.action === 'smoke') return keys(value, ['action']) ? { action: 'smoke' } : null
+  if ((value.action === 'sip' || value.action === 'order') && keys(value, ['action', 'kind']) && isDrinkKind(value.kind))
+    return { action: value.action, kind: value.kind }
+  return null
+}
 
 /** In-process host authority, not a network server. A future transport resolves
  * an authenticated principal BEFORE invoking this API; client-supplied seat IDs
@@ -76,6 +115,18 @@ export class HostTable {
   #bot: (observation: Observation) => Action
   #random: () => number
   #bank: BankState
+  #now: () => number
+  // Cosmetic and volatile BY DESIGN: not a Member field (members are exported
+  // verbatim into the private checkpoint, whose restore demands exact keys) and
+  // not part of exportHostCheckpoint. A sip must never cost a disk commit, and a
+  // host restart simply forgets who was holding a cigar.
+  #leisure = new Map<string, LeisureRecord>()
+  // Random 32-bit start, then +1 per gesture. Leisure is volatile, so a host
+  // restart restarts the counter; a random start makes a post-restart seq equal
+  // to the one a browser saw before the restart (and so skipped as already
+  // animated) a 1-in-2^32 event. The earlier clock seed did the same job but
+  // published the host's wall clock to every player.
+  #leisureSeq = globalThis.crypto.getRandomValues(new Uint32Array(1))[0]
 
   constructor(host: Identity, options: Options = {}) {
     principal(host.id)
@@ -90,6 +141,7 @@ export class HostTable {
     this.#game = new PokerGame(deckRandom)
     this.#bank = createPracticeBank(this.#game.snapshot().initialTotal)
     this.#bot = options.bot ?? (o => chooseAction(o))
+    this.#now = options.now ?? Date.now
     this.#host = host.id
     this.#members.set(host.id, { id: host.id, name, seat: 0, active: true, connected: true, leaving: false, sequence: 0, lastRequest: null })
   }
@@ -190,7 +242,7 @@ export class HostTable {
     // not release a seat or activate a queued human against the old deal.
     this.#game.startHand()
     for (const [key, m] of this.#members) {
-      if (m.leaving) this.#members.delete(key)
+      if (m.leaving) { this.#members.delete(key); this.#leisure.delete(key) }
       else m.active = true
     }
     this.#revision++
@@ -232,6 +284,38 @@ export class HostTable {
     return reply('accepted')
   }
 
+  /** Cosmetic intent: smoke, sip or order a drink. It is intentionally NOT an
+   * act() command. act() shares one per-member sequence and the table revision
+   * with wagers; consuming either would make every other player's in-flight
+   * wager 'stale' (or this player's next one 'out-of-order') because somebody
+   * lit a cigar. So this path never touches PokerGame, the bank, Member.sequence
+   * or #revision, and a pending wager built before it stays valid.
+   *
+   * Pause is the transport's state, so the transport passes it in. A queued
+   * human (inactive) does not own the seat's body yet: a bot is still playing
+   * it, and a gesture there would animate a body the person does not control. */
+  leisure(id: string, request: unknown, context: { paused: boolean }): LeisureReceipt {
+    const reply = (code: LeisureCode): LeisureReceipt => ({ ok: code === 'accepted', code })
+    const m = this.#members.get(id)
+    if (!m || m.leaving) return reply('unauthorized')
+    const parsed = leisureRequest(request)
+    if (!parsed) return reply('invalid')
+    if (!m.connected) return reply('disconnected')
+    if (!m.active) return reply('waiting')
+    if (context.paused) return reply('paused')
+    const at = this.#now(), prior = this.#leisure.get(id) ?? { gesture: null, drinkKind: null, orderedAt: -Infinity }
+    if (parsed.action === 'order') {
+      if (at - prior.orderedAt < LEISURE_LIMITS.orderMs) return reply('rate-limited')
+      this.#leisure.set(id, { ...prior, drinkKind: parsed.kind, orderedAt: at })
+      return reply('accepted')
+    }
+    const last = prior.gesture
+    if (last && at - last.at < gestureSpacingMs(last.action)) return reply('busy')
+    this.#leisure.set(id, { gesture: { seq: ++this.#leisureSeq, action: parsed.action, at },
+      drinkKind: parsed.action === 'sip' ? parsed.kind : prior.drinkKind, orderedAt: prior.orderedAt })
+    return reply('accepted')
+  }
+
   /** Called by the host scheduler, not a client packet. Timer cancellation alone
    * cannot prevent queued callbacks: revision check makes a late tick harmless.
    * Bots see the existing observe() allowlist, never another player's cards.
@@ -252,7 +336,18 @@ export class HostTable {
     const member = this.#member(id)
     if (!member.connected || member.leaving) throw new Error('Principal is disconnected or has left.')
     const state = this.#game.snapshot(), privateSeat = member.active ? member.seat : null
-    const view = projectTable(state, privateSeat, this.#game.legal(privateSeat), member.seat)
+    const at = this.#now()
+    const leisure = state.players.map((_, seat): SeatLeisure | null => {
+      const occupant = [...this.#members.values()].find(m => m.seat === seat)
+      // Same control rule as tick(): a bot plays (and gestures for) a seat
+      // whose human is queued, disconnected or leaving.
+      if (!occupant?.active || !occupant.connected || occupant.leaving) return null
+      const l = this.#leisure.get(occupant.id)
+      const g = l?.gesture
+      return { seq: g?.seq ?? 0, action: g?.action ?? null, drinkKind: l?.drinkKind ?? null,
+        ageMs: g ? Math.min(LEISURE_LIMITS.maxAgeMs, Math.max(0, Math.floor(at - g.at))) : null }
+    })
+    const view = projectTable(state, privateSeat, this.#game.legal(privateSeat), member.seat, leisure)
     const debt=this.#bank.accounts.find(a=>a.id===id)?.debt??0, stack=state.players[member.seat].stack
     const boundary=state.phase==='ready' || state.phase==='complete'
     let reason: string|null=!boundary ? 'Bank transfers are only available between hands.' : stack!==0 ? 'Rebuys are available when your stack is empty.' : null
