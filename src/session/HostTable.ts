@@ -29,9 +29,28 @@ export type LeisureReceipt = { ok: boolean; code: LeisureCode }
  * a glass swap with no gesture, so they get their own shorter spacing. The
  * age cap only bounds the projected number; older gestures are long finished. */
 export const LEISURE_LIMITS = { animatedMs: 2500, orderMs: 1000, maxAgeMs: 60_000 } as const
+/** Chat is table talk, not poker state: like leisure it never touches
+ * PokerGame, the member command sequence, #revision or the checkpoint.
+ * - maxChars counts code points after normalisation, so an emoji is one.
+ * - burst/refillMs is a per-member token bucket: four quick lines, then one
+ *   every 3 s. Six players at that rate is still readable, and one browser
+ *   (or a script holding a token) cannot scroll everyone else's log away.
+ * - keep bounds memory; project bounds every poll's payload (six viewers poll
+ *   twice a second, so the projection must stay small); maxAgeMs drops lines
+ *   nobody is still reading. */
+export const CHAT_LIMITS = { maxChars: 200, burst: 4, refillMs: 3000, keep: 30, project: 12, maxAgeMs: 600_000 } as const
+type ChatCode = 'accepted' | 'unauthorized' | 'invalid' | 'disconnected' | 'rate-limited'
+/** Bare receipt, never an envelope (same reason as LeisureReceipt). seq lets
+ * the sender attach its own synthesised clip to exactly this line. */
+export type ChatReceipt = { ok: boolean; code: ChatCode; seq?: number }
+type ChatRecord = { seq: number; memberId: string; seat: number; name: string; text: string; at: number }
+/** One projected chat line. Public by construction: the name and text the
+ * sender chose, the seat everyone can see, and an age instead of a host
+ * timestamp. voice says the host currently holds a relayed clip for seq. */
+export type ChatLine = { seq: number; seat: number; displaySeat: number; name: string; text: string; ageMs: number; voice: boolean }
 type LeisureRecord = { seq: number; action: 'smoke' | 'sip' | 'order'; at: number; drinkKind: DrinkKind | null; animatedAt: number; orderedAt: number }
 export type SessionView = Omit<TableView, 'players'> & {
-  revision: number; self: { seat: number; waiting: boolean; nextSequence: number;
+  revision: number; chat: ChatLine[]; self: { seat: number; waiting: boolean; nextSequence: number;
     bank: { debt: number; borrowAmount: number; canBorrow: boolean; repayMax: number; reason: string | null } }
   players: (TableView['players'][number] & {
     name: string; kind: 'human' | 'bot'; connected: boolean; pendingName: string | null
@@ -46,6 +65,19 @@ function displayName(value: string): string {
   const name = value.normalize('NFC').trim().replace(/\s+/gu, ' ')
   if (!name || [...name].length > 24) throw new Error('Invalid display name.')
   return name
+}
+/** Plain text only. Control and format characters (\p{Cc}\p{Cf}) are refused,
+ * not stripped: bidi overrides and zero-width joiners could make a line look
+ * like it came from someone else, and silently editing what a person typed is
+ * worse than telling them no. '<' and '&' stay as typed: every renderer uses
+ * text nodes, and "escaping" here would only corrupt honest messages. Newlines
+ * are Cc too, so a bubble is always one line. Returns null when invalid. */
+export function chatText(value: unknown): string | null {
+  // Bound the raw input before normalising so a huge string costs nothing.
+  if (typeof value !== 'string' || value.length > CHAT_LIMITS.maxChars * 4) return null
+  const text = value.normalize('NFC').replace(/[ \u00a0\u2000-\u200a\u202f\u205f\u3000]+/gu, ' ').trim()
+  if (!text || /[\p{Cc}\p{Cf}]/u.test(text) || [...text].length > CHAT_LIMITS.maxChars) return null
+  return text
 }
 function principal(value: string): void {
   if (typeof value !== 'string' || !/^[a-zA-Z0-9_-]{1,128}$/.test(value)) throw new Error('Invalid principal.')
@@ -106,6 +138,11 @@ export class HostTable {
   // host restart simply forgets who was holding a cigar.
   #leisure = new Map<string, LeisureRecord>()
   #leisureSeq = 0
+  // Volatile for the same reasons as #leisure. A host restart forgets the
+  // conversation; nobody's chips or seat depend on it.
+  #chat: ChatRecord[] = []
+  #chatSeq = 0
+  #chatBuckets = new Map<string, { tokens: number; at: number }>()
 
   constructor(host: Identity, options: Options = {}) {
     principal(host.id)
@@ -221,7 +258,7 @@ export class HostTable {
     // not release a seat or activate a queued human against the old deal.
     this.#game.startHand()
     for (const [key, m] of this.#members) {
-      if (m.leaving) { this.#members.delete(key); this.#leisure.delete(key) }
+      if (m.leaving) { this.#members.delete(key); this.#leisure.delete(key); this.#chatBuckets.delete(key) }
       else m.active = true
     }
     this.#revision++
@@ -296,6 +333,38 @@ export class HostTable {
     return reply('accepted')
   }
 
+  /** Principal-bound table talk. The seat and name come from the
+   * authenticated member at send time (a later leave does not rewrite who
+   * said it). Allowed while paused and while queued for the next hand: a
+   * pause is exactly when people talk, and a waiting player is at the table. */
+  chat(id: string, request: unknown): ChatReceipt {
+    const reply = (code: ChatCode, seq?: number): ChatReceipt => ({ ok: code === 'accepted', code, ...(seq === undefined ? {} : { seq }) })
+    const m = this.#members.get(id)
+    if (!m || m.leaving) return reply('unauthorized')
+    // Exact shape: there is no seat, name or timestamp field to forge.
+    if (!record(request) || !keys(request, ['text'])) return reply('invalid')
+    const text = chatText(request.text)
+    if (text === null) return reply('invalid')
+    if (!m.connected) return reply('disconnected')
+    const at = this.#now(), bucket = this.#chatBuckets.get(id) ?? { tokens: CHAT_LIMITS.burst, at }
+    bucket.tokens = Math.min(CHAT_LIMITS.burst, bucket.tokens + Math.max(0, at - bucket.at) / CHAT_LIMITS.refillMs); bucket.at = at
+    if (bucket.tokens < 1) { this.#chatBuckets.set(id, bucket); return reply('rate-limited') }
+    bucket.tokens -= 1; this.#chatBuckets.set(id, bucket)
+    // Clock-seeded like #leisureSeq: a restarted host must not reuse a seq a
+    // browser already spoke, or that browser would skip the new line's voice.
+    this.#chatSeq = Math.max(this.#chatSeq + 1, Math.floor(at))
+    this.#chat.push({ seq: this.#chatSeq, memberId: id, seat: m.seat, name: m.name, text, at })
+    if (this.#chat.length > CHAT_LIMITS.keep) this.#chat.splice(0, this.#chat.length - CHAT_LIMITS.keep)
+    return reply('accepted', this.#chatSeq)
+  }
+
+  /** The relay's authority check: who sent chat line `seq`, and when. The
+   * transport stores a clip only for the line's own sender. */
+  chatSender(seq: number): { memberId: string; at: number } | null {
+    const line = this.#chat.find(c => c.seq === seq)
+    return line ? { memberId: line.memberId, at: line.at } : null
+  }
+
   /** Called by the host scheduler, not a client packet. Timer cancellation alone
    * cannot prevent queued callbacks: revision check makes a late tick harmless.
    * Bots see the existing observe() allowlist, never another player's cards.
@@ -312,7 +381,9 @@ export class HostTable {
     this.#revision++; return true
   }
 
-  view(id: string): SessionView {
+  /** `voiced` is the transport's relay: it knows which lines have a clip and
+   * whether voices are on. HostTable only turns that into a boolean per line. */
+  view(id: string, options: { voiced?: (seq: number) => boolean } = {}): SessionView {
     const member = this.#member(id)
     if (!member.connected || member.leaving) throw new Error('Principal is disconnected or has left.')
     const state = this.#game.snapshot(), privateSeat = member.active ? member.seat : null
@@ -333,7 +404,13 @@ export class HostTable {
     let reason: string|null=!boundary ? 'Bank transfers are only available between hands.' : stack!==0 ? 'Rebuys are available when your stack is empty.' : null
     if(!reason)try { planBankTransfer(this.#bank,id,{type:'borrow'},{phase:state.phase,stack,tableTotal:state.initialTotal}) }
     catch(error) { reason=error instanceof Error?error.message:'The practice bank is unavailable.' }
-    return { ...view, revision: this.#revision,
+    // Field by field: the private ChatRecord carries the member id, which must
+    // never reach another browser (it is the principal behind a bearer token).
+    const chat = this.#chat.filter(c => at - c.at <= CHAT_LIMITS.maxAgeMs).slice(-CHAT_LIMITS.project).map((c): ChatLine => ({
+      seq: c.seq, seat: c.seat, displaySeat: (c.seat - member.seat + 6) % 6, name: c.name, text: c.text,
+      ageMs: Math.max(0, Math.floor(at - c.at)), voice: options.voiced?.(c.seq) ?? false,
+    }))
+    return { ...view, revision: this.#revision, chat,
       self: { seat: member.seat, waiting: !member.active, nextSequence: member.sequence + 1,
         bank: {debt,borrowAmount:REBUY_CHIPS,canBorrow:!reason,repayMax:boundary?Math.min(stack,debt):0,reason} },
       players: view.players.map(p => {
