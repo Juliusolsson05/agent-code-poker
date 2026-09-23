@@ -1,6 +1,6 @@
 import type { SeatedLook } from './SeatedLook'
 
-type Kind = 'smoke' | 'drink'
+type Kind = 'smoke' | 'drink' | 'consume'
 
 /** The only place that decides a LOCAL leisure gesture has actually started,
  * and so the only place allowed to tell anyone else about it.

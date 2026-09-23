@@ -36,14 +36,35 @@ between hands. Canceling never moves chips; a failed save pauses play and Retry
 saves the same transfer. Old saves migrate without changing their chips. Starting
 a new table explicitly ends that practice room, its history and its debt.
 
-**Drinks ▾** opens a compact free menu: Old Fashioned, winter ale, red wine or water. **D** sips the current drink. Ordering is available only once your hand has finished its current action; it replaces the glass on your coaster and never spends chips. Drink selection is cosmetic and resets to Old Fashioned on reload, without changing the saved poker hand. Grips remain under visual refinement.
+**Drinks ▾** opens a compact free menu of sixteen drinks in three sections
+(Spirits, wine & beer · Warm · Soft), plus two fictional **Curiosities**
+(mushrooms and LSD). The list scrolls inside the card at compact sizes, and
+↑/↓/Home/End move between options. **D** sips the current drink. Ordering is
+available only once your hand has finished its current action. It replaces the
+glass on your coaster and never spends chips. Every drink keeps the same 36 mm
+tumbler, so the one fitted grip holds all of them. Drinks differ by liquid,
+garnish, foam, cream, ice and steam. The selection is cosmetic and resets to
+Old Fashioned on reload, without changing the saved poker hand.
 
-Solo **Settings → Drink effect** selects Off, Subtle or Soft edge warmth. It
-builds only after completed player alcoholic sips—not orders, NPC drinks or
-water. This is cosmetic, not a blood-alcohol simulation: no blur, sway or rules
-changes. Six sips cap it; it fades over ten active minutes from the cap, freezes
-when paused and resets on leaving/reload. Off clears it immediately. The setting
-lasts until reload. The LAN adapter currently leaves this optional effect off.
+The curiosities are cosmetic props in a practice-chips game. There are no doses
+and no real-world information, and they have no effect on rules or odds. Bots,
+the engine, saves and the LAN host never see them. Ordering one puts a small
+dish (three voxel caps) or a sugar cube on a saucer between your ashtray and
+coaster. **E** pinches one piece, lifts it to your lips and feeds the effect
+below.
+
+**Settings → Drink & treat effect** selects Off, Normal (default) or Strong.
+It builds only after your own completed alcoholic sips or treats, not after
+orders, NPC drinks or soft drinks. Each drink's `alcoholic`/`strength` lives in
+`DRINKS`. This is a cosmetic effect, not a simulation: drinks give a slow
+Sea-of-Thieves-style sway/roll/bob and a soft double image; mushrooms give
+warmer saturation and slow breathing; LSD gives slow hue cycling and a gentle
+"breathing walls" warp. All motion stays at or below 0.5 Hz, roll is capped at
+4°, and nothing flashes. It sways only the render camera: the audio listener,
+seat labels, props and chips stay put. It builds and fades on the table's clock,
+freezes while paused, and resets on leaving/reload. Off clears it immediately.
+`prefers-reduced-motion` leaves only a static colour tint. The LAN table menu
+has the same setting, and the effect stays on your own screen.
 
 Hold **Space** while the table is focused to lean over your cards and chips; release to look up. The **Cards & chips** button toggles the same view without holding a key. Buttons and inputs retain normal Space behavior. Inspection does not pause betting or reveal opponents' cards. The website fills the browser and offers a fullscreen button; Agent Code host fullscreen is deferred.
 
@@ -109,11 +130,12 @@ the code/roster and host pause/end controls. The host deals the next hand.
 Betting uses the shared keyboard tray (F/C/B, arrows, presets1–4, Enter/Esc),
 and Space inspects only your allowed cards. Each viewer occupies the near seat;
 opponent models follow stable authority identities, not their display slot.
-The LAN room also exposes **S** for cigar, **D** for the current drink and a
-compact **Drinks** menu with the same free block-built choices as solo play.
+The LAN room also exposes **S** for cigar, **D** for the current drink, **E**
+for a cosmetic treat and a compact **Drinks** menu with the same free
+block-built choices as solo play.
 These use the existing local contact owner, not networking or poker actions.
 Typing, menus, inspection, waiting admission and paused/disconnected tables
-block new leisure requests. Orders do not count as sips or cause intoxication.
+block new leisure requests. Orders do not count as sips or feed the effect.
 Other players see those gestures: an accepted smoke, sip or order is sent to
 the host (`POST /api/leisure`, same token/origin/pause rules as a wager, but it
 never touches chips, the wager sequence, the revision or the saved checkpoint)
@@ -122,7 +144,8 @@ opponent body now has its own cigar and ashtray; a seat played by a real person
 animates only that person's gestures, while bot seats keep ambient sips and
 smokes (which are therefore never evidence of a remote action). Recorded
 two-browser acceptance: `testing/lan-two-browser.mjs` and
-`testing/fixtures/lan-leisure/`.
+`testing/fixtures/lan-leisure/`. Treats (E) stay local-only: other players
+do not see them.
 The table menu includes a **Practice bank** candidate: busted players may
 borrow2,000 fictional chips between hands, with explicit confirmation and
 matching debt. Repay500 or the available maximum between hands; no interest,

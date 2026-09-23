@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { anatomyMaterial, VoxelSculpt } from './Voxel'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 
-export type HandPose = 'rest' | 'cards' | 'cigar' | 'glass' | 'push'
+export type HandPose = 'rest' | 'cards' | 'cigar' | 'glass' | 'push' | 'pinch'
 type Pose = { curl: number[][]; spread: number[]; thumb: [number, number, number]; thumbSplay?: number }
 const POSES: Record<HandPose, Pose> = {
   rest: { curl: [[.12, .22, .12], [.16, .28, .14], [.21, .34, .19], [.29, .40, .22]], spread: [-.055, -.015, .02, .06], thumb: [-.66, .20, .22] },
@@ -15,6 +15,12 @@ const POSES: Record<HandPose, Pose> = {
   // just fingertip bones. Shorter digits cannot reach the middle finger's wrap
   // angle without entering the glass; the little finger supports its near arc.
   glass: { curl: [[.20, .40, .79], [.20, .70, .63], [.20, .40, .835], [.20, .10, .645]], spread: [-.08, -.025, .025, .07], thumb: [-.295, 1.20, .12] },
+  // Thumb-to-index pad pinch for the cosmetic treats (#14). Searched offline
+  // on the deformed skin (testing/fit-pinch.ts) around the pieces' bounding
+  // sphere; tests/grip-surfaces pins the clearance. The other three fingers
+  // tuck into the palm, so the silhouette reads as "holding something tiny"
+  // rather than the open glass wrap or the cigar's two-finger scissor.
+  pinch: { curl: [[.65, .36, .21], [.9, 1.0, .6], [1.0, 1.05, .6], [1.05, 1.05, .6]], spread: [-.02, .01, .045, .09], thumb: [-.32, .70, .21], thumbSplay: .255 },
   push: { curl: [[.10, .08, .07], [.10, .07, .06], [.15, .09, .07], [.22, .12, .09]], spread: [-.09, -.02, .025, .085], thumb: [-.82, .16, .16] },
 }
 

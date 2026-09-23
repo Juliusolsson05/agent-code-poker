@@ -599,13 +599,25 @@ var copyLeisure = (l) => l ? { seq: l.seq, action: l.action, ageMs: l.ageMs, dri
 
 // src/scene/props/specs.ts
 var DRINKS = {
-  "old-fashioned": { label: "Old Fashioned", note: "Whiskey \xB7 orange peel \xB7 clear ice", radius: 0.036, height: 0.088, fill: 0.041, color: "#a65518" },
-  beer: { label: "Winter ale", note: "Golden ale \xB7 a soft foam head", radius: 0.036, height: 0.136, fill: 0.108, color: "#ae7928" },
-  wine: { label: "Red wine", note: "A small pour in a stemless glass", radius: 0.036, height: 0.1, fill: 0.043, color: "#632533" },
-  water: { label: "Water", note: "Still water \xB7 clear ice", radius: 0.036, height: 0.106, fill: 0.07, color: "#8daca8" }
+  "old-fashioned": { label: "Old Fashioned", note: "Whiskey \xB7 orange peel \xB7 clear ice", section: "bar", radius: 0.036, height: 0.088, fill: 0.041, color: "#a65518", alcoholic: true, strength: 1 },
+  wine: { label: "Red wine", note: "A small pour in a stemless glass", section: "bar", radius: 0.036, height: 0.1, fill: 0.043, color: "#632533", alcoholic: true, strength: 1 },
+  "gin-tonic": { label: "Gin & tonic", note: "Tall and bright \xB7 lime \xB7 ice", section: "bar", radius: 0.036, height: 0.124, fill: 0.094, color: "#cfe0d6", alcoholic: true, strength: 0.8, translucent: true },
+  negroni: { label: "Negroni", note: "Bitter red \xB7 orange slice \xB7 one big cube", section: "bar", radius: 0.036, height: 0.088, fill: 0.046, color: "#b0261b", alcoholic: true, strength: 1.2 },
+  champagne: { label: "Champagne", note: "A tall flute-style pour \xB7 fine bubbles", section: "bar", radius: 0.036, height: 0.136, fill: 0.112, color: "#e0c774", alcoholic: true, strength: 0.8 },
+  beer: { label: "Winter ale", note: "Golden ale \xB7 a soft foam head", section: "bar", radius: 0.036, height: 0.136, fill: 0.108, color: "#ae7928", alcoholic: true, strength: 1 },
+  stout: { label: "Stout", note: "Near-black \xB7 a thick tan head", section: "bar", radius: 0.036, height: 0.136, fill: 0.104, color: "#1c120d", alcoholic: true, strength: 0.8 },
+  cider: { label: "Cider", note: "Crisp apple \xB7 a thin slice on top", section: "bar", radius: 0.036, height: 0.124, fill: 0.096, color: "#d19a32", alcoholic: true, strength: 0.6 },
+  "mulled-wine": { label: "Mulled wine", note: "Spiced red \xB7 orange wheel \xB7 cinnamon", section: "warm", radius: 0.036, height: 0.1, fill: 0.068, color: "#5a1426", alcoholic: true, strength: 0.8 },
+  glogg: { label: "Gl\xF6gg", note: "Nordic spiced wine \xB7 raisins \xB7 almonds", section: "warm", radius: 0.036, height: 0.1, fill: 0.066, color: "#3f0c1b", alcoholic: true, strength: 0.9 },
+  "hot-toddy": { label: "Hot toddy", note: "Whisky \xB7 honey \xB7 lemon wheel \xB7 cinnamon", section: "warm", radius: 0.036, height: 0.1, fill: 0.07, color: "#c07a24", alcoholic: true, strength: 0.9 },
+  "irish-coffee": { label: "Irish coffee", note: "Hot coffee \xB7 whiskey \xB7 a cream collar", section: "warm", radius: 0.036, height: 0.112, fill: 0.078, color: "#2a160c", alcoholic: true, strength: 0.9 },
+  eggnog: { label: "Eggnog", note: "Creamy \xB7 a dusting of nutmeg", section: "warm", radius: 0.036, height: 0.1, fill: 0.074, color: "#e8d9a8", alcoholic: true, strength: 0.7 },
+  "hot-chocolate": { label: "Hot chocolate", note: "Dark cocoa \xB7 marshmallow cubes", section: "warm", radius: 0.036, height: 0.1, fill: 0.074, color: "#4a2716", alcoholic: false, strength: 0 },
+  water: { label: "Water", note: "Still water \xB7 clear ice", section: "soft", radius: 0.036, height: 0.106, fill: 0.07, color: "#8daca8", alcoholic: false, strength: 0, translucent: true },
+  "cranberry-spritz": { label: "Cranberry spritz", note: "Alcohol-free \xB7 cranberries \xB7 rosemary \xB7 ice", section: "soft", radius: 0.036, height: 0.124, fill: 0.094, color: "#b3203d", alcoholic: false, strength: 0, translucent: true }
 };
 var isDrinkKind = (value) => typeof value === "string" && Object.hasOwn(DRINKS, value);
-var GESTURE_SECONDS = { drink: 5.35, smoke: 3.6, smokeFromTable: 4.15 };
+var GESTURE_SECONDS = { drink: 5.35, smoke: 3.6, smokeFromTable: 4.15, consume: 4.1 };
 
 // src/bank/PracticeBank.ts
 var BANK_CAPACITY = 1e6;

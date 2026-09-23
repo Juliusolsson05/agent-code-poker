@@ -5,6 +5,7 @@ import { BettingControls } from '../../src/components/BettingControls'
 import { SeatRecovery } from './SeatRecovery'
 import { ResponseOrder, ObsoleteResponse } from './ResponseOrder'
 import { LeisureControls, leisureShortcut } from './LeisureControls'
+import { isDrinkKind } from '../../src/scene/props/specs'
 import { BankControls } from '../../src/components/BankControls'
 import { PokerHeader, TableInfo, SeatContents, PotContents, TableReadout } from '../../src/components/PokerChrome'
 import { evaluate } from '../../src/engine/cards'
@@ -22,7 +23,7 @@ const responses = new ResponseOrder()
 const hex = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), v => v.toString(16).padStart(2, '0')).join('')
 let token = '', admissionNonce = hex(), state = null, pending = false, polling = false, ended = false
 let room = null, renderFailed = false, inspected = false, menuOpen = false, connectionLost = false, controlsRevision = 0, authorityRevision = -1
-let drinkMenuOpen = false, wagerOpen = false, leisure = { kind: 'old-fashioned', available: false }
+let drinkMenuOpen = false, wagerOpen = false, leisure = { kind: 'old-fashioned', available: false, treat: null, canConsume: false }
 const labels = new Map(), bettingRef = createRef(), bettingRoot = createRoot(el('actions'))
 const leisureRoot = createRoot(el('leisure'))
 const bankRoot = createRoot(el('bank'))
@@ -116,13 +117,20 @@ function leisureContext() {
 }
 function renderLeisure() {
   if (!state) { leisureRoot.render(null);return }
-  leisureRoot.render(createElement(LeisureControls,{...leisureContext(),kind:leisure.kind,
-    onSmoke:()=>requestLeisure('smoke'),onSip:()=>requestLeisure('drink'),onMenuChange:drinkMenu,
+  leisureRoot.render(createElement(LeisureControls,{...leisureContext(),kind:leisure.kind,treat:leisure.treat,canConsume:leisure.canConsume,
+    onSmoke:()=>requestLeisure('smoke'),onSip:()=>requestLeisure('drink'),onConsume:()=>requestLeisure('consume'),onMenuChange:drinkMenu,
     onOrder:kind=>{
       // Recheck current context on dispatch, not the last React frame. Polls
       // may pause/disconnect the table between rendering and a queued click.
+      // Treats (#14) are local cosmetic props exactly like drinks: nothing is
+      // sent to the host, and the effect they feed stays on this screen.
       const context=leisureContext()
-      if(!context.blocked && context.available && room?.orderDrink(kind)) { sendLeisure({action:'order',kind});drinkMenu(false) }
+      // Only drink orders reach the host (other players see the glass); a treat
+      // order stays local like the treat itself (see Room.onLeisureStarted).
+      if(!context.blocked && context.available && (isDrinkKind(kind)?room?.orderDrink(kind):room?.orderTreat(kind))) {
+        if(isDrinkKind(kind))sendLeisure({action:'order',kind})
+        drinkMenu(false)
+      }
     }}))
 }
 // Other players only see this avatar's gestures through the host. Sent from
@@ -150,7 +158,7 @@ function leisureStarted(kind) {
 function requestLeisure(kind) {
   const context=leisureContext()
   if(context.blocked || context.menuOpen || !context.available)return
-  if(kind==='smoke')room?.smokeCigar();else room?.sipDrink()
+  if(kind==='smoke')room?.smokeCigar();else if(kind==='consume')room?.consumeTreat();else room?.sipDrink()
   focusTable()
 }
 /** The host remembers the drink it last heard about; this tab's glass resets
@@ -182,6 +190,8 @@ function ensureRoom(viewer,neutral=false) {
     // Viewer changes rebuild the room, but should not undo this browser's
     // comfort preference. It stays local: camera settings are never host state.
     room.setLookEnabled(lookEnabled);room.onLeisureStarted=leisureStarted
+    // Rebuilt rooms keep the chosen effect level too (a new room starts Off).
+    room.setDrinkEffect(el('drink-effect').value)
     sceneViewer=identity
     for(let seat=1;seat<6;seat++) {
       const node=document.createElement('div');node.className='seat';el('labels').append(node)
@@ -205,7 +215,7 @@ function render() {
   if (!state) {
     ensureRoom(0,true);room?.setPlaying(false);bettingRoot.render(null);audio.resetEvents()
     hudRoot.render(null);potRoot.render(null);infoRoot.render(null);el('actions').hidden=el('deal-actions').hidden=true
-    inspected=false;menuOpen=false;drinkMenuOpen=false;wagerOpen=false;leisure={kind:'old-fashioned',available:false}
+    inspected=false;menuOpen=false;drinkMenuOpen=false;wagerOpen=false;leisure={kind:'old-fashioned',available:false,treat:null,canConsume:false}
     connectionLost=false;authorityRevision=-1;el('menu').hidden=true;leisureRoot.render(null);bankRoot.render(null);showSaved(); return
   }
   const v = state.view, own = v.players[v.self.seat]
@@ -329,6 +339,9 @@ el('details').onclick=()=>menu(!menuOpen);el('close-menu').onclick=()=>menu(fals
 for(const id of ['ambience-level','effects-level'])el(id).onchange=()=>{
   audio.setLevels(Number(el('ambience-level').value),Number(el('effects-level').value))
 }
+// Same local setting and engine as solo (#15). It only reacts to THIS
+// browser's completed sips/treats; no peer can drive another screen's effect.
+el('drink-effect').onchange=()=>room?.setDrinkEffect(el('drink-effect').value)
 el('look-enabled').onclick=()=>{
   lookEnabled=!lookEnabled;room?.setLookEnabled(lookEnabled)
   el('look-enabled').setAttribute('aria-pressed',String(lookEnabled))
