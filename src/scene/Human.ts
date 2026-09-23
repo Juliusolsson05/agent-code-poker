@@ -1,18 +1,21 @@
 import * as THREE from 'three'
 import { anatomyMaterial, VoxelSculpt } from './Voxel'
+import { sculptSeatedBody } from './SeatedBody'
 import { SeatedArm } from './Arm'
 import { coaster, TableDrink, type DrinkKind } from './Drinks'
 import { GLASS_HAND_CONTACT, GLASS_HAND_ROTATION_FACING } from './HandGrips'
 import { glassApproach, NPC_REST_ROTATION, NPC_REST_WRIST } from '../interaction/npc/GlassApproach'
 
 export const humanMaterial = () => anatomyMaterial(.91)
+// Ties and trousers vary by person so a row of seated bodies does not read as
+// one repeated costume. Seat 3 wears a blouse under the jacket, so no tie.
 const PEOPLE = [
-  { skin: '#bb8565', shadow: '#916047', hair: '#281b16', jacket: '#202824', shirt: '#b7b2a2' },
-  { skin: '#b58b70', shadow: '#986a54', hair: '#30231e', jacket: '#392f28', shirt: '#978877' },
-  { skin: '#bca08a', shadow: '#947764', hair: '#59544b', jacket: '#283435', shirt: '#bab5a5' },
-  { skin: '#b78b72', shadow: '#8d6150', hair: '#201b1c', jacket: '#46303a', shirt: '#343335' },
-  { skin: '#825b47', shadow: '#5d3b2f', hair: '#171515', jacket: '#29323d', shirt: '#b7ae9c' },
-  { skin: '#c1a084', shadow: '#9b7760', hair: '#a79a82', jacket: '#3b4037', shirt: '#a49b84' },
+  { skin: '#bb8565', shadow: '#916047', hair: '#281b16', jacket: '#202824', shirt: '#b7b2a2', tie: '#5e1f24', trousers: '#1f2321' },
+  { skin: '#b58b70', shadow: '#986a54', hair: '#30231e', jacket: '#392f28', shirt: '#978877', trousers: '#2a241f' },
+  { skin: '#bca08a', shadow: '#947764', hair: '#59544b', jacket: '#283435', shirt: '#bab5a5', tie: '#23402f', trousers: '#1d2425' },
+  { skin: '#b78b72', shadow: '#8d6150', hair: '#201b1c', jacket: '#46303a', shirt: '#343335', trousers: '#221d20' },
+  { skin: '#825b47', shadow: '#5d3b2f', hair: '#171515', jacket: '#29323d', shirt: '#b7ae9c', tie: '#6b4a1f', trousers: '#1b2028' },
+  { skin: '#c1a084', shadow: '#9b7760', hair: '#a79a82', jacket: '#3b4037', shirt: '#a49b84', tie: '#6a2226', trousers: '#262a24' },
 ]
 export type Human = {
   root: THREE.Group; head: THREE.Group; leftArm: THREE.Bone; rightArm: THREE.Bone;
@@ -30,30 +33,20 @@ export function buildHuman(seat: number, _geometry: THREE.BoxGeometry, material:
   const p = PEOPLE[seat], female = seat === 3
   const root = new THREE.Group(), head = new THREE.Group(), eyes = new THREE.Group(), pupils = new THREE.Group(), cards = new THREE.Group()
   const skin = anatomyMaterial(.65), hairMaterial = anatomyMaterial(.90)
-  const body = new VoxelSculpt(.008)
-  body.volume([-.235, .63, -.115], [.235, 1.285, .125], (x, y, z) => {
-    const t = (y - .63) / .655, width = .154 + .066 * Math.sin(t * Math.PI * .7)
-    const depth = .093 + .013 * Math.sin(t * Math.PI)
-    return (x / width) ** 4 + ((z + .006) / depth) ** 4 < 1 && y < 1.285 - .095 * (Math.abs(x) / .215) ** 1.6
-  }, p.jacket)
-  // The shirt is an inset opening, not a second chest-sized inflated ellipsoid.
-  body.volume([-.09, .88, .075], [.09, 1.26, .112], (x, y, z) =>
-    Math.abs(x) < .018 + (y - .88) * .15 && z < .104, p.shirt)
-  for (const side of [-1, 1]) {
-    body.volume([side < 0 ? -.12 : .038, .93, .096], [side < 0 ? -.038 : .12, 1.24, .121], (x, y, z) =>
-      Math.abs(Math.abs(x) - (.035 + (1.24 - y) * .22)) < .022 && z < .114, seat === 1 ? '#564637' : '#424644')
-    body.ellipsoid([side * .10, .63, .13], [.096, .083, .25], '#222726')
-  }
-  root.add(body.mesh(material))
+  // Landmark-built seated torso, lapels and legs live in SeatedBody so their
+  // chair/table contract can be tested without the head and arm rigs.
+  const torso = sculptSeatedBody(p, { female, seat }).mesh(material); torso.name = 'seated-body'; root.add(torso)
   const neck = new VoxelSculpt(.004)
   neck.ellipsoid([0, 1.29, .002], [.043, .083, .043], p.skin); root.add(neck.mesh(skin))
   for (const side of [-1, 1]) {
     const collar = new THREE.Mesh(new THREE.BoxGeometry(.035, .065, .009), new THREE.MeshStandardMaterial({ color: p.shirt, roughness: .9 }))
-    collar.position.set(side * .038, 1.25, .070); collar.rotation.z = side * -.40; root.add(collar)
+    collar.position.set(side * .036, 1.262, .074); collar.rotation.z = side * -.40; root.add(collar)
   }
-  for (let i = 0; i < 3; i++) {
-    const button = new THREE.Mesh(new THREE.CylinderGeometry(.004, .004, .002, 10), new THREE.MeshStandardMaterial({ color: '#77634c', roughness: .55 }))
-    button.rotation.x = Math.PI / 2; button.position.set(.019, 1.04 - i * .075, .115); root.add(button)
+  // One jacket button at the V's point and one below it: the buttoned front is
+  // what closes the V. The old three shirt buttons floated on the light bar.
+  for (const y of [.955, .875]) {
+    const button = new THREE.Mesh(new THREE.CylinderGeometry(.0065, .0065, .003, 12), new THREE.MeshStandardMaterial({ color: '#2a221c', roughness: .5 }))
+    button.rotation.x = Math.PI / 2; button.position.set(0, y, y > .9 ? .102 : .098); root.add(button)
   }
   const leftRig = new SeatedArm(root, -1, p.skin, p.jacket, p.shirt)
   const rightRig = new SeatedArm(root, 1, p.skin, p.jacket, p.shirt)
