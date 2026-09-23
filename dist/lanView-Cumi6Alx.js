@@ -259,7 +259,7 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
     }, p = o.api.services, c = o.api.net;
     let l = !1, y = !1;
     const v = async (i) => {
-      const r = await import("./client-DqdyO20Q.js");
+      const r = await import("./client-DUTbMKVG.js");
       r.setVoiceEnvironment({
         store: Q(o.api),
         http: W(c ? (u, h) => c.fetch(u, h) : async () => {
