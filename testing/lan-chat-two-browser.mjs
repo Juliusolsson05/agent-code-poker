@@ -84,8 +84,10 @@ async function browser(port, name) {
   })
   await send('Runtime.enable'); await send('Page.enable'); await send('Network.enable', { maxPostDataSize: 300_000 })
   await send('Fetch.enable', { patterns: [{ urlPattern: 'https://api.elevenlabs.io/*' }] })
-  // Harness-only instrumentation: count decoded clips. Not product code.
-  await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__voiceDecodes=0;const d=BaseAudioContext.prototype.decodeAudioData;BaseAudioContext.prototype.decodeAudioData=function(...a){return d.apply(this,a).then(b=>{window.__voiceDecodes++;window.__voiceSeconds=b.duration;return b})}` })
+  // Harness-only instrumentation: count decoded VOICE clips. Not product code.
+  // Since the fire-audio work, PokerAudio also decodes the minute-long hearth
+  // recording through decodeAudioData; clips under 10 s are the voices.
+  await send('Page.addScriptToEvaluateOnNewDocument', { source: `window.__voiceDecodes=0;const d=BaseAudioContext.prototype.decodeAudioData;BaseAudioContext.prototype.decodeAudioData=function(...a){return d.apply(this,a).then(b=>{if(b.duration<10){window.__voiceDecodes++;window.__voiceSeconds=b.duration}return b})}` })
   await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false })
   const shot = async file => { const r = await send('Page.captureScreenshot', { format: 'png' }); writeFileSync(join(OUT, file), Buffer.from(r.data, 'base64')) }
   const key = async (k, code = 'Key' + k.toUpperCase()) => {
