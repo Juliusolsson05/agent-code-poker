@@ -110,14 +110,19 @@ test('settings stores: the browser says where the key lives; Agent Code never do
 const line = (seq: number, displaySeat: number, voice: boolean, ageMs = 500): ChatLine =>
   ({ seq, seat: displaySeat, displaySeat, name: 'P', text: 't', ageMs, voice })
 
+const tick = () => new Promise(resolve => setTimeout(resolve, 0))
+const outcomes = () => { const list: unknown[] = []; return { list, push: (o: unknown) => { list.push(o) } } }
+
 test('KEY NEVER LEAVES THE CLIENT: the host sees text and audio, ElevenLabs sees the key', async () => {
-  const hostCalls: unknown[] = [], elevenCalls: VoiceHttpRequest[] = [], played: number[] = []
+  const hostCalls: unknown[] = [], elevenCalls: VoiceHttpRequest[] = [], played: number[] = [], voice = outcomes()
   const provider = createElevenLabsProvider(() => settings, async request => { elevenCalls.push(request); return { status: 200, contentType: 'audio/mpeg', bytes: mp3 } })
   const chat = new ChatVoice({
     hostApi: async (path, body) => { hostCalls.push({ path, body }); return path === '/api/chat' ? { receipt: { ok: true, code: 'accepted', seq: 77 } } : { voice: 'stored' } },
-    provider: () => provider, play: (_bytes, seat) => played.push(seat),
+    provider: () => provider, play: (_bytes, seat) => played.push(seat), stopAll: () => {},
   })
-  assert.deepEqual(await chat.send('all in', true), { sent: true, seq: 77, voice: 'spoken' })
+  assert.deepEqual(await chat.send('all in', true, voice.push), { sent: true, seq: 77 })
+  await tick()
+  assert.deepEqual(voice.list, [{ seq: 77, voice: 'spoken' }])
   assert.deepEqual(hostCalls.map(c => (c as { path: string }).path), ['/api/chat', '/api/voice'])
   assert.ok(!JSON.stringify(hostCalls).includes(KEY), 'no host request carries the key')
   assert.ok(!JSON.stringify(hostCalls).includes(VOICE), 'nor the voice id')
@@ -125,19 +130,32 @@ test('KEY NEVER LEAVES THE CLIENT: the host sees text and audio, ElevenLabs sees
   assert.equal(elevenCalls.length, 1); assert.deepEqual(played, [0], 'the sender hears its own line locally')
 })
 
+test('send resolves on the host receipt, before synthesis finishes (the chat box is not held)', async () => {
+  let finish!: (r: { ok: true; audio: Uint8Array }) => void
+  const provider = { synthesize: () => new Promise<{ ok: true; audio: Uint8Array }>(resolve => { finish = resolve }) }
+  const voice = outcomes()
+  const chat = new ChatVoice({ hostApi: async path => path === '/api/chat' ? { receipt: { seq: 8 } } : {}, provider: () => provider, play: () => {}, stopAll: () => {} })
+  assert.deepEqual(await chat.send('slow voice', true, voice.push), { sent: true, seq: 8 })
+  assert.deepEqual(voice.list, [], 'synthesis still pending')
+  finish({ ok: true, audio: mp3 }); await tick(); await tick()
+  assert.deepEqual(voice.list, [{ seq: 8, voice: 'spoken' }])
+})
+
 test('voices off: no ElevenLabs call even with a saved key; a failed synthesis still sends the text', async () => {
   let spent = 0
   const provider = { synthesize: async () => { spent++; return { ok: false as const, reason: 'quota' as const } } }
-  const hostCalls: string[] = []
-  const chat = new ChatVoice({ hostApi: async path => { hostCalls.push(path); return { receipt: { seq: 5 } } }, provider: () => provider, play: () => assert.fail() })
-  assert.deepEqual(await chat.send('hi', false), { sent: true, seq: 5, voice: 'off' }); assert.equal(spent, 0)
-  assert.deepEqual(await chat.send('hi', true), { sent: true, seq: 5, voice: 'off', issue: 'quota' })
+  const hostCalls: string[] = [], voice = outcomes()
+  const chat = new ChatVoice({ hostApi: async path => { hostCalls.push(path); return { receipt: { seq: 5 } } }, provider: () => provider, play: () => assert.fail(), stopAll: () => {} })
+  assert.deepEqual(await chat.send('hi', false, voice.push), { sent: true, seq: 5 }); await tick()
+  assert.equal(spent, 0)
+  assert.deepEqual(await chat.send('hi', true, voice.push), { sent: true, seq: 5 }); await tick()
+  assert.deepEqual(voice.list, [{ seq: 5, voice: 'off' }, { seq: 5, voice: 'off', issue: 'quota' }])
   assert.deepEqual(hostCalls, ['/api/chat', '/api/chat'], 'no upload for a failed synthesis')
 })
 
 test('relay playback: only lines this tab saw arrive, once each, never its own, never stale, never while off or muted', async () => {
   const fetched: string[] = [], played: number[] = []
-  const chat = new ChatVoice({ provider: () => null, play: (_bytes, seat) => played.push(seat),
+  const chat = new ChatVoice({ provider: () => null, play: (_bytes, seat) => played.push(seat), stopAll: () => {},
     hostApi: async path => { fetched.push(path); return { mime: 'audio/mpeg', data: bytesToBase64(mp3) } } })
   chat.observe([line(1, 2, true)], true, true) // first sight: history, never spoken
   chat.observe([line(1, 2, true), line(2, 3, false)], true, true) // new line, clip not uploaded yet
@@ -145,8 +163,53 @@ test('relay playback: only lines this tab saw arrive, once each, never its own, 
   chat.observe([line(2, 3, true)], true, true) // a later poll must not refetch
   chat.observe([line(5, 1, true)], false, true) // voices off
   chat.observe([line(6, 1, true)], true, false) // muted / not audible
-  await new Promise(resolve => setTimeout(resolve, 0))
+  await tick()
   assert.deepEqual(fetched, ['/api/voice/2']); assert.deepEqual(played, [3])
-  chat.reset(); chat.observe([line(9, 1, true)], true, true); await new Promise(resolve => setTimeout(resolve, 0))
+  chat.reset(); chat.observe([line(9, 1, true)], true, true); await tick()
   assert.deepEqual(fetched, ['/api/voice/2'], 'a new generation starts with history, not playback')
+})
+
+test('lines said while muted are consumed silently: unmuting never bursts a backlog', async () => {
+  const fetched: string[] = []
+  const chat = new ChatVoice({ provider: () => null, play: () => {}, stopAll: () => {},
+    hostApi: async path => { fetched.push(path); return { mime: 'audio/mpeg', data: bytesToBase64(mp3) } } })
+  chat.observe([], true, true)
+  chat.observe([line(1, 1, false), line(2, 2, true)], true, false) // muted: one pending upload, one ready
+  chat.observe([line(1, 1, true), line(2, 2, true)], true, false) // still muted, clip for 1 arrives
+  chat.observe([line(1, 1, true), line(2, 2, true), line(3, 3, true)], true, true) // unmuted
+  await tick()
+  assert.deepEqual(fetched, ['/api/voice/3'], 'only the line that arrived after unmuting plays')
+})
+
+test('turning voices off stops voices already playing, once per transition', () => {
+  let stops = 0
+  const chat = new ChatVoice({ provider: () => null, play: () => {}, stopAll: () => { stops++ }, hostApi: async () => ({}) })
+  chat.observe([], true, true); chat.observe([], true, true); assert.equal(stops, 0)
+  chat.observe([], false, true); assert.equal(stops, 1)
+  chat.observe([], false, true); assert.equal(stops, 1, 'not on every poll')
+  chat.observe([], true, true); chat.observe([], false, true); assert.equal(stops, 2)
+})
+
+test('decided-about seqs stay bounded over a long session', () => {
+  const chat = new ChatVoice({ provider: () => null, play: () => {}, stopAll: () => {}, hostApi: async () => ({}) })
+  chat.observe([], true, true)
+  // A projection window of 12 lines sliding over 5,000 messages.
+  for (let seq = 1; seq <= 5000; seq++) chat.observe(Array.from({ length: 12 }, (_, i) => line(Math.max(1, seq - i), 1, false)), true, false)
+  assert.ok(chat.trackedCount <= 64 + 12, String(chat.trackedCount))
+})
+
+test('the brokered transport gives up after its timeout instead of pending forever', async () => {
+  const http = brokeredVoiceHttp(() => new Promise(() => {}), 20)
+  await assert.rejects(http({ url: ELEVENLABS_ORIGIN, headers: {}, body: '' }), /timed out/)
+})
+
+test('a relayed clip expires ttlMs after its CHAT LINE, however late the upload was', async () => {
+  const { VoiceRelay, VOICE_RELAY_LIMITS } = await import('../server/VoiceRelay')
+  let now = 1_000
+  const relay = new VoiceRelay(() => now)
+  const sender = { memberId: 'm', at: now }
+  now += VOICE_RELAY_LIMITS.uploadWindowMs - 1 // slow synthesis: upload near the window's end
+  assert.equal(relay.put(7, 'm', sender, mp3), 'stored')
+  now = sender.at + VOICE_RELAY_LIMITS.ttlMs; assert.ok(relay.has(7))
+  now += 1; assert.equal(relay.has(7), false)
 })

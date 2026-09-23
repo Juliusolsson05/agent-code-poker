@@ -1,4 +1,5 @@
-/** Shared by the browser client (before upload) and the LAN host (on upload).
+/** A 4-byte prologue check shared by the browser client (before upload) and
+ * the LAN host (on upload).
  * Pure: no DOM, no Node Buffer, so the same bytes rule runs on both sides and a
  * clip the sender believes is valid can never be refused for a different
  * reason by the host.
@@ -8,9 +9,13 @@
  * decoder, so "audio/mpeg" must be a property of the bytes. We accept exactly
  * what ElevenLabs' mp3_* output formats produce: an ID3v2 tag ("ID3") or a
  * bare MPEG audio frame (11-bit frame sync 0xFFE). Anything else (HTML, a
- * WAV/Ogg container, a zip) is refused before it is stored. This is a shape
- * check, not a full decoder: decodeAudioData on the receiving side is still
- * wrapped in try/catch because a well-formed header can precede junk. */
+ * WAV/Ogg container, a zip) is refused before it is stored.
+ *
+ * WHAT THIS IS NOT: it inspects only the first four bytes (an ID3v2 prologue or
+ * one MPEG frame header). It does not parse the stream, so "passes" means
+ * "starts like MP3", not "is a valid MP3". Anything after those four bytes is
+ * unchecked, which is why decodeAudioData on the receiving side is wrapped in
+ * try/catch and an undecodable clip simply falls back to the bubble. */
 export const VOICE_MIME = 'audio/mpeg'
 
 /** Decoded clip cap. 96 KiB holds ~24 s of mp3_22050_32 (4 KB/s), comfortably

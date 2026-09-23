@@ -10,7 +10,7 @@ export function browserVoiceHttp(fetchImpl: typeof fetch = (...args) => fetch(..
     const response = await fetchImpl(url, {
       method: 'POST', headers, body, cache: 'no-store',
       // No cookies, no referrer: the request carries only what we set.
-      credentials: 'omit', referrerPolicy: 'no-referrer', signal: AbortSignal.timeout(15_000),
+      credentials: 'omit', referrerPolicy: 'no-referrer', signal: AbortSignal.timeout(VOICE_HTTP_TIMEOUT_MS),
     })
     return { status: response.status, contentType: response.headers.get('content-type') ?? '', bytes: new Uint8Array(await response.arrayBuffer()) }
   }
@@ -32,12 +32,19 @@ export type BrokeredNetFetch = (url: string, init: {
  * under the `net.origins` capability after checking the target against the
  * manifest's declared `networkOrigins`. The key rides in one header of a
  * request that main sends to that one origin; main never logs headers. */
-export function brokeredVoiceHttp(netFetch: BrokeredNetFetch): VoiceHttp {
+/** Same budget as the browser path. The host enforces its own timeout too,
+ * but a host that never answers (an old build, a wedged broker) must not
+ * leave this player's voice pending forever (review of #23). */
+export const VOICE_HTTP_TIMEOUT_MS = 15_000
+
+export function brokeredVoiceHttp(netFetch: BrokeredNetFetch, timeoutMs = VOICE_HTTP_TIMEOUT_MS): VoiceHttp {
   return async ({ url, headers, body }) => {
-    const result = await netFetch(url, {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Voice request timed out.')), timeoutMs) })
+    const result = await Promise.race([netFetch(url, {
       httpMethod: 'POST', body, responseType: 'base64',
       headers: Object.entries(headers).map(([name, value]) => ({ name, value })),
-    })
+    }), timeout]).finally(() => clearTimeout(timer))
     if (result.bodyEncoding !== 'base64') throw new Error('This Agent Code build cannot return binary responses.')
     const bytes = base64ToBytes(result.body)
     if (!bytes) throw new Error('The host returned an invalid body.')

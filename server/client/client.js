@@ -64,6 +64,7 @@ const speakerPosition = seat => seat === 0 || !SEATS[seat] ? null : [SEATS[seat]
 const chatVoice = new ChatVoice({
   hostApi: (path, body) => api(path, body), provider: voiceProvider,
   play: (bytes, seat) => { void audio.playVoice(bytes, seat, speakerPosition(seat)) },
+  stopAll: () => audio.stopVoices(),
 })
 export function setVoiceEnvironment(env) { voiceEnv = env; voiceSettings = null; voiceStatus = ''; void loadVoiceSettings() }
 async function loadVoiceSettings() {
@@ -91,12 +92,16 @@ async function testVoice() {
 const CHAT_REFUSALS = { 'rate-limited': 'Slow down: one message every few seconds.', invalid: 'Messages are one line of plain text, up to 200 characters.',
   disconnected: 'Reconnecting; message not sent.', unauthorized: 'You are no longer at this table.' }
 async function sendChat(text) {
-  const outcome = await chatVoice.send(text, !!state?.features?.voices)
+  // Resolves on the host's receipt; the voice outcome reports later, so the
+  // box is free again while ElevenLabs works.
+  const outcome = await chatVoice.send(text, !!state?.features?.voices, voice => {
+    chatStatus = voice.issue === 'too-long' ? 'Too long to relay: only you heard it; others see the text.'
+      : voice.issue === 'relay-refused' ? 'Others see this line as text only.'
+      : voice.issue && VOICE_FAILURE_TEXT[voice.issue] ? VOICE_FAILURE_TEXT[voice.issue] : ''
+    render()
+  })
   if (!outcome.sent) { chatStatus = CHAT_REFUSALS[outcome.error] ?? outcome.error; render(); return false }
-  chatStatus = outcome.issue === 'too-long' ? 'Too long to relay: only you heard it; others see the text.'
-    : outcome.issue === 'relay-refused' ? 'Others see this line as text only.'
-    : outcome.issue ? VOICE_FAILURE_TEXT[outcome.issue] : ''
-  render(); return true
+  chatStatus = ''; render(); return true
 }
 function openChat(open) { chatOpen = open; syncLookBlocked(); render(); if (!open) focusTable() }
 function setFeatures(next) {

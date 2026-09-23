@@ -156,7 +156,8 @@ reset to Off when the host restarts. With voices on, a player who saved an
 ElevenLabs API key and voice ID under **Table menu → Your voice** hears their
 own line immediately, and the table hears it from that player's seat. Your own
 app calls ElevenLabs with your own key. The table host never sees your key; it
-only relays the finished audio in memory for about 90 seconds. On the website
+only relays the finished audio in memory, for up to 90 seconds after the line
+was sent. On the website
 the key is kept in this browser's local storage; in Agent Code it is encrypted
 with the computer's keychain. **Test voice** checks your key. If ElevenLabs
 refuses a line (bad key, used-up quota, network), that line stays text-only

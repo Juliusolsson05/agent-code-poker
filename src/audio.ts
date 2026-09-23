@@ -105,7 +105,8 @@ export class PokerAudio {
     source.start()
     return true
   }
-  private stopVoices():void {for(const voice of [...this.voices.values()])voice.cleanup()}
+  /** Silence every chat voice now: mute, and the host turning voices off. */
+  stopVoices():void {for(const voice of [...this.voices.values()])voice.cleanup()}
   play(kind: SoundKind): void {
     const ctx = this.context
     if (!ctx || !this.master || this.muted || !this.effectsLevel || this.disposed || ctx.state!=='running') return

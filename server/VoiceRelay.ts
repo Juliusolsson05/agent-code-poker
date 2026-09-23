@@ -13,7 +13,8 @@ import { MAX_VOICE_BYTES, looksLikeMpegAudio } from '../src/voice/audioClip'
  * directory is a private poker ledger, not a media store. Nothing here is
  * reachable from checkpoint(); a restart forgets every clip.
  *
- * Bounds: TTL (a late poll after 90 s is not "live" any more), a count cap
+ * Bounds: TTL counted from the chat line (a poll 90 s after the line is not
+ * "live" any more), a count cap
  * with oldest-first eviction, and the per-clip byte cap from audioClip.ts, so
  * total memory is at most MAX_CLIPS × MAX_VOICE_BYTES (~1.5 MiB). */
 export const VOICE_RELAY_LIMITS = { ttlMs: 90_000, maxClips: 16, uploadWindowMs: 60_000 } as const
@@ -36,7 +37,11 @@ export class VoiceRelay {
     if (this.#clips.has(seq)) return 'duplicate'
     if (bytes.length > MAX_VOICE_BYTES) return 'too-large'
     if (!looksLikeMpegAudio(bytes)) return 'not-audio'
-    this.#clips.set(seq, { bytes, at: this.now() })
+    // The TTL runs from the MESSAGE, not the upload (review of #23): a clip is
+    // only worth hearing while its line is fresh, and the sender's upload
+    // window already caps how late it can arrive. So a clip lives at most
+    // ttlMs after its line was sent, however slow the synthesis was.
+    this.#clips.set(seq, { bytes, at: sender.at })
     // Map iteration is insertion order: the first key is the oldest clip.
     while (this.#clips.size > VOICE_RELAY_LIMITS.maxClips) this.#clips.delete(this.#clips.keys().next().value!)
     return 'stored'

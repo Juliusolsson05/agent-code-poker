@@ -19,29 +19,38 @@ import type { ChatLine } from '../../src/session/HostTable'
  * The host's `features.voices` switch gates BOTH synthesis and playback: when
  * it is off nothing calls ElevenLabs, even if this player saved a key. */
 export type HostApi = (path: string, body?: unknown) => Promise<unknown>
-export type SendOutcome =
-  | { sent: false; error: string }
-  | { sent: true; seq: number; voice: 'off' | 'spoken' | 'local-only'; issue?: VoiceFailure | 'relay-refused' | 'too-long' }
+/** What send() resolves with: only whether the HOST took the line. It resolves
+ * as soon as the chat receipt arrives, so the chat box is free again while
+ * ElevenLabs is still working (review of #23: the box used to stay disabled
+ * for the whole synthesis). The voice result arrives later via onVoice. */
+export type SendOutcome = { sent: false; error: string } | { sent: true; seq: number }
+export type VoiceOutcome = { seq: number; voice: 'off' | 'spoken' | 'local-only'; issue?: VoiceFailure | 'relay-refused' | 'too-long' }
 
 /** A clip older than this when its audio finally becomes available is not
  * spoken: hearing a line 40 s after its bubble faded is confusing, not helpful. */
 export const VOICE_FRESH_MS = 30_000
 
 export class ChatVoice {
-  #known: Set<number> | null = null
-  #requested = new Set<number>()
+  // False until the first projection: everything present then is history.
+  #primed = false
+  // Seqs this tab has decided about (played, skipped or its own). Pruned to
+  // the live projection window, so it stays bounded for a long session.
+  #consumed = new Set<number>()
+  #voicesWereOn = false
 
   constructor(private readonly deps: {
     hostApi: HostApi
     provider: () => VoiceProvider | null
     /** Plays decoded audio at a display seat (0 = this player). */
     play: (bytes: Uint8Array, displaySeat: number) => void
+    /** Silences every voice already playing (host turned voices off). */
+    stopAll: () => void
   }) {}
 
   /** Send one line. Text first, always: a voice failure never costs the
-   * message. Then, only if the host has voices on and this player configured
-   * a provider, synthesise locally, play it for ourselves, and relay it. */
-  async send(text: string, voicesOn: boolean): Promise<SendOutcome> {
+   * message. Then, detached, only if the host has voices on and this player
+   * configured a provider: synthesise locally, play it for ourselves, relay it. */
+  async send(text: string, voicesOn: boolean, onVoice: (outcome: VoiceOutcome) => void = () => {}): Promise<SendOutcome> {
     let seq: number
     try {
       const reply = await this.deps.hostApi('/api/chat', { text }) as { receipt?: { seq?: unknown } }
@@ -52,50 +61,68 @@ export class ChatVoice {
     }
     // Our own line is ours to voice; mark it so the relay poll never fetches
     // back the clip we are about to upload.
-    this.#requested.add(seq)
+    this.#consumed.add(seq)
+    void this.#voice(seq, text, voicesOn).then(onVoice, () => onVoice({ seq, voice: 'off', issue: 'failed' }))
+    return { sent: true, seq }
+  }
+
+  async #voice(seq: number, text: string, voicesOn: boolean): Promise<VoiceOutcome> {
     const provider = this.deps.provider()
-    if (!voicesOn || !provider) return { sent: true, seq, voice: 'off' }
+    if (!voicesOn || !provider) return { seq, voice: 'off' }
     const result = await provider.synthesize(text)
-    if (!result.ok) return { sent: true, seq, voice: 'off', issue: result.reason }
+    if (!result.ok) return { seq, voice: 'off', issue: result.reason }
     this.deps.play(result.audio, 0)
-    if (result.audio.length > MAX_VOICE_BYTES) return { sent: true, seq, voice: 'local-only', issue: 'too-long' }
+    if (result.audio.length > MAX_VOICE_BYTES) return { seq, voice: 'local-only', issue: 'too-long' }
     try {
       await this.deps.hostApi('/api/voice', { seq, mime: VOICE_MIME, data: bytesToBase64(result.audio) })
-      return { sent: true, seq, voice: 'spoken' }
+      return { seq, voice: 'spoken' }
     } catch {
       // Voices switched off between our send and our upload, the window
       // closed, or the transport failed. The others simply get text.
-      return { sent: true, seq, voice: 'local-only', issue: 'relay-refused' }
+      return { seq, voice: 'local-only', issue: 'relay-refused' }
     }
   }
 
-  /** Feed every poll's chat projection. Returns nothing: playback is the
-   * side effect, and each seq is requested at most once per tab. */
+  /** Feed every poll's chat projection. Playback is the side effect; each seq
+   * is decided at most once per tab. */
   observe(lines: readonly ChatLine[], voicesOn: boolean, audible: boolean): void {
-    if (this.#known === null) {
+    // Host switched voices off: stop what is already playing, not only what
+    // would start next (review of #23).
+    if (this.#voicesWereOn && !voicesOn) this.deps.stopAll()
+    this.#voicesWereOn = voicesOn
+    if (!this.#primed) {
       // First sight of this table: everything already here is history.
-      this.#known = new Set(lines.map(line => line.seq))
-      for (const line of lines) this.#requested.add(line.seq)
+      this.#primed = true
+      for (const line of lines) this.#consumed.add(line.seq)
       return
     }
     for (const line of lines) {
-      if (!this.#known.has(line.seq)) this.#known.add(line.seq)
+      if (this.#consumed.has(line.seq)) continue
+      // Inaudible (muted, hidden, voices off): a line arriving now is consumed
+      // WITHOUT playing. Leaving it pending made every line said while muted
+      // burst out at once on unmute (review of #23).
+      if (!voicesOn || !audible) { this.#consumed.add(line.seq); continue }
+      // Audible but the sender's clip is not uploaded yet: decide on a later poll.
+      if (!line.voice) continue
+      this.#consumed.add(line.seq)
       // displaySeat 0 is this viewer: its own audio was played at send time.
-      if (!voicesOn || !audible || !line.voice || line.displaySeat === 0 || this.#requested.has(line.seq)) continue
-      this.#requested.add(line.seq)
-      if (line.ageMs > VOICE_FRESH_MS) continue
+      if (line.displaySeat === 0 || line.ageMs > VOICE_FRESH_MS) continue
       void this.#fetchAndPlay(line.seq, line.displaySeat)
     }
-    // Bound memory: forget seqs that have left the projection window.
-    if (this.#requested.size > 256) {
+    // Bound memory: the projection is the last few lines, so anything that has
+    // left it can never be observed again.
+    if (this.#consumed.size > 64) {
       const live = new Set(lines.map(line => line.seq))
-      for (const seq of this.#requested) if (!live.has(seq)) this.#requested.delete(seq)
+      for (const seq of this.#consumed) if (!live.has(seq)) this.#consumed.delete(seq)
     }
   }
 
   /** A new table generation (host restart, a different table) starts a new
    * history; the next observe() treats its lines as already said. */
-  reset(): void { this.#known = null; this.#requested.clear() }
+  reset(): void { this.#primed = false; this.#consumed.clear(); this.#voicesWereOn = false; this.deps.stopAll() }
+
+  /** Test/diagnostic view of the bounded state. */
+  get trackedCount(): number { return this.#consumed.size }
 
   async #fetchAndPlay(seq: number, displaySeat: number): Promise<void> {
     try {

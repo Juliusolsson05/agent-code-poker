@@ -101,9 +101,10 @@ session/http leisure seam this work extends; later #21 commits are merged in
 `server/VoiceRelay.ts` (pure, injectable clock):
 - `put(seq, owner, bytes)`: only the SENDER of `seq`, only within 60 s of the
   message, once per seq, only with voices on (checked by http.ts).
-- bytes: decoded ≤ 96 KiB, `audio/mpeg` only, magic bytes `ID3` or an MPEG
-  audio frame sync (`src/voice/audioClip.ts`, shared with the client).
-- memory only, never disk: TTL 90 s, at most 16 clips (oldest evicted).
+- bytes: decoded ≤ 96 KiB, `audio/mpeg` only, a 4-byte prologue check (`ID3`
+  or an MPEG frame header; not a full stream parse) (`src/voice/audioClip.ts`, shared with the client).
+- memory only, never disk: TTL 90 s counted from the chat line (not the
+  upload), at most 16 clips (oldest evicted).
 - routes: `POST /api/voice {seq, mime:'audio/mpeg', data:base64}` with its own
   132 KiB body cap (the 4 KB JSON cap still applies everywhere else);
   `GET /api/voice/<seq>` → `{ mime, data }` for any authenticated member.
@@ -176,3 +177,18 @@ quality are the user's step (no key available to this agent).
   `net.fetch` or `service.expose`, and the view/runtime documents read
   `init.method` while the SDK type says `httpMethod`. Both are fixed in the host
   PR for agent-code#1150. The in-app path needs that host build.
+
+## Review round (OpenCode, one round)
+
+- `ChatVoice`: the unbounded `#known` set is replaced by a `#primed` flag plus
+  one `#consumed` set, pruned to the live projection.
+- Lines that arrive while muted, hidden or with voices off are consumed
+  without playing, so unmuting never bursts a backlog.
+- Turning voices off calls `PokerAudio.stopVoices()`, so voices already
+  playing stop too.
+- `send()` resolves on the host receipt, so the chat box is free again
+  immediately; the voice outcome arrives later through a callback. The
+  brokered ElevenLabs transport has a 15 s timeout.
+- The relay TTL counts from the chat line, not the upload.
+- The magic-byte claim is softened to what the code does: a 4-byte prologue
+  check.
