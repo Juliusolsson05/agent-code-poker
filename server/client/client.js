@@ -125,14 +125,50 @@ function renderLeisure() {
       // Treats (#14) are local cosmetic props exactly like drinks: nothing is
       // sent to the host, and the effect they feed stays on this screen.
       const context=leisureContext()
-      if(!context.blocked && context.available && (isDrinkKind(kind)?room?.orderDrink(kind):room?.orderTreat(kind))) drinkMenu(false)
+      // Only drink orders reach the host (other players see the glass); a treat
+      // order stays local like the treat itself (see Room.onLeisureStarted).
+      if(!context.blocked && context.available && (isDrinkKind(kind)?room?.orderDrink(kind):room?.orderTreat(kind))) {
+        if(isDrinkKind(kind))sendLeisure({action:'order',kind})
+        drinkMenu(false)
+      }
     }}))
+}
+// Other players only see this avatar's gestures through the host. Sent from
+// the room's onLeisureStarted (wired in ensureRoom), i.e. when the gesture
+// ACTUALLY starts locally, never at request time: with mouse-look a request is
+// only queued until the view re-centres, and an interruption before that
+// (pause, hand end, a panel, inspection) must not have been broadcast. Outside
+// run()/pending, so a cigar can never disable wagering or show "Sending…".
+// Fire-and-forget: the reply is a bare receipt (no envelope), the next poll
+// carries the projected result, and a refusal only means the others miss one
+// cosmetic gesture. Never retried: replaying a puff late is worse than missing it.
+let leisureSending=false,lastLeisureHeal=-Infinity
+function sendLeisure(body) {
+  if(!token || ended)return
+  // Any send already tells the host our glass; do not let the heal fire a
+  // redundant order right behind a user's own sip or order.
+  leisureSending=true;lastLeisureHeal=performance.now()
+  void api('/api/leisure',body).catch(()=>{}).finally(()=>{leisureSending=false})
+}
+function leisureStarted(kind) {
+  // publishLeisure ran synchronously before the start, so leisure.kind is the
+  // glass actually being lifted, which is what the others must see.
+  sendLeisure(kind==='smoke'?{action:'smoke'}:{action:'sip',kind:leisure.kind})
 }
 function requestLeisure(kind) {
   const context=leisureContext()
   if(context.blocked || context.menuOpen || !context.available)return
   if(kind==='smoke')room?.smokeCigar();else if(kind==='consume')room?.consumeTreat();else room?.sipDrink()
   focusTable()
+}
+/** The host remembers the drink it last heard about; this tab's glass resets
+ * on reload (and a newcomer never ordered at all). One throttled order heals
+ * the difference so the others see the glass this player actually holds. */
+function healProjectedDrink(v) {
+  const projected=v.players[v.self.seat]?.leisure
+  if(!projected || projected.drinkKind===leisure.kind || leisureSending || state.paused || v.self.waiting ||
+    connectionLost || ended || !room || performance.now()-lastLeisureHeal<3000)return
+  lastLeisureHeal=performance.now();sendLeisure({action:'order',kind:leisure.kind})
 }
 function drinkMenu(open) {
   if(open && leisureContext().blocked)return
@@ -153,7 +189,7 @@ function ensureRoom(viewer,neutral=false) {
     room=new PokerRoom(el('scene'),failed,undefined,value=>{leisure=value;renderLeisure()},viewer)
     // Viewer changes rebuild the room, but should not undo this browser's
     // comfort preference. It stays local: camera settings are never host state.
-    room.setLookEnabled(lookEnabled)
+    room.setLookEnabled(lookEnabled);room.onLeisureStarted=leisureStarted
     // Rebuilt rooms keep the chosen effect level too (a new room starts Off).
     room.setDrinkEffect(el('drink-effect').value)
     sceneViewer=identity
@@ -190,7 +226,7 @@ function render() {
   // Closing a menu must not resume a queued leisure request after an authority
   // interruption. The existing Room clock/owner handles held prop continuity.
   if(state.paused || connectionLost || ended || menuOpen || v.self.waiting) drinkMenuOpen=false
-  syncLookBlocked();renderLeisure()
+  syncLookBlocked();renderLeisure();healProjectedDrink(v)
   for(const p of v.players) if(p.displaySeat!==0) {
     const label=labels.get(p.displaySeat)
     if(!label)continue

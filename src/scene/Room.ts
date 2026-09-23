@@ -2,7 +2,9 @@ import * as THREE from 'three'
 import { rankLabel, suit, SUITS, type Card } from '../engine/cards'
 import { type GameState } from '../engine/game'
 import { RoomProjection, cardCount, type SceneState } from '../presentation/RoomProjection'
-import { buildHuman, humanMaterial, poseHuman, type Human } from './Human'
+import { buildHuman, humanMaterial, poseHuman, requestNpcGesture, type Human } from './Human'
+import { RemoteLeisure } from './RemoteLeisure'
+import { LeisureStarts } from './camera/LeisureStarts'
 import { FirstPerson } from './FirstPerson'
 import { ChipField } from './Chips'
 import { CardField } from './Cards'
@@ -65,6 +67,17 @@ export class PokerRoom {
   readonly experimentalLook = TAVERN_FEATURES.mouseLook
   private readonly experimentalFireplace = TAVERN_FEATURES.fireplace
   private seatedLook = new SeatedLook()
+  // Local gestures reach other players only through onLeisureStarted, which
+  // fires when a gesture really starts (see LeisureStarts), never on request.
+  private leisureStarts = new LeisureStarts(this.experimentalLook ? this.seatedLook : null, kind => this.startLeisure(kind))
+  /** Only smoke and sip are LAN gestures. A treat (E, #14) is deliberately
+   * local-only: #20 keeps treats isolated from networking (its isolation test),
+   * opponents have no treat dish or pinch rig to mirror it with, and the host's
+   * leisure route has no treat action to validate or rate-limit. So consume
+   * starts never reach this listener. */
+  set onLeisureStarted(listener: (kind: 'smoke' | 'drink') => void) {
+    this.leisureStarts.onStarted = kind => { if (kind !== 'consume') listener(kind) }
+  }
   private lookPlaying = false
   private lookBlocked = false
   private lookPointer: number | null = null
@@ -83,6 +96,9 @@ export class PokerRoom {
   private materials = new Map<string, THREE.MeshStandardMaterial>()
   private textures = new Map<string, THREE.CanvasTexture>()
   private people: Human[] = []
+  // Projected opponent gestures, anchored in wall time and converted by the
+  // first rendering frame (see RemoteLeisure for why not at poll time).
+  private remoteLeisure = new RemoteLeisure<Human>()
   private hero: FirstPerson
   private chips: ChipField
   private cardField: CardField
@@ -419,11 +435,11 @@ export class PokerRoom {
     if (this.paused || this.inspecting || this.seatedLook.contactPending) return false
     // Queuing an E press with an empty dish would recenter the view for nothing.
     if (kind === 'consume' && !this.hero.canConsume) return false
-    if (!this.experimentalLook) return this.startLeisure(kind)
+    if (!this.experimentalLook) return this.leisureStarts.request(kind)
     // Queue a request, not a prop animation. Body contacts stay exactly where
     // their established owner authored them; begin only after the view centers.
     this.syncLook()
-    const accepted = this.seatedLook.requestContact(kind)
+    const accepted = this.leisureStarts.request(kind)
     if (accepted) this.cancelLook()
     return accepted
   }
@@ -469,6 +485,16 @@ export class PokerRoom {
         this.gestures.set(p.seat, { kind: 'win', time: now })
     }
     this.state = state
+    // Remote humans' cosmetic gestures. This runs on every poll, before the
+    // static-card signature early return below: a sip changes no card or chip.
+    // Starting them is left to the next rendering frame (RemoteLeisure).
+    const wall = performance.now()
+    for (const human of this.people) {
+      const leisure = state.players[human.seat]?.leisure ?? null
+      human.driven = !!leisure
+      human.wantDrink = leisure?.drinkKind ?? human.characterDrink
+      this.remoteLeisure.observe(human, leisure, wall)
+    }
     // Checks change engine revision without changing any visible amount. The
     // physical ledger still needs that revision; skipping it made the next bet
     // look like a restore and replaced the entire inventory instead of sliding
@@ -515,11 +541,8 @@ export class PokerRoom {
     const peek = this.inspectionBlend
     if (this.experimentalLook) this.syncLook()
     const look = this.experimentalLook ? this.seatedLook.sample(dt) : null
-    const contact = this.experimentalLook ? this.seatedLook.takeContact() : null
-    let contactAccepted = false
-    if (contact) {
-      contactAccepted = this.startLeisure(contact)
-    }
+    const dispatched = this.leisureStarts.frame()
+    const contact = dispatched?.kind ?? null, contactAccepted = dispatched?.accepted ?? false
     if (this.probeMode) this.gaze.set(0, 0)
     else this.gaze.lerp(this.reduced.matches ? new THREE.Vector2() : this.pointer, .045)
     this.camera.position.set(this.orbit * .12 * (1 - peek), THREE.MathUtils.lerp(PLAYER_LAYOUT.eye[1], 1.95, peek), THREE.MathUtils.lerp(PLAYER_LAYOUT.eye[2], 1.05, peek))
@@ -567,6 +590,12 @@ export class PokerRoom {
     // The director returns held props before allowing the lean. Body/prop poses
     // stay world-space; the camera never translates the arm or re-parents glass.
     this.cardField.setInspection(peek > .45)
+    // Hidden and paused frames returned above, so a gesture that finished in
+    // wall time meanwhile arrives here with its full age and is dropped.
+    for (const g of this.remoteLeisure.take(wallTime)) {
+      const result = requestNpcGesture(g.key, g.action, t - g.ageSeconds, t)
+      this.capture?.event('remote-leisure', { seat: g.key.seat, action: g.action, ageSeconds: g.ageSeconds, result })
+    }
     this.people.forEach(human => {
       const seat = human.seat, player = this.state?.players[seat], gesture = this.gestures.get(seat)
       const showing = this.state?.publicShowdown
@@ -597,7 +626,8 @@ export class PokerRoom {
       tableCards: this.cardField.diagnosticPose(),
       look: this.experimentalLook ? this.seatedLook.diagnostic() : null,
       people: this.people.map(h => ({ seat: h.seat, root: transform(h.root), drink: transform(h.drink.root),
-        drinkContact: h.drinkContact ?? null,
+        drinkContact: h.drinkContact ?? null, drinkKind: h.drink.kind, driven: h.driven,
+        cigar: transform(h.cigar.root), smokeContact: h.smokeContact ?? null,
         rightHand: transform(h.rightRig.hand.root), shoulder: h.rightRig.shoulder.toArray(), elbow: h.rightRig.elbow.toArray(), wrist: h.rightRig.wrist.toArray() })),
     }))
     // frame() retains frame-start wall time. Emitting a performance.now() event

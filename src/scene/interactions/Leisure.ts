@@ -133,7 +133,8 @@ export class Leisure {
     if (this.action === 'consume' && age >= 2.55 && !this.countedTreat) {
       this.completedTreats++; this.countedTreat = true; this.remaining = Math.max(0, this.remaining - 1)
     }
-    const duration = this.action === 'drink' ? 5.35 : this.action === 'consume' ? 4.1 : this.action === 'smoke' ? (this.startOwner === 'table' ? 4.15 : 3.6) : this.returnDuration
+    const d = this.calibration.durations
+    const duration = this.action === 'drink' ? d.drink : this.action === 'consume' ? d.consume : this.action === 'smoke' ? (this.startOwner === 'table' ? d.smokeFromTable : d.smoke) : this.returnDuration
     if (this.action !== 'idle' && age >= duration) {
       if (this.action === 'return') this.cigarOwner = this.returning!.cigar.owner
       else this.cigarOwner = 'right-hand'

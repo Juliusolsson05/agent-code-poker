@@ -83,7 +83,7 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
       v = !0, n = !0;
       try {
         l(k(t, o));
-        const { setApiTransport: i } = await import("./client-bgKb6wVH.js");
+        const { setApiTransport: i } = await import("./client-CfWOXKHq.js");
         i(w()), e.hidden = !0, n = !1;
       } catch (i) {
         n = !1, v = !1, u(i instanceof Error ? i.message : String(i));
@@ -116,7 +116,7 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
           await d.start(x);
           const t = await d.expose(x, !0);
           if (!t.lan || !t.port) throw new Error("LAN exposure was not granted.");
-          const { setApiTransport: o } = await import("./client-bgKb6wVH.js");
+          const { setApiTransport: o } = await import("./client-CfWOXKHq.js");
           o(w()), e.hidden = !0, l(`Friends join at http://<this-computer’s-Wi-Fi-IP>:${t.port} — then use Create table below.`);
         } catch (t) {
           n = !1, u(t instanceof Error ? t.message : String(t));
@@ -136,7 +136,7 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
         return;
       }
       S(async () => {
-        const { setApiTransport: h } = await import("./client-bgKb6wVH.js");
+        const { setApiTransport: h } = await import("./client-CfWOXKHq.js");
         h(C((T) => c.fetch(T), i));
       });
     }), () => {

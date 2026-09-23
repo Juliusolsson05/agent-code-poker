@@ -2,7 +2,7 @@ import { Euler, Matrix4, Quaternion, Vector3 } from 'three'
 import { Leisure } from './interactions/Leisure'
 import type { Calibration, Quat } from './interactions/contracts'
 import { PLAYER_LAYOUT } from './environment/layout'
-import { CIGAR, drinkAnchors, isDrinkKind, isTreatKind, TREATS, type DrinkKind, type TreatKind } from './props/specs'
+import { CIGAR, drinkAnchors, GESTURE_SECONDS, isDrinkKind, isTreatKind, TREATS, type DrinkKind, type TreatKind } from './props/specs'
 import { CIGAR_HAND_CONTACT, GLASS_HAND_CONTACT, GLASS_HAND_ROTATION, PINCH_HAND_CONTACT } from './HandGrips'
 import type { CompletedSip, CompletedTreat } from '../interaction/effects/EffectEngine'
 
@@ -71,6 +71,7 @@ export class InteractionDirector {
       drinkMouth: { position: [.005, 1.245, 1.32], rotation: rotation(.24, 0, .08) },
       smokeHand: { position: new Vector3(...PLAYER_LAYOUT.mouth).sub(bite).toArray(), rotation: smokeRotation },
       glassHandRotation: [...GLASS_HAND_ROTATION], handGlassContact: [...GLASS_HAND_CONTACT], glassContact: [.032, .040, 0], handCigarContact,
+      durations: { ...GESTURE_SECONDS },
       treatHome: { position: [...PLAYER_LAYOUT.treat], rotation: [0, 0, 0, 1] },
       // 8mm in front of the lip landmark: the piece touches the lips, it does
       // not pass through the (unrendered) face into the camera near plane.

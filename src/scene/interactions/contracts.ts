@@ -24,6 +24,11 @@ export interface Calibration {
   handGlassContact: Vec3
   glassContact: Vec3
   handCigarContact: Vec3
+  /** Total gesture lengths in seconds. Injected (from GESTURE_SECONDS via the
+   * director) because this core may not import props, and because the host's
+   * spacing rule and the opponents' copies must use exactly these numbers. The
+   * phase times inside Leisure.sample are authored against them. */
+  durations: { drink: number; smoke: number; smokeFromTable: number; consume: number }
   /** Cosmetic treat dish (#14): its world pose on the felt, the pinched
    * piece's pose at the lips, the hand's world rotation when it pinches a
    * piece from the dish, and the pinch centre in hand space. Pieces rest

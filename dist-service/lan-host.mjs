@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sep } from "node:path";
 
-// node_modules/agent-code-extension-api/dist/service.js
+// ../agent-code-poker-voxel-table/node_modules/agent-code-extension-api/dist/service.js
 function defineService(module) {
   return module;
 }
@@ -544,7 +544,7 @@ function chooseAction(o, random = Math.random) {
 }
 
 // src/session/view.ts
-function projectTable(state, privateSeat, legal, viewSeat = privateSeat ?? 0) {
+function projectTable(state, privateSeat, legal, viewSeat = privateSeat ?? 0, leisure = []) {
   const count = state.players.length;
   if (count !== 6 || !Number.isInteger(viewSeat) || viewSeat < 0 || viewSeat >= count || privateSeat !== null && (!Number.isInteger(privateSeat) || privateSeat < 0 || privateSeat >= count))
     throw new Error("A LAN view requires six valid seats.");
@@ -582,7 +582,10 @@ function projectTable(state, privateSeat, legal, viewSeat = privateSeat ?? 0) {
       startStack: p.startStack,
       folded: p.folded,
       action: p.action,
-      cards: p.hole.length === 0 ? { kind: "absent" } : p.seat === privateSeat || publicShowdown && !p.folded ? { kind: "visible", values: [...p.hole] } : { kind: "hidden", count: p.hole.length }
+      cards: p.hole.length === 0 ? { kind: "absent" } : p.seat === privateSeat || publicShowdown && !p.folded ? { kind: "visible", values: [...p.hole] } : { kind: "hidden", count: p.hole.length },
+      // Field by field for the same reason as everything above: the owner's
+      // private record (rate-limit clocks, member IDs) must never ride along.
+      leisure: copyLeisure(leisure[p.seat] ?? null)
     })),
     awards: state.awards.map((a) => ({ amount: a.amount, winners: [...a.winners], shares: [...a.shares], label: a.label })),
     results: state.results.map((r) => ({
@@ -592,6 +595,29 @@ function projectTable(state, privateSeat, legal, viewSeat = privateSeat ?? 0) {
     }))
   };
 }
+var copyLeisure = (l) => l ? { seq: l.seq, action: l.action, ageMs: l.ageMs, drinkKind: l.drinkKind } : null;
+
+// src/scene/props/specs.ts
+var DRINKS = {
+  "old-fashioned": { label: "Old Fashioned", note: "Whiskey \xB7 orange peel \xB7 clear ice", section: "bar", radius: 0.036, height: 0.088, fill: 0.041, color: "#a65518", alcoholic: true, strength: 1 },
+  wine: { label: "Red wine", note: "A small pour in a stemless glass", section: "bar", radius: 0.036, height: 0.1, fill: 0.043, color: "#632533", alcoholic: true, strength: 1 },
+  "gin-tonic": { label: "Gin & tonic", note: "Tall and bright \xB7 lime \xB7 ice", section: "bar", radius: 0.036, height: 0.124, fill: 0.094, color: "#cfe0d6", alcoholic: true, strength: 0.8, translucent: true },
+  negroni: { label: "Negroni", note: "Bitter red \xB7 orange slice \xB7 one big cube", section: "bar", radius: 0.036, height: 0.088, fill: 0.046, color: "#b0261b", alcoholic: true, strength: 1.2 },
+  champagne: { label: "Champagne", note: "A tall flute-style pour \xB7 fine bubbles", section: "bar", radius: 0.036, height: 0.136, fill: 0.112, color: "#e0c774", alcoholic: true, strength: 0.8 },
+  beer: { label: "Winter ale", note: "Golden ale \xB7 a soft foam head", section: "bar", radius: 0.036, height: 0.136, fill: 0.108, color: "#ae7928", alcoholic: true, strength: 1 },
+  stout: { label: "Stout", note: "Near-black \xB7 a thick tan head", section: "bar", radius: 0.036, height: 0.136, fill: 0.104, color: "#1c120d", alcoholic: true, strength: 0.8 },
+  cider: { label: "Cider", note: "Crisp apple \xB7 a thin slice on top", section: "bar", radius: 0.036, height: 0.124, fill: 0.096, color: "#d19a32", alcoholic: true, strength: 0.6 },
+  "mulled-wine": { label: "Mulled wine", note: "Spiced red \xB7 orange wheel \xB7 cinnamon", section: "warm", radius: 0.036, height: 0.1, fill: 0.068, color: "#5a1426", alcoholic: true, strength: 0.8 },
+  glogg: { label: "Gl\xF6gg", note: "Nordic spiced wine \xB7 raisins \xB7 almonds", section: "warm", radius: 0.036, height: 0.1, fill: 0.066, color: "#3f0c1b", alcoholic: true, strength: 0.9 },
+  "hot-toddy": { label: "Hot toddy", note: "Whisky \xB7 honey \xB7 lemon wheel \xB7 cinnamon", section: "warm", radius: 0.036, height: 0.1, fill: 0.07, color: "#c07a24", alcoholic: true, strength: 0.9 },
+  "irish-coffee": { label: "Irish coffee", note: "Hot coffee \xB7 whiskey \xB7 a cream collar", section: "warm", radius: 0.036, height: 0.112, fill: 0.078, color: "#2a160c", alcoholic: true, strength: 0.9 },
+  eggnog: { label: "Eggnog", note: "Creamy \xB7 a dusting of nutmeg", section: "warm", radius: 0.036, height: 0.1, fill: 0.074, color: "#e8d9a8", alcoholic: true, strength: 0.7 },
+  "hot-chocolate": { label: "Hot chocolate", note: "Dark cocoa \xB7 marshmallow cubes", section: "warm", radius: 0.036, height: 0.1, fill: 0.074, color: "#4a2716", alcoholic: false, strength: 0 },
+  water: { label: "Water", note: "Still water \xB7 clear ice", section: "soft", radius: 0.036, height: 0.106, fill: 0.07, color: "#8daca8", alcoholic: false, strength: 0, translucent: true },
+  "cranberry-spritz": { label: "Cranberry spritz", note: "Alcohol-free \xB7 cranberries \xB7 rosemary \xB7 ice", section: "soft", radius: 0.036, height: 0.124, fill: 0.094, color: "#b3203d", alcoholic: false, strength: 0, translucent: true }
+};
+var isDrinkKind = (value) => typeof value === "string" && Object.hasOwn(DRINKS, value);
+var GESTURE_SECONDS = { drink: 5.35, smoke: 3.6, smokeFromTable: 4.15, consume: 4.1 };
 
 // src/bank/PracticeBank.ts
 var BANK_CAPACITY = 1e6;
@@ -643,6 +669,8 @@ function planBankTransfer(value, id, operation, context) {
 }
 
 // src/session/HostTable.ts
+var LEISURE_LIMITS = { jitterMs: 250, orderMs: 1e3, maxAgeMs: 6e4 };
+var gestureSpacingMs = (action) => (action === "sip" ? GESTURE_SECONDS.drink : GESTURE_SECONDS.smoke) * 1e3 - LEISURE_LIMITS.jitterMs;
 function displayName(value) {
   if (typeof value !== "string" || value.length > 96 || /[\p{Cc}\p{Cf}]/u.test(value)) throw new Error("Invalid display name.");
   const name = value.normalize("NFC").trim().replace(/\s+/gu, " ");
@@ -669,6 +697,13 @@ function intent(value) {
   if (!keys2(a, ["type"]) || a.type !== "fold" && a.type !== "check" && a.type !== "call") return null;
   return { sequence: Number(value.sequence), revision: Number(value.revision), action: { type: a.type } };
 }
+function leisureRequest(value) {
+  if (!record(value)) return null;
+  if (value.action === "smoke") return keys2(value, ["action"]) ? { action: "smoke" } : null;
+  if ((value.action === "sip" || value.action === "order") && keys2(value, ["action", "kind"]) && isDrinkKind(value.kind))
+    return { action: value.action, kind: value.kind };
+  return null;
+}
 var HostTable = class _HostTable {
   #game;
   #host;
@@ -677,6 +712,18 @@ var HostTable = class _HostTable {
   #bot;
   #random;
   #bank;
+  #now;
+  // Cosmetic and volatile BY DESIGN: not a Member field (members are exported
+  // verbatim into the private checkpoint, whose restore demands exact keys) and
+  // not part of exportHostCheckpoint. A sip must never cost a disk commit, and a
+  // host restart simply forgets who was holding a cigar.
+  #leisure = /* @__PURE__ */ new Map();
+  // Random 32-bit start, then +1 per gesture. Leisure is volatile, so a host
+  // restart restarts the counter; a random start makes a post-restart seq equal
+  // to the one a browser saw before the restart (and so skipped as already
+  // animated) a 1-in-2^32 event. The earlier clock seed did the same job but
+  // published the host's wall clock to every player.
+  #leisureSeq = globalThis.crypto.getRandomValues(new Uint32Array(1))[0];
   constructor(host2, options = {}) {
     principal2(host2.id);
     const name = displayName(host2.name);
@@ -686,6 +733,7 @@ var HostTable = class _HostTable {
     this.#game = new PokerGame(deckRandom);
     this.#bank = createPracticeBank(this.#game.snapshot().initialTotal);
     this.#bot = options.bot ?? ((o) => chooseAction(o));
+    this.#now = options.now ?? Date.now;
     this.#host = host2.id;
     this.#members.set(host2.id, { id: host2.id, name, seat: 0, active: true, connected: true, leaving: false, sequence: 0, lastRequest: null });
   }
@@ -795,8 +843,10 @@ var HostTable = class _HostTable {
     if (revision !== this.#revision) throw new Error("Stale session revision.");
     this.#game.startHand();
     for (const [key, m] of this.#members) {
-      if (m.leaving) this.#members.delete(key);
-      else m.active = true;
+      if (m.leaving) {
+        this.#members.delete(key);
+        this.#leisure.delete(key);
+      } else m.active = true;
     }
     this.#revision++;
   }
@@ -835,6 +885,40 @@ var HostTable = class _HostTable {
     this.#revision++;
     return reply("accepted");
   }
+  /** Cosmetic intent: smoke, sip or order a drink. It is intentionally NOT an
+   * act() command. act() shares one per-member sequence and the table revision
+   * with wagers; consuming either would make every other player's in-flight
+   * wager 'stale' (or this player's next one 'out-of-order') because somebody
+   * lit a cigar. So this path never touches PokerGame, the bank, Member.sequence
+   * or #revision, and a pending wager built before it stays valid.
+   *
+   * Pause is the transport's state, so the transport passes it in. A queued
+   * human (inactive) does not own the seat's body yet: a bot is still playing
+   * it, and a gesture there would animate a body the person does not control. */
+  leisure(id, request, context) {
+    const reply = (code) => ({ ok: code === "accepted", code });
+    const m = this.#members.get(id);
+    if (!m || m.leaving) return reply("unauthorized");
+    const parsed = leisureRequest(request);
+    if (!parsed) return reply("invalid");
+    if (!m.connected) return reply("disconnected");
+    if (!m.active) return reply("waiting");
+    if (context.paused) return reply("paused");
+    const at = this.#now(), prior = this.#leisure.get(id) ?? { gesture: null, drinkKind: null, orderedAt: -Infinity };
+    if (parsed.action === "order") {
+      if (at - prior.orderedAt < LEISURE_LIMITS.orderMs) return reply("rate-limited");
+      this.#leisure.set(id, { ...prior, drinkKind: parsed.kind, orderedAt: at });
+      return reply("accepted");
+    }
+    const last = prior.gesture;
+    if (last && at - last.at < gestureSpacingMs(last.action)) return reply("busy");
+    this.#leisure.set(id, {
+      gesture: { seq: ++this.#leisureSeq, action: parsed.action, at },
+      drinkKind: parsed.action === "sip" ? parsed.kind : prior.drinkKind,
+      orderedAt: prior.orderedAt
+    });
+    return reply("accepted");
+  }
   /** Called by the host scheduler, not a client packet. Timer cancellation alone
    * cannot prevent queued callbacks: revision check makes a late tick harmless.
    * Bots see the existing observe() allowlist, never another player's cards.
@@ -855,7 +939,20 @@ var HostTable = class _HostTable {
     const member = this.#member(id);
     if (!member.connected || member.leaving) throw new Error("Principal is disconnected or has left.");
     const state = this.#game.snapshot(), privateSeat = member.active ? member.seat : null;
-    const view = projectTable(state, privateSeat, this.#game.legal(privateSeat), member.seat);
+    const at = this.#now();
+    const leisure = state.players.map((_, seat) => {
+      const occupant = [...this.#members.values()].find((m) => m.seat === seat);
+      if (!occupant?.active || !occupant.connected || occupant.leaving) return null;
+      const l = this.#leisure.get(occupant.id);
+      const g = l?.gesture;
+      return {
+        seq: g?.seq ?? 0,
+        action: g?.action ?? null,
+        drinkKind: l?.drinkKind ?? null,
+        ageMs: g ? Math.min(LEISURE_LIMITS.maxAgeMs, Math.max(0, Math.floor(at - g.at))) : null
+      };
+    });
+    const view = projectTable(state, privateSeat, this.#game.legal(privateSeat), member.seat, leisure);
     const debt = this.#bank.accounts.find((a) => a.id === id)?.debt ?? 0, stack = state.players[member.seat].stack;
     const boundary = state.phase === "ready" || state.phase === "complete";
     let reason = !boundary ? "Bank transfers are only available between hands." : stack !== 0 ? "Rebuys are available when your stack is empty." : null;
@@ -1087,7 +1184,7 @@ async function startLanHost(options = {}) {
     if (saved !== null) {
       shape(saved, ["version", "code", "host", "table", "credentials"]);
       if (saved.version !== 1 || typeof saved.code !== "string" || !/^[A-F0-9]{10}$/.test(saved.code) || typeof saved.host !== "string" || !Array.isArray(saved.credentials) || saved.credentials.length < 1 || saved.credentials.length > 6) throw new Error();
-      const table = HostTable.restoreHostCheckpoint(saved.table), privateState = table.exportHostCheckpoint();
+      const table = HostTable.restoreHostCheckpoint(saved.table, { now }), privateState = table.exportHostCheckpoint();
       if (saved.host !== privateState.host) throw new Error();
       const credentials = /* @__PURE__ */ new Map(), ids = /* @__PURE__ */ new Set(), nonces = /* @__PURE__ */ new Set();
       for (const c of saved.credentials) {
@@ -1216,7 +1313,7 @@ async function startLanHost(options = {}) {
         send(response, 200, envelope(r2, c2));
         return;
       }
-      if (request.method !== "POST" || !["/api/create", "/api/join", "/api/start", "/api/action", "/api/pause", "/api/leave"].includes(route)) fail(404, "Not found.");
+      if (request.method !== "POST" || !["/api/create", "/api/join", "/api/start", "/api/action", "/api/leisure", "/api/pause", "/api/leave"].includes(route)) fail(404, "Not found.");
       if (route === "/api/create" || route === "/api/join") rate("admission");
       const input = await body(request);
       if (closed || storageFailed) fail(503, "Host closed or storage failed; table frozen.");
@@ -1229,7 +1326,7 @@ async function startLanHost(options = {}) {
           return;
         }
         const c2 = credential(a.name, a.nonce);
-        const table = new HostTable({ id: c2.id, name: a.name });
+        const table = new HostTable({ id: c2.id, name: a.name }, { now });
         room = {
           table,
           code: randomBytes(5).toString("hex").toUpperCase(),
@@ -1276,6 +1373,11 @@ async function startLanHost(options = {}) {
         r.paused = input.paused;
         r.nextTick = now() + 1e3;
         send(response, 200, envelope(r, c));
+        return;
+      }
+      if (route === "/api/leisure") {
+        const receipt2 = r.table.leisure(c.id, input, { paused: r.paused || !r.host.connected });
+        send(response, receipt2.ok ? 200 : 409, { receipt: receipt2 });
         return;
       }
       if (r.paused || !r.host.connected) fail(409, "The host has paused or disconnected.");
