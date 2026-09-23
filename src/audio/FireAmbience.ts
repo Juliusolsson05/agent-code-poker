@@ -1,4 +1,3 @@
-import { applyListenerMatrix } from './listener'
 /** One locally bundled recording, not a timer spawning crackle oscillators.
  * Intentionally independent of poker state/graphics so lifecycle races can be
  * tested without pretending a fake audio device verifies listening quality.
@@ -133,7 +132,13 @@ export class FireAmbience {
    * creating one before a user gesture only yields a suspended context plus a
    * console autoplay warning. PokerAudio creates the context inside unlock(),
    * so the first gesture pays a one-off decode (tens of ms for this minute of
-   * MP3) and the fire fades in slightly after the table sounds. */
+   * MP3) and the fire fades in slightly after the table sounds.
+   *
+   * The panner is positioned here; the LISTENER it is heard from is not this
+   * class's business. There is one listener per AudioContext, shared with the
+   * chat voices, and PokerAudio.setListenerMatrix is its single owner. A
+   * second, fire-only setter used to live here after that move and was dead
+   * code that only tests exercised (Codex final review of c967242). */
   attach(context: AudioContext, position?: readonly number[]): void {
     if (this.disposed || this.graph) return
     // Starts at zero: the first start() fades in over FADE_SECONDS like every
@@ -180,13 +185,6 @@ export class FireAmbience {
     if (!this.disposed) console.warn('Fireplace ambience could not be decoded; the room stays silent.', reason)
   }
 
-  setListenerMatrix(matrix: ArrayLike<number>): void {
-    // Called every rendered frame: AudioParam writes only, no allocation. The
-    // math is shared with the chat voices (PokerAudio drives the same
-    // listener), so both agree on left and right.
-    if (!this.graph?.panner) return
-    applyListenerMatrix(this.graph.context, matrix)
-  }
   setActive(active: boolean): void { this.active = active; this.sync() }
   setMuted(muted: boolean): void { this.muted = muted; this.sync() }
   setVolume(level: number): void {
