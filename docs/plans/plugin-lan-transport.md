@@ -40,6 +40,11 @@ Rules:
   server's POST rule needs one. `netFetchTransport` therefore sends the origin
   it dials. That is honest: it is the page origin the guest "is" for this
   table. The same guest also works against the standalone CLI host.
+- **Guests dial the bare origin** (found during implementation).
+  `privateHostDestination()` returns `http://ip:port/` with a trailing slash,
+  so the adapter was requesting `//api/…`, which the exact-path router
+  answers with a 404. The adapter now reduces the destination to its origin
+  once, and that is also the Origin it sends.
 
 ## Share URL
 
