@@ -605,6 +605,7 @@ var DRINKS = {
   water: { label: "Water", note: "Still water \xB7 clear ice", radius: 0.036, height: 0.106, fill: 0.07, color: "#8daca8" }
 };
 var isDrinkKind = (value) => typeof value === "string" && Object.hasOwn(DRINKS, value);
+var GESTURE_SECONDS = { drink: 5.35, smoke: 3.6, smokeFromTable: 4.15 };
 
 // src/bank/PracticeBank.ts
 var BANK_CAPACITY = 1e6;
@@ -656,7 +657,8 @@ function planBankTransfer(value, id, operation, context) {
 }
 
 // src/session/HostTable.ts
-var LEISURE_LIMITS = { animatedMs: 2500, orderMs: 1e3, maxAgeMs: 6e4 };
+var LEISURE_LIMITS = { jitterMs: 250, orderMs: 1e3, maxAgeMs: 6e4 };
+var gestureSpacingMs = (action) => (action === "sip" ? GESTURE_SECONDS.drink : GESTURE_SECONDS.smoke) * 1e3 - LEISURE_LIMITS.jitterMs;
 function displayName(value) {
   if (typeof value !== "string" || value.length > 96 || /[\p{Cc}\p{Cf}]/u.test(value)) throw new Error("Invalid display name.");
   const name = value.normalize("NFC").trim().replace(/\s+/gu, " ");
@@ -704,7 +706,12 @@ var HostTable = class _HostTable {
   // not part of exportHostCheckpoint. A sip must never cost a disk commit, and a
   // host restart simply forgets who was holding a cigar.
   #leisure = /* @__PURE__ */ new Map();
-  #leisureSeq = 0;
+  // Random 32-bit start, then +1 per gesture. Leisure is volatile, so a host
+  // restart restarts the counter; a random start makes a post-restart seq equal
+  // to the one a browser saw before the restart (and so skipped as already
+  // animated) a 1-in-2^32 event. The earlier clock seed did the same job but
+  // published the host's wall clock to every player.
+  #leisureSeq = globalThis.crypto.getRandomValues(new Uint32Array(1))[0];
   constructor(host2, options = {}) {
     principal2(host2.id);
     const name = displayName(host2.name);
@@ -885,17 +892,18 @@ var HostTable = class _HostTable {
     if (!m.connected) return reply("disconnected");
     if (!m.active) return reply("waiting");
     if (context.paused) return reply("paused");
-    const at = this.#now(), prior = this.#leisure.get(id);
-    const animated = parsed.action !== "order";
-    if (prior && (animated ? at - prior.animatedAt < LEISURE_LIMITS.animatedMs : at - prior.orderedAt < LEISURE_LIMITS.orderMs)) return reply("rate-limited");
-    this.#leisureSeq = Math.max(this.#leisureSeq + 1, Math.floor(at));
+    const at = this.#now(), prior = this.#leisure.get(id) ?? { gesture: null, drinkKind: null, orderedAt: -Infinity };
+    if (parsed.action === "order") {
+      if (at - prior.orderedAt < LEISURE_LIMITS.orderMs) return reply("rate-limited");
+      this.#leisure.set(id, { ...prior, drinkKind: parsed.kind, orderedAt: at });
+      return reply("accepted");
+    }
+    const last = prior.gesture;
+    if (last && at - last.at < gestureSpacingMs(last.action)) return reply("busy");
     this.#leisure.set(id, {
-      seq: this.#leisureSeq,
-      action: parsed.action,
-      at,
-      drinkKind: parsed.action === "smoke" ? prior?.drinkKind ?? null : parsed.kind,
-      animatedAt: animated ? at : prior?.animatedAt ?? -Infinity,
-      orderedAt: animated ? prior?.orderedAt ?? -Infinity : at
+      gesture: { seq: ++this.#leisureSeq, action: parsed.action, at },
+      drinkKind: parsed.action === "sip" ? parsed.kind : prior.drinkKind,
+      orderedAt: prior.orderedAt
     });
     return reply("accepted");
   }
@@ -924,12 +932,12 @@ var HostTable = class _HostTable {
       const occupant = [...this.#members.values()].find((m) => m.seat === seat);
       if (!occupant?.active || !occupant.connected || occupant.leaving) return null;
       const l = this.#leisure.get(occupant.id);
-      if (!l) return { seq: 0, action: null, ageMs: null, drinkKind: null };
+      const g = l?.gesture;
       return {
-        seq: l.seq,
-        action: l.action,
-        drinkKind: l.drinkKind,
-        ageMs: Math.min(LEISURE_LIMITS.maxAgeMs, Math.max(0, Math.floor(at - l.at)))
+        seq: g?.seq ?? 0,
+        action: g?.action ?? null,
+        drinkKind: l?.drinkKind ?? null,
+        ageMs: g ? Math.min(LEISURE_LIMITS.maxAgeMs, Math.max(0, Math.floor(at - g.at))) : null
       };
     });
     const view = projectTable(state, privateSeat, this.#game.legal(privateSeat), member.seat, leisure);
