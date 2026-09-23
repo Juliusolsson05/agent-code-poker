@@ -3,8 +3,11 @@ import { anatomyMaterial, VoxelSculpt } from './Voxel'
 import { sculptSeatedBody } from './SeatedBody'
 import { SeatedArm } from './Arm'
 import { coaster, TableDrink, type DrinkKind } from './Drinks'
-import { GLASS_HAND_CONTACT, GLASS_HAND_ROTATION_FACING } from './HandGrips'
+import { CIGAR_HAND_CONTACT, GLASS_HAND_CONTACT, GLASS_HAND_ROTATION_FACING } from './HandGrips'
 import { glassApproach, NPC_REST_ROTATION, NPC_REST_WRIST } from '../interaction/npc/GlassApproach'
+import { cigarRoute, type CigarFrame, NPC_CIGAR_REST, NPC_CIGAR_TRAY_ROTATION, NPC_SMOKE_SECONDS } from '../interaction/npc/CigarApproach'
+import { createAshtray, createCigar } from './props/Smoking'
+import { ASHTRAY } from './props/specs'
 
 export const humanMaterial = () => anatomyMaterial(.91)
 // Ties and trousers vary by person so a row of seated bodies does not read as
@@ -17,13 +20,45 @@ const PEOPLE = [
   { skin: '#825b47', shadow: '#5d3b2f', hair: '#171515', jacket: '#29323d', shirt: '#b7ae9c', tie: '#6b4a1f', trousers: '#1b2028' },
   { skin: '#c1a084', shadow: '#9b7760', hair: '#a79a82', jacket: '#3b4037', shirt: '#a49b84', tie: '#6a2226', trousers: '#262a24' },
 ]
+/** Head-local lip landmark. The glass rim and the cigar's bite point both
+ * meet THIS point, recomputed from the animated head every frame, so gaze and
+ * tilt can never open a gap between prop and mouth. */
+export const NPC_LIPS = [0, -.046, .076] as const
+export const NPC_SIP_SECONDS = 6
+export type NpcGesture = 'sip' | 'smoke'
 export type Human = {
   root: THREE.Group; head: THREE.Group; leftArm: THREE.Bone; rightArm: THREE.Bone;
   leftRig: SeatedArm; rightRig: SeatedArm; cards: THREE.Group; eyes: THREE.Group; pupils: THREE.Group;
   drink: TableDrink; drinkHome: THREE.Vector3; seat: number;
   sipAt: number; nextSip: number;
   drinkContact?: { phase: string; grip: number; sipAge: number; reachError: number };
+  cigar: ReturnType<typeof createCigar>; tray: THREE.Group; smokeAt: number; nextSmoke: number;
+  smokeContact?: { phase: string; grip: number; smokeAge: number; owner: 'table' | 'hand'; reachError: number };
+  /** The character's own glass, restored when a human hands the seat back. */
+  characterDrink: DrinkKind; wantDrink: DrinkKind;
+  /** A real LAN player controls this body: ambient timers are suppressed and
+   * only projected gestures (requestNpcGesture) animate it. */
+  driven: boolean;
+  /** One queued gesture that arrived while the hand was busy. */
+  pending: NpcGesture | null;
 }
+
+// Head-local solids (before the per-seat head scale). The face sculpt samples
+// exactly these, and contact tests ask the same functions, so a cigar hand is
+// judged against the real skull, jaw and nose instead of a hand-tuned sphere.
+const skullAndJaw = (x: number, y: number, z: number) => {
+  const skull = (x / .081) ** 2 + ((y - .021) / .105) ** 2 + ((z + .008) / .079) ** 2 < 1
+  const jaw = (x / .066) ** 2 + ((y + .035) / .070) ** 2 + ((z - .012) / .059) ** 2 < 1
+  const front = .066 + .008 * (1 - Math.abs(x) / .081) - (y < -.021 && Math.abs(x) > .036 ? .007 : 0)
+  return (skull || jaw) && z < front
+}
+const nose = (x: number, y: number, z: number) => {
+  const t = (y + .028) / .067
+  return Math.abs(x) < .007 + (1 - t) * .008 && z < .093 - t * .023
+}
+/** Conservative head solid for clearance tests: eye sockets count as filled. */
+export const npcHeadContains = (x: number, y: number, z: number): boolean => skullAndJaw(x, y, z) ||
+  Math.abs(x) <= .016 && y >= -.028 && y <= .039 && z >= .060 && z <= .099 && nose(x, y, z)
 
 /** A seated person is constructed from landmarks and tailored sections, not a
  * pile of shoulder/cheek spheres. Continuous anatomy is authored before sampling
@@ -61,12 +96,7 @@ export function buildHuman(seat: number, _geometry: THREE.BoxGeometry, material:
   // produce a cheekbone plane or a recessed orbit.
   const socket = (x: number, y: number, z: number) =>
     ((Math.abs(x) - .032) / .022) ** 2 + ((y - .022) / .012) ** 2 + ((z - .077) / .020) ** 2 < 1
-  face.volume([-.087, -.108, -.090], [.087, .126, .084], (x, y, z) => {
-    const skull = (x / .081) ** 2 + ((y - .021) / .105) ** 2 + ((z + .008) / .079) ** 2 < 1
-    const jaw = (x / .066) ** 2 + ((y + .035) / .070) ** 2 + ((z - .012) / .059) ** 2 < 1
-    const front = .066 + .008 * (1 - Math.abs(x) / .081) - (y < -.021 && Math.abs(x) > .036 ? .007 : 0)
-    return (skull || jaw) && z < front && !socket(x, y, z)
-  }, p.skin)
+  face.volume([-.087, -.108, -.090], [.087, .126, .084], (x, y, z) => skullAndJaw(x, y, z) && !socket(x, y, z), p.skin)
   for (const side of [-1, 1]) {
     face.ellipsoid([side * .080, -.005, -.006], [.010, .025, .014], p.skin)
     face.ellipsoid([side * .084, -.006, .004], [.0035, .015, .006], p.shadow)
@@ -76,10 +106,7 @@ export function buildHuman(seat: number, _geometry: THREE.BoxGeometry, material:
     face.volume([side < 0 ? -.052 : .013, .009, .065], [side < 0 ? -.013 : .052, .014, .077],
       (x, _y, z) => z < .075 - Math.abs(Math.abs(x) - .032) * .12, p.skin)
   }
-  face.volume([-.016, -.028, .060], [.016, .039, .099], (x, y, z) => {
-    const t = (y + .028) / .067
-    return Math.abs(x) < .007 + (1 - t) * .008 && z < .093 - t * .023
-  }, p.skin)
+  face.volume([-.016, -.028, .060], [.016, .039, .099], nose, p.skin)
   face.ellipsoid([0, -.021, .088], [.012, .009, .010], p.skin)
   for (const side of [-1, 1]) face.ellipsoid([side * .010, -.028, .085], [.003, .0025, .003], p.shadow)
   face.ellipsoid([0, -.046, .067], [.023, .004, .006], female ? '#925e57' : '#916851')
@@ -133,11 +160,50 @@ export function buildHuman(seat: number, _geometry: THREE.BoxGeometry, material:
   const drink = new TableDrink(kinds[seat], -1), drinkHome = new THREE.Vector3(.27, .796, .46)
   drink.root.position.copy(drinkHome); root.add(drink.root)
   const mat = coaster(); mat.position.copy(drinkHome); mat.position.y -= .002; root.add(mat)
-  return { root, head, leftArm: leftRig.forearm, rightArm: rightRig.forearm, leftRig, rightRig, cards, eyes, pupils, drink, drinkHome, seat, sipAt: -100, nextSip: 4 + seat * 3.7 }
+  // Every opponent has the hero's cigar and ashtray. The pose (not this
+  // builder) owns where the cigar is each frame; this is only the rest.
+  const cigar = createCigar(); cigar.root.name = 'opponent-cigar'
+  cigar.root.position.set(...NPC_CIGAR_REST); cigar.root.quaternion.copy(NPC_CIGAR_TRAY_ROTATION); root.add(cigar.root)
+  const tray = createAshtray(); tray.position.set(NPC_CIGAR_REST[0], NPC_CIGAR_REST[1] - ASHTRAY.cigarRestY, NPC_CIGAR_REST[2]); root.add(tray)
+  // First ambient smoke well after the first sip window: never the same beat
+  // for every seat, and never inside the <6s probes existing tests pose.
+  return { root, head, leftArm: leftRig.forearm, rightArm: rightRig.forearm, leftRig, rightRig, cards, eyes, pupils, drink, drinkHome, seat,
+    sipAt: -100, nextSip: 4 + seat * 3.7, cigar, tray, smokeAt: -100, nextSmoke: 17 + seat * 5.3,
+    characterDrink: kinds[seat], wantDrink: kinds[seat], driven: false, pending: null }
+}
+
+/** When the right hand is next free of BOTH gestures (a sip and a smoke share
+ * one hand; overlapping them would teleport the glass or the cigar). */
+export function npcHandFreeAt(h: Human): number {
+  return Math.max(h.sipAt + NPC_SIP_SECONDS, h.smokeAt + NPC_SMOKE_SECONDS)
+}
+
+/** Start a projected gesture that began at `startedAt` (visual seconds; may be
+ * in the past so every viewer shows the same moment of it). A gesture that is
+ * already over is skipped rather than replayed late; one that arrives while
+ * the hand is busy waits and then plays from its beginning. */
+export function requestNpcGesture(h: Human, gesture: NpcGesture, startedAt: number, now: number): 'started' | 'queued' | 'finished' {
+  const duration = gesture === 'sip' ? NPC_SIP_SECONDS : NPC_SMOKE_SECONDS
+  if (startedAt + duration <= now) return 'finished'
+  if (npcHandFreeAt(h) > Math.max(startedAt, now - 1e-9)) { h.pending = gesture; return 'queued' }
+  begin(h, gesture, startedAt)
+  return 'started'
+}
+function begin(h: Human, gesture: NpcGesture, at: number): void {
+  if (gesture === 'sip') { swapDrink(h); h.sipAt = at } else h.smokeAt = at
+}
+/** The glass may only change while no hand holds it; otherwise a new vessel
+ * would appear in the fingers mid-sip. Returns whether the glass is current. */
+function swapDrink(h: Human): boolean {
+  if (h.drink.kind === h.wantDrink) return true
+  const parent = h.drink.root.parent
+  h.drink.dispose()
+  h.drink = new TableDrink(h.wantDrink, -1); h.drink.root.position.copy(h.drinkHome); parent?.add(h.drink.root)
+  return true
 }
 
 export function poseHuman(h: Human, time: number, options: { reduced: boolean; active: boolean; folded: boolean; showing: boolean; hasCards: boolean; dealt: number; action?: string; actionAge: number; gaze: number }): void {
-  const { seat, head, eyes, pupils, leftRig, rightRig, drink, drinkHome } = h
+  const { seat, head, eyes, pupils, leftRig, rightRig, drinkHome } = h
   const moving = !options.reduced, beat = options.actionAge < 1.25 ? Math.sin(Math.min(1, options.actionAge / 1.25) * Math.PI) : 0
   const peek = moving && options.active ? .5 + .5 * Math.sin(time * 1.1 + seat) : 0
   h.cards.visible = options.hasCards && !options.folded && !options.showing && options.dealt > .98
@@ -159,10 +225,19 @@ export function poseHuman(h: Human, time: number, options: { reduced: boolean; a
   // Scale around the eye line, not the chin; the old origin-scale moved the eyes
   // down the face during a blink. A stationary eye center preserves the sockets.
   eyes.position.y = .021 * (1 - eyes.scale.y)
-  if (moving && time >= h.nextSip && !options.active && options.actionAge > 2 && time - h.sipAt > 7) {
-    h.sipAt = time; h.nextSip = time + 23 + seat * 3.3
+  const free = time >= npcHandFreeAt(h)
+  if (free && h.pending) { begin(h, h.pending, time); h.pending = null }
+  // Ambient timers belong to NPCs only. A seat driven by a real LAN player
+  // animates only what that player chose (requestNpcGesture).
+  else if (!h.driven && moving && free && !options.active && options.actionAge > 2) {
+    if (time >= h.nextSip && time - h.sipAt > 7) { h.sipAt = time; h.nextSip = time + 23 + seat * 3.3 }
+    else if (time >= h.nextSmoke) { h.smokeAt = time; h.nextSmoke = time + 34 + seat * 4.1 }
   }
-  const sipAge = time - h.sipAt, sipping = moving && sipAge >= 0 && sipAge < 6
+  const sipAge = time - h.sipAt, sipping = moving && sipAge >= 0 && sipAge < NPC_SIP_SECONDS
+  const smokeAge = time - h.smokeAt, smoking = moving && !sipping && smokeAge >= 0 && smokeAge < NPC_SMOKE_SECONDS
+  if (!sipping) swapDrink(h)
+  const drink = h.drink
+  let cigarFrame: CigarFrame | null = null
   let rightTarget = new THREE.Vector3(...NPC_REST_WRIST), rightRotation = new THREE.Euler(...NPC_REST_ROTATION)
   h.drinkContact = { phase:'rest',grip:0,sipAge,reachError:0 }
   rightRig.hand.pose('rest')
@@ -180,7 +255,7 @@ export function poseHuman(h: Human, time: number, options: { reduced: boolean; a
     // Negative X tips the top toward -Z, the opponent's mouth side.
     drink.root.rotation.x = -.24 * lift
     head.updateWorldMatrix(true, false)
-    const mouth = h.root.worldToLocal(head.localToWorld(new THREE.Vector3(0, -.046, .076)))
+    const mouth = h.root.worldToLocal(head.localToWorld(new THREE.Vector3(...NPC_LIPS)))
       .sub(drink.rim.clone().applyQuaternion(drink.root.quaternion))
     drink.root.position.lerp(mouth, lift)
     // The same local hand/glass frame must apply to hero and opponents. An
@@ -196,6 +271,16 @@ export function poseHuman(h: Human, time: number, options: { reduced: boolean; a
     rightTarget.copy(approach.wrist);rightRotation.setFromQuaternion(approach.rotation)
     rightRig.hand.pose('glass',approach.grip)
     h.drinkContact = { phase:grip===1?'held':approach.phase,grip:approach.grip,sipAge,reachError:0 }
+  } else if (smoking) {
+    // The lips are recomputed from the animated head (after this frame's gaze
+    // and tilt above), exactly like the glass rim. A lean mid-puff moves the
+    // mouth and the hand follows; no stored mouth can drift from the face.
+    head.updateWorldMatrix(true, false)
+    const lips = h.root.worldToLocal(head.localToWorld(new THREE.Vector3(...NPC_LIPS)))
+    const frame = cigarFrame = cigarRoute(smokeAge, lips)
+    rightTarget.copy(frame.wrist); rightRotation.setFromQuaternion(frame.rotation)
+    rightRig.hand.pose('cigar', frame.grip)
+    h.smokeContact = { phase: frame.phase, grip: frame.grip, smokeAge, owner: frame.owner, reachError: 0 }
   } else if (moving && options.action === 'bet' && beat) {
     rightTarget.add(new THREE.Vector3(-beat * .035, beat * .025, beat * .11)); rightRig.hand.pose('push')
   } else if (moving && options.action === 'check' && options.actionAge < .7) {
@@ -203,4 +288,14 @@ export function poseHuman(h: Human, time: number, options: { reduced: boolean; a
   }
   rightRig.solve(rightTarget, rightRotation)
   h.drinkContact.reachError=rightRig.wrist.distanceTo(rightTarget)
+  // The cigar is placed from the SOLVED hand, never from the route target: if
+  // IK ever clamped, the prop would still sit in the fingers (and the test's
+  // zero reach error would fail loudly) instead of floating at a target.
+  if (cigarFrame?.owner === 'hand') {
+    h.cigar.root.position.copy(new THREE.Vector3(...CIGAR_HAND_CONTACT).applyQuaternion(rightRig.hand.root.quaternion).add(rightRig.hand.root.position))
+    h.cigar.root.quaternion.copy(rightRig.hand.root.quaternion)
+  } else { h.cigar.root.position.set(...NPC_CIGAR_REST); h.cigar.root.quaternion.copy(NPC_CIGAR_TRAY_ROTATION) }
+  h.cigar.ember.emissiveIntensity = .3 + 1.5 * (cigarFrame?.ember ?? 0)
+  if (cigarFrame && h.smokeContact) h.smokeContact.reachError = rightRig.wrist.distanceTo(rightTarget)
+  else h.smokeContact = { phase: 'rest', grip: 0, smokeAge, owner: 'table', reachError: 0 }
 }

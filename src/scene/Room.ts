@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { rankLabel, suit, SUITS, type Card } from '../engine/cards'
 import { type GameState } from '../engine/game'
 import { RoomProjection, cardCount, type SceneState } from '../presentation/RoomProjection'
-import { buildHuman, humanMaterial, poseHuman, type Human } from './Human'
+import { buildHuman, humanMaterial, poseHuman, requestNpcGesture, type Human } from './Human'
 import { FirstPerson } from './FirstPerson'
 import { ChipField } from './Chips'
 import { CardField } from './Cards'
@@ -68,6 +68,11 @@ export class PokerRoom {
   private materials = new Map<string, THREE.MeshStandardMaterial>()
   private textures = new Map<string, THREE.CanvasTexture>()
   private people: Human[] = []
+  // Last projected leisure seq per opponent body. Any DIFFERENT value is a new
+  // gesture (seq is never reused by a later occupant). Kept per body, so a
+  // rebuilt room (new viewer) starts empty: in-progress gestures then join
+  // part-way and finished ones are skipped, never replayed.
+  private leisureSeen = new Map<Human, number | null>()
   private hero: FirstPerson
   private chips: ChipField
   private cardField: CardField
@@ -422,6 +427,22 @@ export class PokerRoom {
         this.gestures.set(p.seat, { kind: 'win', time: now })
     }
     this.state = state
+    // Remote humans' cosmetic gestures. This runs on every poll, before the
+    // static-card signature early return below: a sip changes no card or chip.
+    for (const human of this.people) {
+      const leisure = state.players[human.seat]?.leisure ?? null
+      human.driven = !!leisure
+      human.wantDrink = leisure?.drinkKind ?? human.characterDrink
+      const seen = this.leisureSeen.get(human)
+      if (leisure && leisure.seq !== seen && leisure.ageMs !== null && (leisure.action === 'smoke' || leisure.action === 'sip')) {
+        // Start in the past by the host-measured age, so every viewer shows the
+        // same moment of the gesture despite different poll phases.
+        const result = requestNpcGesture(human, leisure.action, now - leisure.ageMs / 1000, now)
+        this.capture?.event('remote-leisure', { seat: human.seat, source: state.players[human.seat].sourceSeat,
+          action: leisure.action, ageMs: leisure.ageMs, result })
+      }
+      this.leisureSeen.set(human, leisure?.seq ?? null)
+    }
     // Checks change engine revision without changing any visible amount. The
     // physical ledger still needs that revision; skipping it made the next bet
     // look like a restore and replaced the entire inventory instead of sliding
@@ -533,7 +554,8 @@ export class PokerRoom {
       tableCards: this.cardField.diagnosticPose(),
       look: this.experimentalLook ? this.seatedLook.diagnostic() : null,
       people: this.people.map(h => ({ seat: h.seat, root: transform(h.root), drink: transform(h.drink.root),
-        drinkContact: h.drinkContact ?? null,
+        drinkContact: h.drinkContact ?? null, drinkKind: h.drink.kind, driven: h.driven,
+        cigar: transform(h.cigar.root), smokeContact: h.smokeContact ?? null,
         rightHand: transform(h.rightRig.hand.root), shoulder: h.rightRig.shoulder.toArray(), elbow: h.rightRig.elbow.toArray(), wrist: h.rightRig.wrist.toArray() })),
     }))
     // frame() retains frame-start wall time. Emitting a performance.now() event

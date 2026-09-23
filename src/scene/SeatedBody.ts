@@ -65,18 +65,25 @@ function segment(p: THREE.Vector3, a: THREE.Vector3, b: THREE.Vector3): [number,
   return [p.distanceTo(a.clone().addScaledVector(ab, t)), t]
 }
 
+/** The jacketed torso solid, body-local. The sculpt samples exactly this, and
+ * contact tests (a forearm raising a cigar, say) ask the same question instead
+ * of approximating the chest with a box that could pass through the lapels. */
+export function seatedTorsoContains(x: number, y: number, z: number, female: boolean): boolean {
+  if (y < SEATED_BODY.seatY || y > 1.31) return false
+  const scale = female ? .92 : 1
+  const w = profile(WIDTH, y) * scale, f = profile(FRONT, y), b = profile(BACK, y)
+  const d = z >= 0 ? f : b
+  const roll = y < .66 ? (1 - (y - SEATED_BODY.seatY) / .04) * .25 : 0
+  return (Math.abs(x) / w) ** 2.6 + (Math.abs(z) / d) ** 2.6 < 1 - Math.max(0, roll) && y < shoulderTop(x / scale)
+}
+
 export function sculptSeatedBody(p: Person, options: { female: boolean; seat: number }): VoxelSculpt {
   const body = new VoxelSculpt(.008), scale = options.female ? .92 : 1
   const trousers = p.trousers ?? '#222726'
   // Torso: rounded-rectangle (^2.6) sections. A pure ellipse pinches the
   // shoulders; the old ^4 made a box. The bottom is flat on the seat, with a
   // small edge roll so the jacket hem does not read as a sawn-off block.
-  body.volume([-.2, SEATED_BODY.seatY, -.12], [.2, 1.31, .13], (x, y, z) => {
-    const w = profile(WIDTH, y) * scale, f = profile(FRONT, y), b = profile(BACK, y)
-    const d = z >= 0 ? f : b
-    const roll = y < .66 ? (1 - (y - SEATED_BODY.seatY) / .04) * .25 : 0
-    return (Math.abs(x) / w) ** 2.6 + (Math.abs(z) / d) ** 2.6 < 1 - Math.max(0, roll) && y < shoulderTop(x / scale)
-  }, p.jacket)
+  body.volume([-.2, SEATED_BODY.seatY, -.12], [.2, 1.31, .13], (x, y, z) => seatedTorsoContains(x, y, z, options.female), p.jacket)
   // Deltoid caps sit over the arm rig's shoulder joint. The sleeve begins
   // inside this cap, so raising an arm never exposes a hole at the armpit. The
   // cap's top stays at the trapezius line (~1.237 at the acromion): a first
