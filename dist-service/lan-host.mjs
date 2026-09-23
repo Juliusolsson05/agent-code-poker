@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sep } from "node:path";
 
-// ../agent-code-poker-voxel-table/node_modules/agent-code-extension-api/dist/service.js
+// node_modules/agent-code-extension-api/dist/service.js
 function defineService(module) {
   return module;
 }
@@ -1119,6 +1119,22 @@ var fail = (status, message) => {
 };
 var isLoopback = (address) => address === "127.0.0.1" || address === "::1" || address === "::ffff:127.0.0.1";
 var privateV4 = (s) => /^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/.test(s);
+var lanAddresses = () => Object.values(networkInterfaces()).flatMap((list) => (list ?? []).filter((i) => i.family === "IPv4" && !i.internal && privateV4(i.address)).map((i) => i.address));
+var TRANSPORT_HEADER = "x-agent-code-transport";
+var literalHost = /^(\d{1,3}(?:\.\d{1,3}){3}):(\d{1,5})$/;
+function resolveCaller(request, agentCodeHost, ownHost) {
+  const socketPeer = request.socket.remoteAddress?.replace(/^::ffff:/, "");
+  const marker = agentCodeHost && isLoopback(socketPeer) ? request.headers[TRANSPORT_HEADER] : void 0;
+  if (marker === "lan") {
+    if (request.headers.host !== ownHost) fail(403, "Unrecognized host.");
+    const peer = request.headers["x-forwarded-for"];
+    const host2 = request.headers["x-forwarded-host"];
+    const literal = typeof host2 === "string" ? literalHost.exec(host2) : null;
+    if (!literal || !(privateV4(literal[1]) || literal[1] === "127.0.0.1")) fail(403, "Unrecognized host.");
+    return { peer: typeof peer === "string" ? peer.replace(/^::ffff:/, "") : void 0, host: host2, via: "lan" };
+  }
+  return { peer: socketPeer, host: request.headers.host, via: marker === "service" ? "service" : "direct" };
+}
 var object2 = (value) => !!value && typeof value === "object" && !Array.isArray(value);
 function shape(value, fields) {
   if (!object2(value) || Object.keys(value).length !== fields.length || fields.some((f) => !Object.hasOwn(value, f))) fail(400, "Invalid request fields.");
@@ -1160,7 +1176,7 @@ function body(request) {
 }
 async function startLanHost(options = {}) {
   const now = options.now ?? Date.now;
-  const addresses = ["127.0.0.1", ...options.lan ? Object.values(networkInterfaces()).flatMap((list) => (list ?? []).filter((i) => i.family === "IPv4" && !i.internal && privateV4(i.address)).map((i) => i.address)) : []];
+  const addresses = ["127.0.0.1", ...options.lan ? lanAddresses() : []];
   const built = new URL("../lan-dist/", import.meta.url);
   const files = (await readdir(built)).filter((file) => /^(?:index\.html|[a-zA-Z0-9_-]+\.(?:js|css))$/.test(file));
   if (!files.includes("index.html") || !files.includes("client.js")) throw new Error("Run npm run build:lan before hosting.");
@@ -1292,13 +1308,16 @@ async function startLanHost(options = {}) {
     response.setHeader("Referrer-Policy", "no-referrer");
     response.setHeader("Content-Security-Policy", "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; media-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
     void (async () => {
-      const peer = request.socket.remoteAddress?.replace(/^::ffff:/, "");
+      const caller = resolveCaller(request, options.agentCodeHost === true, `127.0.0.1:${port}`);
+      const peer = caller.peer;
       if (!isLoopback(peer) && (!peer || !privateV4(peer))) fail(403, "Private-network peers only.");
       const allowed = new Set(addresses.map((address) => `${address}:${port}`));
-      if (!request.headers.host || !allowed.has(request.headers.host)) fail(403, "Unrecognized host.");
-      const origin = `http://${request.headers.host}`;
-      if (request.headers.origin && request.headers.origin !== origin || request.headers["sec-fetch-site"] === "cross-site") fail(403, "Foreign origin rejected.");
-      if (request.method === "POST" && request.headers.origin !== origin) fail(403, "Same-origin request required.");
+      if (!caller.host || caller.via !== "lan" && !allowed.has(caller.host)) fail(403, "Unrecognized host.");
+      if (caller.via !== "service") {
+        const origin = `http://${caller.host}`;
+        if (request.headers.origin && request.headers.origin !== origin || request.headers["sec-fetch-site"] === "cross-site") fail(403, "Foreign origin rejected.");
+        if (request.method === "POST" && request.headers.origin !== origin) fail(403, "Same-origin request required.");
+      }
       rate("request");
       const route = request.url ?? "";
       if (request.method === "GET" && assets.has(route)) {
@@ -1318,7 +1337,7 @@ async function startLanHost(options = {}) {
       const input = await body(request);
       if (closed || storageFailed) fail(503, "Host closed or storage failed; table frozen.");
       if (route === "/api/create") {
-        if (!isLoopback(request.socket.remoteAddress)) fail(403, "Create the table on the host computer.");
+        if (!isLoopback(peer)) fail(403, "Create the table on the host computer.");
         const a = admission(input, false);
         if (room) {
           if (room.host.nonce !== a.nonce || room.host.name !== a.name) fail(409, "A table already exists.");
@@ -1452,8 +1471,8 @@ function checkpointDirectory() {
 var host = null;
 var lanHostService = defineService({
   async start(context) {
-    host = await startLanHost({ port: 0, lan: false, checkpointDirectory: checkpointDirectory() });
-    context.onRequest("status", () => ({ origin: host.origin }));
+    host = await startLanHost({ port: 0, lan: false, agentCodeHost: true, checkpointDirectory: checkpointDirectory() });
+    context.onRequest("status", () => ({ origin: host.origin, lanAddresses: lanAddresses() }));
     context.ready([{ name: "http", port: Number(new URL(host.origin).port) }]);
   },
   async stop() {

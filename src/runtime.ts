@@ -1,6 +1,6 @@
 import { defineRuntime, type ExtensionServiceHandle, type JsonValue } from 'agent-code-extension-api'
 
-import { SERVICE_ID } from '../server/client/inAppTransport'
+import { SERVICE_ID, lanShareUrls } from '../server/client/inAppTransport'
 
 // A table belongs to its visible document. No opponent should spend chips while
 // the room is closed. The view persists decisions and restores a paused table.
@@ -17,7 +17,10 @@ import { SERVICE_ID } from '../server/client/inAppTransport'
 // host's frame harness asserts exactly that — state must ADVANCE while no view
 // is attached. `at` is the observable; `port` is the product payload.
 
-type LanHostState = { running: true; port: number; at: number }
+// `urls` are the real LAN addresses friends type in (service status + exposed
+// port). They are resolved once per command run: a network change is picked up
+// by re-running the command, which the idempotent start makes cheap.
+type LanHostState = { running: true; port: number; at: number; urls: string[] }
 
 const HEARTBEAT_MS = 900
 
@@ -28,6 +31,7 @@ export default defineRuntime({
         services?: {
           start(id: string): Promise<ExtensionServiceHandle>
           expose(id: string, lan: boolean): Promise<{ lan: boolean; port?: number }>
+          invoke(id: string, name: string): Promise<unknown>
         }
       }).services
       if (!services) throw new Error('This Agent Code build does not support extension services.')
@@ -37,8 +41,14 @@ export default defineRuntime({
       // Loopback endpoint is diagnostics-only; friends use the host-owned LAN
       // listener. Both exist by the time expose() resolved.
       void started.endpoints
+      const urls = lanShareUrls(await services.invoke(SERVICE_ID, 'status'), exposure.port)
+      // The heartbeat publishes the LATEST run's facts, not the first run's:
+      // re-running the command after a Wi-Fi change must stick, not be
+      // overwritten 900ms later by a closure captured on the first run.
+      latest = { port: exposure.port, urls }
       const publish = () => {
-        const state: LanHostState = { running: true, port: exposure.port!, at: Date.now() }
+        if (!latest) return Promise.resolve()
+        const state: LanHostState = { running: true, port: latest.port, at: Date.now(), urls: latest.urls }
         return context.views.publish('agent-code-poker.lan', state as JsonValue)
       }
       await publish()
@@ -48,9 +58,10 @@ export default defineRuntime({
         heartbeat = setInterval(() => { void publish() }, HEARTBEAT_MS)
         context.subscriptions.push({ dispose() { if (heartbeat) { clearInterval(heartbeat); heartbeat = null } } })
       }
-      return { port: exposure.port }
+      return { port: exposure.port, urls }
     })
   },
 })
 
 let heartbeat: ReturnType<typeof setInterval> | null = null
+let latest: { port: number; urls: string[] } | null = null
