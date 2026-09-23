@@ -79,3 +79,18 @@ network API".
 
 `npm run verify`, plus rebuilt `dist/`, `lan-dist/` and `dist-service/`.
 Two-device acceptance in the installed app stays with the user.
+
+## Review (security, one round)
+
+- **Markers are read only inside Agent Code.** The server reads them only
+  when it runs as the extension's service (`agentCodeHost`, set only by
+  `server/service.ts`). The standalone CLI rules are exactly the originals.
+- **`lan` needs the listener's own Host.** A `lan` marker is trusted only when
+  the raw Host is `127.0.0.1:<own port>`. Before this, a DNS-rebound page
+  could attach the marker and skip the exact Host allow-list.
+- **Loopback means local-user trust.** A same-machine client that dials the
+  listener on 127.x may create the table, like the host computer's browser.
+  Any local program can dial loopback.
+- **IPv4 only, documented.** The generic listener stays as it is, because
+  narrowing it would change policy for every extension service.
+- **Manual end-to-end tool:** `testing/manual/agent-code-lan-e2e.mts`.
