@@ -16,7 +16,8 @@ import { SceneCapture, transform } from './diagnostics/SceneCapture'
 import type { TraceValue } from './diagnostics/Recorder'
 import { CHAIR_BLOCKS, PLAYER_LAYOUT, SEATS, seatYaw } from './environment/layout'
 import { createFeltPrint } from './TablePrint'
-import { SeatedLook } from './camera/SeatedLook'
+import { SeatedLook, yawLimitForView } from './camera/SeatedLook'
+import { SurroundDecor } from './environment/SurroundDecor'
 import { DrinkWarmth, type DrinkEffectLevel } from '../interaction/drinking/DrinkWarmth'
 
 import { createRoomPlan, type RoomBlock } from './environment/RoomPlan'
@@ -92,6 +93,7 @@ export class PokerRoom {
   private dust: THREE.Points
   private christmas: ChristmasTavern
   private fireplace?: Fireplace
+  private surround: SurroundDecor
   private stats: HTMLOutputElement | null = null
   private measuredAt = performance.now()
   private measuredFrames = 0
@@ -151,6 +153,9 @@ export class PokerRoom {
     if (this.experimentalFireplace) {
       this.fireplace = new Fireplace(); this.scene.add(this.fireplace.root)
     }
+    // Look-around sweeps 280° (#10): side walls end to end and the rear
+    // corners. Every build gets the same finished room, like the hearth.
+    this.surround = new SurroundDecor(); this.scene.add(this.surround.root)
     const skinMaterial = humanMaterial(); this.materials.set('humans', skinMaterial)
     for (let seat = 1; seat < 6; seat++) {
       // Identity follows the authority seat, geometry follows the viewer slot.
@@ -333,6 +338,10 @@ export class PokerRoom {
     this.renderer.setPixelRatio(ratio); this.post.setSize(width, height, ratio)
     this.camera.aspect = width / height; this.camera.position.set(this.orbit * .12, PLAYER_LAYOUT.eye[1], PLAYER_LAYOUT.eye[2]); this.camera.lookAt(this.orbit * .3, PLAYER_LAYOUT.look[1], PLAYER_LAYOUT.look[2])
     this.camera.updateProjectionMatrix(); this.camera.updateMatrixWorld(); this.renderer.setSize(width, height)
+    // The seated lens is 70° vertical (inspection narrows it, but inspection
+    // also centres the view). Re-derive on every aspect change so the swept
+    // edge stays on finished decor on narrow and ultrawide windows alike.
+    this.seatedLook.setYawLimit(yawLimitForView(70, this.camera.aspect))
     this.labelCamera.aspect = this.camera.aspect; this.labelCamera.position.copy(this.camera.position)
     this.labelCamera.lookAt(this.orbit * .3, 1.03, -.60); this.labelCamera.updateProjectionMatrix(); this.labelCamera.updateMatrixWorld()
     this.onLayout()
@@ -508,6 +517,7 @@ export class PokerRoom {
     this.dust.rotation.y = this.reduced.matches ? 0 : Math.sin(t * .02) * .08
     this.christmas.frame(t, this.reduced.matches)
     this.fireplace?.frame(t, this.reduced.matches)
+    this.surround.frame(t, this.reduced.matches)
     this.chips.frame(now / 1000, this.reduced.matches); this.cardField.frame(now / 1000, this.reduced.matches)
     if (this.stats || this.capture) this.renderer.info.reset()
     this.capture?.beforeRender()
@@ -556,7 +566,7 @@ export class PokerRoom {
     window.removeEventListener('blur', this.suspendLook)
     // Snow owns its private resources and detaches before the shared static
     // scene sweep, so neither disposal path double-frees the same geometry.
-    this.christmas.dispose()
+    this.christmas.dispose(); this.surround.dispose()
     const geometries = new Set<THREE.BufferGeometry>(), materials = new Set<THREE.Material>()
     this.scene.traverse(object => {
       if (object instanceof THREE.Mesh || object instanceof THREE.Points || object instanceof THREE.Sprite) {

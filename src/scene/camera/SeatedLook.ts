@@ -1,4 +1,20 @@
 export const LOOK_LIMITS = { yaw: .85, down: -.25, up: .20 } as const
+/** Total horizontal field of regard the seated player can sweep, edge to edge
+ * of the image, in radians. A requested product contract (#10), not a derived
+ * number: every direction inside it must land on finished decor. */
+export const FIELD_OF_REGARD = 280 * Math.PI / 180
+
+/** Yaw limit that makes `2·yaw + horizontal FOV = FIELD_OF_REGARD` for this
+ * lens and aspect. A fixed yaw limit gave narrow viewports less room than wide
+ * ones and let ultrawide screens see past the finished walls. Deriving it from
+ * the actual lens keeps the swept edge on the same authored surfaces
+ * everywhere. Never below the original .85: narrowing an existing gesture
+ * would feel like a regression. */
+export function yawLimitForView(verticalFovDegrees: number, aspect: number): number {
+  if (!(verticalFovDegrees > 0) || !(aspect > 0)) return LOOK_LIMITS.yaw
+  const halfWidth = Math.atan(Math.tan(verticalFovDegrees * Math.PI / 360) * aspect)
+  return Math.max(LOOK_LIMITS.yaw, FIELD_OF_REGARD / 2 - halfWidth)
+}
 type Context = { playing: boolean; enabled: boolean; paused: boolean; blocked: boolean; inspection: boolean; busy: boolean; reduced: boolean }
 type View = { yaw: number; pitch: number }
 type Contact = 'smoke' | 'drink'
@@ -13,6 +29,7 @@ export class SeatedLook {
   private view: View = { yaw: 0, pitch: 0 }
   private pointer: { id: number; x: number; y: number } | null = null
   private pending: Contact | null = null
+  private yawLimit: number = LOOK_LIMITS.yaw
   get contactPending(): boolean { return this.pending !== null }
   get dragging(): boolean { return this.pointer !== null }
   get centered(): boolean { return Math.abs(this.view.yaw) < .003 && Math.abs(this.view.pitch) < .003 }
@@ -37,9 +54,17 @@ export class SeatedLook {
     if (![x, y, viewportHeight].every(Number.isFinite) || viewportHeight <= 0) return
     // Height-normalized deltas keep sensitivity stable across ultrawide and
     // ordinary layouts. No acceleration/inertia; only an owned pointer steers.
-    this.intent.yaw = Math.max(-LOOK_LIMITS.yaw, Math.min(LOOK_LIMITS.yaw, this.intent.yaw - (x - pointer.x) * 1.5 / viewportHeight))
+    this.intent.yaw = Math.max(-this.yawLimit, Math.min(this.yawLimit, this.intent.yaw - (x - pointer.x) * 1.5 / viewportHeight))
     this.intent.pitch = Math.max(LOOK_LIMITS.down, Math.min(LOOK_LIMITS.up, this.intent.pitch - (y - pointer.y) / viewportHeight))
     pointer.x = x; pointer.y = y
+  }
+  /** Room owns the lens; this core only receives the resulting bound. Retained
+   * intent is clamped immediately so a viewport resize cannot leave the view
+   * parked beyond the finished room. */
+  setYawLimit(limit: number): void {
+    if (!Number.isFinite(limit)) return
+    this.yawLimit = Math.max(LOOK_LIMITS.yaw, limit)
+    this.intent.yaw = Math.max(-this.yawLimit, Math.min(this.yawLimit, this.intent.yaw))
   }
   end(id: number): void { if (this.pointer?.id === id) this.cancel() }
   cancel(): void { this.pointer = null }
