@@ -1,16 +1,5 @@
-/** Minimal surface the extension LAN view consumes. The full client is a
- *  page-lifetime browser module; only the transport seam is imported. */
-export function setApiTransport(transport: (call: {
-  path: string
-  method: 'GET' | 'POST'
-  headers: Record<string, string>
-  body: string | undefined
-}) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>): void
-
-/** Replace where this player's ElevenLabs settings live and how the tab
- *  reaches ElevenLabs. The website default is browser storage + browser
- *  fetch; the Agent Code LAN view installs extension secrets + brokered fetch. */
-export function setVoiceEnvironment(env: {
-  store: import('../../src/voice/settingsStore').VoiceSettingsStore
-  http: import('../../src/voice/ElevenLabs').VoiceHttp
-}): void
+/** client.js is a page-lifetime browser module imported only for its side
+ *  effects: it mounts the LAN table into the page. It exports nothing. The
+ *  extension LAN view configures it through ./embedding BEFORE importing it;
+ *  see embedding.ts for why setters exported from here were too late. */
+export {}

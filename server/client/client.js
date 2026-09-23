@@ -17,6 +17,7 @@ import { FIREPLACE_LAYOUT } from '../../src/scene/environment/layout'
 import { TAVERN_FEATURES } from '../../src/scene/environment/features'
 import { SEATS } from '../../src/scene/environment/layout'
 import { ChatVoice } from './ChatVoice'
+import { embedding } from './embedding'
 import { ChatBubble, ChatInput, ChatLog, FeatureSwitches, VoiceSettingsPanel, bubbleFor, chatShortcut } from './ChatControls'
 import { VOICE_FAILURE_TEXT, createElevenLabsProvider, normalizeVoiceSettings } from '../../src/voice/ElevenLabs'
 import { browserVoiceSettingsStore } from '../../src/voice/settingsStore'
@@ -54,10 +55,13 @@ const onWagerOpen = open => { wagerOpen=open;syncLookBlocked();renderLeisure() }
 // This player's ElevenLabs settings live ONLY in this tab/frame (see
 // src/voice/settingsStore.ts). The website default is this browser's storage
 // and a direct browser fetch; the Agent Code LAN view swaps in the extension's
-// secret storage and the host-brokered fetch via setVoiceEnvironment().
-let voiceEnv = { store: browserVoiceSettingsStore(() => localStorage), http: browserVoiceHttp() }
+// secret storage and the host-brokered fetch through embedding.ts.
+const browserVoiceEnv = { store: browserVoiceSettingsStore(() => localStorage), http: browserVoiceHttp() }
+// Read through a function, never cached: see embedding.ts for why the view
+// configures the environment before this module loads, and may change it later.
+const voiceEnv = () => embedding.voice ?? browserVoiceEnv
 let voiceSettings = null, voiceStatus = '', chatOpen = false, chatStatus = '', featuresPending = false
-const voiceProvider = () => voiceSettings ? createElevenLabsProvider(() => voiceSettings, voiceEnv.http) : null
+const voiceProvider = () => voiceSettings ? createElevenLabsProvider(() => voiceSettings, voiceEnv().http) : null
 // Display seat -> head position. The room is built in display coordinates
 // (the viewer always sits at SEATS[0]), so the same index that places a label
 // places the voice. Seat 0 is this player: played in-head, no panner.
@@ -67,20 +71,19 @@ const chatVoice = new ChatVoice({
   play: (bytes, seat) => { void audio.playVoice(bytes, seat, speakerPosition(seat)) },
   stopAll: () => audio.stopVoices(),
 })
-export function setVoiceEnvironment(env) { voiceEnv = env; voiceSettings = null; voiceStatus = ''; void loadVoiceSettings() }
 async function loadVoiceSettings() {
-  const env = voiceEnv, loaded = await env.store.load().catch(() => null)
-  if (env === voiceEnv) { voiceSettings = loaded; render() }
+  const env = voiceEnv(), loaded = await env.store.load().catch(() => null)
+  if (env === voiceEnv()) { voiceSettings = loaded; render() }
 }
 async function saveVoiceSettings(apiKey, voiceId) {
   const next = normalizeVoiceSettings({ apiKey, voiceId })
   if (!next) { voiceStatus = 'That key or voice ID does not look right. Copy both from your ElevenLabs account.'; render(); return }
-  const saved = await voiceEnv.store.save(next)
+  const saved = await voiceEnv().store.save(next)
   voiceSettings = next
   voiceStatus = saved ? 'Voice saved.' : 'Could not save it here; it will be used in this tab until you close it.'
   render()
 }
-async function forgetVoiceSettings() { await voiceEnv.store.clear(); voiceSettings = null; voiceStatus = 'Key forgotten on this device.'; render() }
+async function forgetVoiceSettings() { await voiceEnv().store.clear(); voiceSettings = null; voiceStatus = 'Key forgotten on this device.'; render() }
 async function testVoice() {
   const provider = voiceProvider()
   if (!provider) return
@@ -145,15 +148,15 @@ function record(path, status, data) {
       bet: p.bet, folded: p.folded, cards: p.cards.kind, connected: p.connected })) } : {}) })
 }
 // The website calls its own origin with fetch. The Agent Code extension view
-// installs an adapter first (service proxy when hosting, brokered net.fetch
-// when joining a friend) so admission, polling and poker actions flow through
-// ONE seam without the client knowing which world it runs in.
-let apiTransport = null
-export function setApiTransport(transport) { apiTransport = transport }
+// installs an adapter (service proxy when hosting, brokered net.fetch when
+// joining a friend) in embedding.ts BEFORE importing this module, so
+// admission, polling and poker actions flow through ONE seam without the
+// client knowing which world it runs in.
 async function api(path, body) {
   const request = responses.begin()
   let response, data
   try {
+    const apiTransport = embedding.apiTransport
     response = apiTransport ? await apiTransport({
       path, method: body === undefined ? 'GET' : 'POST',
       headers: { ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
@@ -330,7 +333,10 @@ function render() {
   featuresRoot.render(createElement(FeatureSwitches,{isHost:!!state.isHost,features:state.features??{voices:false,treats:false},pending:featuresPending||pending,onChange:setFeatures}))
   renderVoiceSettings()
   el('connection').textContent = connectionLost || ended ? 'Connection interrupted — wagering disabled' : !state.hostConnected ? 'Host disconnected — table suspended' : state.paused ? 'Table paused' : v.self.waiting ? 'Seat reserved — joining next hand' : v.actor===v.self.seat ? 'Your move' : 'Connected · LAN'
-  el('invite').textContent = state.code ? `Lobby code: ${state.code.slice(0,5)}-${state.code.slice(5)}` : 'Six playing seats · empty seats are NPCs'
+  // In Agent Code only the view knows the invite address (embedding.ts); the
+  // standalone host sends its own in the host's state.
+  const shareUrls=embedding.shareUrls??(Array.isArray(state.shareUrls)?state.shareUrls:[])
+  el('invite').textContent = state.code ? `Lobby code: ${state.code.slice(0,5)}-${state.code.slice(5)}${shareUrls.length?` · Friends join at ${shareUrls.join(' or ')}`:''}` : 'Six playing seats · empty seats are NPCs'
   el('host-storage').textContent = state.durable ? 'Host saves this table privately. A host restart pauses play until the host resumes.' : 'Disposable host: stopping its process ends this table.'
   const phase=v.phase==='betting'?['Pre-flop','Flop','Turn','River'][v.street]:v.phase==='ready'?'Waiting for host':v.phase==='complete'?'Hand complete':v.phase==='showdown'?'Showdown':'Dealing'
   const winners=v.phase==='complete'?v.results.filter(r=>r.won>0).map(r=>`${v.players[r.seat].name} wins ${r.won}`).join(' · '):''
@@ -369,7 +375,7 @@ function render() {
   el('inspect').setAttribute('aria-pressed',String(inspected));el('inspect').firstChild.nodeValue=inspected?'Look up ':'Cards & chips '
 }
 function renderVoiceSettings() {
-  voiceRoot.render(createElement(VoiceSettingsPanel,{where:voiceEnv.store.where,configured:!!voiceSettings,status:voiceStatus,
+  voiceRoot.render(createElement(VoiceSettingsPanel,{where:voiceEnv().store.where,configured:!!voiceSettings,status:voiceStatus,
     onSave:(key,voice)=>{void saveVoiceSettings(key,voice)},onForget:()=>{void forgetVoiceSettings()},onTest:()=>{void testVoice()}}))
 }
 async function run(work) {
