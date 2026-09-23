@@ -1,3 +1,5 @@
+import { applyListenerMatrix } from './listener'
+
 /** One locally bundled recording, not a timer spawning crackle oscillators.
  * A media element decodes incrementally rather than reserving an entire minute
  * of stereo float PCM. It also preserves loop position on pause. Source is a
@@ -31,15 +33,7 @@ export class FireAmbience {
     this.spatial = { context, source, panner, gain }
   }
   setListenerMatrix(matrix: ArrayLike<number>): void {
-    if (!this.spatial || matrix.length !== 16) return
-    for (let i = 0; i < 16; i++) if (!Number.isFinite(matrix[i])) return
-    const { context } = this.spatial, listener = context.listener, at = context.currentTime
-    // Three/Web Audio share right-handed world coordinates. Matrix column2 is
-    // camera-backward, hence its NEGATION is forward; screen-space panning or
-    // an un-negated Z flips left/right as the player looks around.
-    listener.positionX.setTargetAtTime(matrix[12], at, .04); listener.positionY.setTargetAtTime(matrix[13], at, .04); listener.positionZ.setTargetAtTime(matrix[14], at, .04)
-    listener.forwardX.setTargetAtTime(-matrix[8], at, .04); listener.forwardY.setTargetAtTime(-matrix[9], at, .04); listener.forwardZ.setTargetAtTime(-matrix[10], at, .04)
-    listener.upX.setTargetAtTime(matrix[4], at, .04); listener.upY.setTargetAtTime(matrix[5], at, .04); listener.upZ.setTargetAtTime(matrix[6], at, .04)
+    if (this.spatial) applyListenerMatrix(this.spatial.context, matrix)
   }
   setActive(active: boolean): void { this.active = active; this.sync() }
   setMuted(muted: boolean): void { this.muted = muted; this.sync() }
