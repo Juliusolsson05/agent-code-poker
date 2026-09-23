@@ -316,7 +316,7 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
     }, s = o.api.services, d = o.api.net;
     let p = !1;
     const k = async (a) => {
-      const u = await import("./client-Bn2U8lvt.js");
+      const u = await import("./client-C5lZwUaQ.js");
       u.setVoiceEnvironment({
         store: Y(o.api),
         http: F(d ? (b, f) => d.fetch(b, f) : async () => {
@@ -346,7 +346,7 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
           await s.start(y);
           const a = await s.expose(y, !0);
           if (!a.lan || !a.port) throw new Error("LAN exposure was not granted.");
-          const u = V(await s.invoke(y, "status"), a.port);
+          const u = V(await s.invoke(y, "status", {}), a.port);
           await k(R()), t.hidden = !0, r(`${z(u, a.port)} — then use Create table below.`);
         } catch (a) {
           p = !1, h(a instanceof Error ? a.message : String(a));
