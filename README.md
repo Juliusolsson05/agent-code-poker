@@ -2,6 +2,27 @@
 
 A standalone Agent Code extension: six-seat No-Limit Texas Hold’em in a seated, near-first-person dark bar. Characters are procedurally sculpted from fine voxels. All chips are free practice currency; five local opponents only use their own cards and public information.
 
+## Current status (0.3.0)
+
+Implemented and merged: solo play with the practice bank, drinks, treats and
+the effect setting; the fireplace ambience in both the website and the
+extension; LAN play on the standalone website and inside the extension, with
+seat recovery after a host restart, visible smokes/sips, table chat and
+opt-in ElevenLabs voices. Version 0.3.0 needs Agent Code 0.1.3 or later for
+LAN chat voices (declared network origins and per-extension secrets).
+
+Still open, and not provable by `npm run verify`:
+
+- **Electron:** the installed extension has not been re-checked end to end on
+  this version. Browser previews are not host verification.
+- **Devices:** no LAN game across two separate devices has been recorded; the
+  multiplayer recordings are two browsers on one machine.
+- **Voices:** no line has been spoken with a real ElevenLabs key.
+- **Listening:** fire loop, mix and cue levels have never been signed off by ear.
+
+`docs/decomposition/poker-backlog-2026-09.md` maps each feature to its PRs.
+`PLAN.md` is the historical working log, not a list of current instructions.
+
 ## Development
 
 Node22 LTS (22.13+) or24+. Run `npm ci`, then `npm run dev`. Open [the live preview](http://127.0.0.1:5191/dev/). Changes hot-reload. `npm run verify` checks rules, scene invariants, TypeScript and production packaging. After building, `/dev/?production` loads the shipped view bundle rather than source. The standalone host uses Node's built-in SQLite only for an OS-managed ownership lease; some supported Node versions emit its experimental warning.
@@ -86,7 +107,8 @@ This is an evolving visual/gameplay implementation, not a finished realism bench
 
 `src/engine/` owns the ledger and legal decisions; `src/scene/` projects state into cards, chips, voxel humans and first-person hands; `src/App.tsx` owns controls, pacing and storage. Rendering never changes chip balances. Keep WHY comments beside these invariants. Full Electron-host verification is separate from the browser preview.
 
-`src/session/` is the isolated LAN foundation, not an available multiplayer mode.
+`src/session/` is the LAN rules layer: it has no networking of its own, and
+the `server/` process (website CLI or extension service) is its only transport.
 `HostTable` owns six seats and the engine; `view.ts` explicitly projects public
 data plus the viewer's private cards. Mid-hand arrivals reserve a bot seat for
 the next deal. Principal-bound actions reject stale/duplicate wagers; disconnect
@@ -173,8 +195,9 @@ cash or purchases. Debt follows the authenticated player through reconnects
 and host restart, not the chair. Leaving does not erase debt; ending the entire
 room ends its fictional ledger. Transfers use the same durable, duplicate-safe
 command stream as wagers. Old host checkpoints migrate with zero debt and
-unchanged chips. Solo bank integration and live multi-client bank acceptance
-remain open; passing HTTP tests is not browser verification.
+unchanged chips. Solo play has its own bank (see **Bank** above). Live
+multi-client bank acceptance remains open; passing HTTP tests is
+not browser verification.
 Actual recovery/two-browser3D acceptance and separate-device
 LAN acceptance remain open.
 

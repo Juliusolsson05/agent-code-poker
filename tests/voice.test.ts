@@ -161,6 +161,11 @@ test('relay playback: only lines this tab saw arrive, once each, never its own, 
   chat.observe([line(1, 2, true), line(2, 3, false)], true, true) // new line, clip not uploaded yet
   chat.observe([line(1, 2, true), line(2, 3, true), line(3, 0, true), line(4, 4, true, 31_000)], true, true)
   chat.observe([line(2, 3, true)], true, true) // a later poll must not refetch
+  // Let line 2's relay fetch land BEFORE voices go off: a fetch still in
+  // flight when the switch flips is canceled (#27), which the old version of
+  // this test accidentally asserted the opposite of.
+  await tick()
+  assert.deepEqual(played, [3])
   chat.observe([line(5, 1, true)], false, true) // voices off
   chat.observe([line(6, 1, true)], true, false) // muted / not audible
   await tick()
@@ -179,6 +184,57 @@ test('lines said while muted are consumed silently: unmuting never bursts a back
   chat.observe([line(1, 1, true), line(2, 2, true), line(3, 3, true)], true, true) // unmuted
   await tick()
   assert.deepEqual(fetched, ['/api/voice/3'], 'only the line that arrived after unmuting plays')
+})
+
+/** A promise the test resolves by hand, so "the await is still pending" is a
+ * fact of the test rather than a timing guess. */
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(r => { resolve = r })
+  return { promise, resolve }
+}
+
+// #27: every gate used to be checked only BEFORE the await. These pin the
+// real sequence the review reproduced (send, voices off, synthesis resolves)
+// and its reset twin. The events log makes "STOP, PLAY, /api/voice" visible
+// if it ever comes back.
+for (const cancel of ['voices off', 'reset'] as const) {
+  test(`a synthesis pending across ${cancel} neither plays nor uploads (#27)`, async () => {
+    const synthesis = deferred<{ ok: true; audio: Uint8Array }>(), events: string[] = [], voice = outcomes()
+    const chat = new ChatVoice({
+      hostApi: async path => { events.push(path); return path === '/api/chat' ? { receipt: { seq: 11 } } : { voice: 'stored' } },
+      provider: () => ({ synthesize: () => synthesis.promise }),
+      play: () => events.push('PLAY'), stopAll: () => events.push('STOP'),
+    })
+    chat.observe([], true, true)
+    assert.deepEqual(await chat.send('nice river', true, voice.push), { sent: true, seq: 11 })
+    if (cancel === 'voices off') chat.observe([line(11, 0, false)], false, true)
+    else chat.reset()
+    synthesis.resolve({ ok: true, audio: mp3 }); await tick(); await tick()
+    assert.deepEqual(events, ['/api/chat', 'STOP'], 'no local playback and no relay upload after cancellation')
+    assert.deepEqual(voice.list, [{ seq: 11, voice: 'off' }], 'canceled, not reported as a failure')
+  })
+
+  test(`a relay fetch pending across ${cancel} does not play (#27)`, async () => {
+    const clip = deferred<unknown>(), played: number[] = []
+    const chat = new ChatVoice({ provider: () => null, play: (_bytes, seat) => played.push(seat), stopAll: () => {},
+      hostApi: () => clip.promise })
+    chat.observe([], true, true)
+    chat.observe([line(4, 2, true)], true, true) // fetch starts
+    if (cancel === 'voices off') chat.observe([line(4, 2, true)], false, true)
+    else chat.reset()
+    clip.resolve({ mime: 'audio/mpeg', data: bytesToBase64(mp3) }); await tick(); await tick()
+    assert.deepEqual(played, [])
+  })
+}
+
+test('a new send after voices come back on is voiced normally: cancellation is not sticky', async () => {
+  const played: number[] = [], hostCalls: string[] = []
+  const chat = new ChatVoice({ provider: () => ({ synthesize: async () => ({ ok: true as const, audio: mp3 }) }), play: (_b, seat) => played.push(seat), stopAll: () => {},
+    hostApi: async path => { hostCalls.push(path); return path === '/api/chat' ? { receipt: { seq: 3 } } : { voice: 'stored' } } })
+  chat.observe([], false, true); chat.reset(); chat.observe([], true, true)
+  await chat.send('back on', true); await tick(); await tick()
+  assert.deepEqual(played, [0]); assert.deepEqual(hostCalls, ['/api/chat', '/api/voice'])
 })
 
 test('turning voices off stops voices already playing, once per transition', () => {

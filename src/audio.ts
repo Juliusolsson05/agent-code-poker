@@ -22,6 +22,11 @@ export class PokerAudio {
   // to stop hearing friends talk.
   private voiceBus: GainNode | null = null
   private voices=new Map<number,{source:AudioBufferSourceNode;cleanup:()=>void}>()
+  // Bumped by stopVoices(). decodeAudioData is async, so a clip whose decode
+  // was still pending when mute/voices-off/reset stopped "every" voice used to
+  // start afterwards: stopVoices() can only clean up sources that exist (#27).
+  // playVoice captures this before the await and gives up if it changed.
+  private voiceGeneration=0
   private listenerMatrix: ArrayLike<number> | null = null
   // Optional QA hook reports attempted audible cues, not proof of device output.
   onCue?: (kind:SoundKind)=>void
@@ -86,12 +91,12 @@ export class PokerAudio {
    * Resolves false without sound when muted, locked by autoplay policy, or
    * the bytes do not decode — the bubble is always the fallback. */
   async playVoice(bytes: Uint8Array, speaker: number, position: readonly number[] | null): Promise<boolean> {
-    const ctx=this.context
+    const ctx=this.context,generation=this.voiceGeneration
     if(!ctx || this.muted || this.disposed || ctx.state!=='running')return false
     let buffer: AudioBuffer
     // decodeAudioData detaches its argument: hand it a copy, never the caller's bytes.
     try { buffer=await ctx.decodeAudioData(bytes.slice().buffer) } catch { return false }
-    if(this.context!==ctx || this.muted || this.disposed)return false
+    if(this.context!==ctx || this.muted || this.disposed || generation!==this.voiceGeneration)return false
     if(!this.voiceBus){this.voiceBus=ctx.createGain();this.voiceBus.gain.value=.85;this.voiceBus.connect(ctx.destination)}
     this.voices.get(speaker)?.cleanup()
     const source=ctx.createBufferSource();source.buffer=buffer
@@ -110,8 +115,10 @@ export class PokerAudio {
     source.start()
     return true
   }
-  /** Silence every chat voice now: mute, and the host turning voices off. */
-  stopVoices():void {for(const voice of [...this.voices.values()])voice.cleanup()}
+  /** Silence every chat voice now: mute, the host turning voices off, and a
+   * chat reset. That includes clips still decoding, which are canceled rather
+   * than allowed to start once their decode lands. */
+  stopVoices():void {this.voiceGeneration++;for(const voice of [...this.voices.values()])voice.cleanup()}
   play(kind: SoundKind): void {
     const ctx = this.context
     if (!ctx || !this.master || this.muted || !this.effectsLevel || this.disposed || ctx.state!=='running') return

@@ -1,6 +1,6 @@
 {
   "name": "agent-code-poker",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "A block-built poker room for Agent Code",

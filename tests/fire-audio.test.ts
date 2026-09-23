@@ -247,7 +247,7 @@ test('seam trimming finds codec padding but never eats real content', () => {
   assert.deepEqual(audibleLoopWindow(fakeBuffer(1, 1000, 0)), { start: .25, end: .75 }, 'even an all-silent buffer keeps half its length as a loop')
 })
 
-test('spatial graph has one quiet HRTF source and follows actual camera axes', async () => {
+test('spatial graph has one quiet HRTF source at the hearth', async () => {
   const device = fakeContext()
   const fire = new FireAmbience(inlined)
   const position = [FIREPLACE_LAYOUT.position[0], .4, FIREPLACE_LAYOUT.position[2] + .05]
@@ -263,17 +263,34 @@ test('spatial graph has one quiet HRTF source and follows actual camera axes', a
   assert.ok(pannerNode.rolloffFactor > 0)
   assert.ok(bus.gain.value <= .045, 'fire is a background bed, not the earlier .12 foreground loop')
   assert.deepEqual([pannerNode.positionX.value, pannerNode.positionY.value, pannerNode.positionZ.value], position)
-  const listener = device.context.listener
-  const camera = new PerspectiveCamera(); camera.position.set(...PLAYER_LAYOUT.eye)
-  camera.lookAt(...PLAYER_LAYOUT.look); camera.updateMatrixWorld()
-  fire.setListenerMatrix(camera.matrixWorld.elements)
-  const forward = camera.getWorldDirection(new Vector3())
-  assert.deepEqual([listener.positionX.value, listener.positionY.value, listener.positionZ.value], [...PLAYER_LAYOUT.eye])
-  assert.ok(new Vector3(listener.forwardX.value, listener.forwardY.value, listener.forwardZ.value).distanceTo(forward) < 1e-9)
-  camera.lookAt(...position); camera.updateMatrixWorld(); fire.setListenerMatrix(camera.matrixWorld.elements)
-  assert.ok(new Vector3(listener.forwardX.value, listener.forwardY.value, listener.forwardZ.value).distanceTo(new Vector3(...position).sub(camera.position).normalize()) < 1e-9, 'looking toward hearth must center source, not invert listener Z')
-  const before = listener.positionX.value; const invalid = camera.matrixWorld.elements.slice(); invalid[12] = NaN
-  fire.setListenerMatrix(invalid); assert.equal(listener.positionX.value, before)
   fire.dispose(); assert.equal(device.disconnected(), 2, 'panner and bus released')
   assert.ok(device.sources[0].stopped)
+})
+
+// The listener assertions live on PokerAudio because it is the listener's only
+// owner in production (App.tsx and the LAN client both call
+// PokerAudio.setListenerMatrix every frame). They used to drive a fire-only
+// setter that production never called, so they proved nothing about the
+// shipped path.
+test('PokerAudio points the one listener along the actual camera axes', async () => {
+  const saved = globalThis.AudioContext
+  const device = fakeContext()
+  globalThis.AudioContext = class { constructor() { return device.context } } as unknown as typeof AudioContext
+  try {
+    const position = [FIREPLACE_LAYOUT.position[0], .4, FIREPLACE_LAYOUT.position[2] + .05]
+    const audio = new PokerAudio(inlined, position)
+    audio.unlock()
+    const listener = device.context.listener
+    const camera = new PerspectiveCamera(); camera.position.set(...PLAYER_LAYOUT.eye)
+    camera.lookAt(...PLAYER_LAYOUT.look); camera.updateMatrixWorld()
+    audio.setListenerMatrix(camera.matrixWorld.elements)
+    const forward = camera.getWorldDirection(new Vector3())
+    assert.deepEqual([listener.positionX.value, listener.positionY.value, listener.positionZ.value], [...PLAYER_LAYOUT.eye])
+    assert.ok(new Vector3(listener.forwardX.value, listener.forwardY.value, listener.forwardZ.value).distanceTo(forward) < 1e-9)
+    camera.lookAt(...position); camera.updateMatrixWorld(); audio.setListenerMatrix(camera.matrixWorld.elements)
+    assert.ok(new Vector3(listener.forwardX.value, listener.forwardY.value, listener.forwardZ.value).distanceTo(new Vector3(...position).sub(camera.position).normalize()) < 1e-9, 'looking toward hearth must center source, not invert listener Z')
+    const before = listener.positionX.value; const invalid = camera.matrixWorld.elements.slice(); invalid[12] = NaN
+    audio.setListenerMatrix(invalid); assert.equal(listener.positionX.value, before, 'a non-finite matrix leaves the listener where it was')
+    audio.dispose()
+  } finally { globalThis.AudioContext = saved }
 })

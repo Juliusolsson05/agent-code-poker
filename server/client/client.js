@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { PokerRoom } from '../../src/scene/Room'
 import { BettingControls } from '../../src/components/BettingControls'
 import { SeatRecovery } from './SeatRecovery'
-import { resumeSeats, seatsForCreate } from './resumeSeats'
+import { resumeSeats, seatsForCreate, seatsForResume } from './resumeSeats'
 import { ResponseOrder, ObsoleteResponse } from './ResponseOrder'
 import { LeisureControls, leisureShortcut } from './LeisureControls'
 import { isDrinkKind } from '../../src/scene/props/specs'
@@ -438,11 +438,12 @@ el('forget').onclick = () => {
 el('resume-seat').onclick = () => {
   const selected = savedKeys[Number(el('saved-seats').value)]
   if (!selected) return
-  // The chosen seat first, then the others newest first: after a restart the
-  // player should not have to guess which of several "Bigj" entries is live.
+  // The chosen seat first, then only other seats saved under the SAME name,
+  // newest first: after a restart the player should not have to guess which of
+  // several "Bigj" entries is live, but a dead "Alice" seat must never fall
+  // through to Bob's live one (#27, see seatsForResume).
   void run(async () => {
-    const ordered = [selected, ...recovery.saved().filter(key => key.nonce !== selected.nonce)]
-    if (!await resumeSaved(ordered)) throw new Error('None of the seats saved in this browser belong to a table on this host. They were removed; create or join a table.')
+    if (!await resumeSaved(seatsForResume(selected, recovery.saved()))) throw new Error(`None of the seats saved as "${selected.name}" belong to a table on this host. They were removed; choose another saved seat, or create or join a table.`)
   })
 }
 el('forget-seat').onclick = () => {
