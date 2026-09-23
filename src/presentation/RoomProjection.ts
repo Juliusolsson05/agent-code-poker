@@ -1,11 +1,14 @@
 import type { Card } from '../engine/cards'
 import type { GameState, Phase } from '../engine/game'
-import type { TableView, VisibleCards } from '../session/view'
+import type { SeatLeisure, TableView, VisibleCards } from '../session/view'
+import { isDrinkKind } from '../scene/props/specs'
 
 export type ScenePlayer = {
   /** seat is a display index only. sourceSeat must never be inferred from it. */
   seat: number; sourceSeat: number; stack: number; bet: number; committed: number
   folded: boolean; action: string; cards: VisibleCards
+  /** Cosmetic gestures of a human-controlled opponent; null = ambient NPC. */
+  leisure: SeatLeisure | null
 }
 export type SceneState = {
   dealId: number; revision: number; handNumber: number; phase: Phase; street: number
@@ -14,6 +17,20 @@ export type SceneState = {
 }
 export const cardCount = (cards: VisibleCards): number => cards.kind === 'visible' ? cards.values.length : cards.kind === 'hidden' ? cards.count : 0
 const copyCards = (cards: VisibleCards): VisibleCards => cards.kind === 'visible' ? {kind:'visible',values:[...cards.values]} : {...cards}
+/** The wire is data, not trust. A malformed record (an older host, a proxy, a
+ * future field) degrades to null, i.e. the harmless ambient NPC, instead of
+ * throwing away the whole poker view or handing the renderer an unknown glass
+ * name. drinkKind is checked against DRINKS itself, so adding a drink there is
+ * the only change a new menu item needs. */
+function copyLeisure(value: unknown): SeatLeisure | null {
+  if (!value || typeof value !== 'object') return null
+  const l = value as Record<string, unknown>
+  const count = (n: unknown) => Number.isSafeInteger(n) && Number(n) >= 0
+  if (!count(l.seq) || !(l.action === null || l.action === 'smoke' || l.action === 'sip' || l.action === 'order') ||
+    !(l.ageMs === null || count(l.ageMs)) || (l.action === null) !== (l.ageMs === null) ||
+    !(l.drinkKind === null || isDrinkKind(l.drinkKind))) return null
+  return { seq: Number(l.seq), action: l.action, ageMs: l.ageMs === null ? null : Number(l.ageMs), drinkKind: l.drinkKind as SeatLeisure['drinkKind'] }
+}
 
 /** The sole reconciliation boundary into PokerRoom. Consumers receive only a
  * presentation snapshot, never an authoritative GameState with invented hidden
@@ -44,7 +61,9 @@ export class RoomProjection {
       phase:state.phase,street:state.street,initialTotal:state.initialTotal,actor:state.actor,dealer:state.dealer,publicShowdown,
       board:[...state.board],results:state.results.map(r=>({seat:r.seat,won:r.won})),
       players:state.players.map(p=>({seat:p.seat,sourceSeat:p.seat,stack:p.stack,bet:p.bet,committed:p.committed,folded:p.folded,action:p.action,
-        cards:!p.hole.length?{kind:'absent'}:p.seat===0 || publicShowdown && !p.folded?{kind:'visible',values:[...p.hole]}:{kind:'hidden',count:p.hole.length}})),
+        cards:!p.hole.length?{kind:'absent'}:p.seat===0 || publicShowdown && !p.folded?{kind:'visible',values:[...p.hole]}:{kind:'hidden',count:p.hole.length},
+        // Solo opponents are all NPCs; their gestures stay on ambient timers.
+        leisure:null})),
     }
   }
   remote(view:TableView,viewer:number):SceneState {
@@ -61,7 +80,7 @@ export class RoomProjection {
       publicShowdown:view.phase==='showdown'||view.phase==='complete'&&view.results.some(r=>r.hand!==null),
       board:[...view.board],results:view.results.map(r=>({seat:display(r.seat),won:r.won})),
       players:view.players.map(p=>({seat:display(p.seat),sourceSeat:p.seat,stack:p.stack,bet:p.bet,committed:p.committed,
-        folded:p.folded,action:p.action,cards:copyCards(p.cards)})).sort((a,b)=>a.seat-b.seat),
+        folded:p.folded,action:p.action,cards:copyCards(p.cards),leisure:copyLeisure(p.leisure)})).sort((a,b)=>a.seat-b.seat),
     }
   }
 }
