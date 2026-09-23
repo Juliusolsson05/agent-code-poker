@@ -106,4 +106,32 @@ Tests pinned to four kinds (`lan-leisure`, `props`) are updated with the reason.
 
 ## Decisions made during implementation
 
-(appended as they happen)
+- **Menu heading:** "Spirits, wine & beer" instead of "Spirits & wine", because
+  ale, stout and cider live there too.
+- **Compact menu:** the board sits outside `.room`'s stacking context, so
+  z-index cannot lift the menu over it. Measured at 500×722 and 711 px, the
+  menu's max-height now ends above the board (`max(200px, calc(100% - 432px))`
+  and `- 380px`). About 2½ options stay visible while the list scrolls; the
+  header and status do not scroll.
+- **Garnish = one merged sculpt.** The five-mesh cap is a draw-call cap, so
+  ice, peel, foam, wheels and sticks are one multi-colour VoxelSculpt. The old
+  separate `block-ice`/`block-orange-peel`/`block-foam` meshes are gone.
+- **Steam** is the only geometry allowed above the rim (`userData.vapour`),
+  with a 0.2 Hz opacity drift that freezes on pause and reduced motion.
+- **Pinch** was fitted by `testing/fit-pinch.ts` (a random search on the
+  deformed skin): index is 1.8 mm and thumb 1.2 mm from a 9.2 mm sphere, and the
+  other fingers are >8 mm away. Every piece mesh is tested to fit inside that
+  sphere. It is one pinch for both treats.
+- **Dish home** is (.200, felt, .80), between the ashtray and the coaster. The
+  consume timeline is 4.1 s and counts at 2.55 s. Reach error is zero across
+  the timeline for every slot.
+- **Receipts:** sips and treats are separate id streams with separate
+  high-water marks, so one cannot swallow the other.
+- **Default:** Normal (not Off), in solo and on LAN. It stays inert until the
+  player's own receipts arrive, and Off is one click away.
+- **Labels vs sway:** world labels and the audio listener stay on the logical
+  camera by design, so they do not jitter. At Strong, a label can sit a few
+  pixels off its swaying head; that is the accepted cost.
+- **NPC drinks are unchanged.** `npc-drinking` replays recordings made with
+  the original four kinds; giving NPCs new kinds would invalidate those
+  fixtures without new recordings.
