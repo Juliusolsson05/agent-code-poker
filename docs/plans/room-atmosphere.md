@@ -151,9 +151,32 @@ is the visual target; bright physically plausible winter light is not.
   and exactly one shadow caster. Collision, full 280° coverage, finish depth,
   snow determinism and reduced-motion tests protect the construction.
 
-Pre-integration validation: all nine focused surround tests pass, including the
-new door depth and deterministic snowfall regressions. Typecheck, SDK/LAN
-builds, both SDK contracts and exact-byte preview pass. The initial full
-`npm run verify` was stopped at a 120-second limit while the unit-test phase
-had not reported results; it is not recorded as a pass. Recheck the merged
-room/effect-camera build before publishing final captures.
+### Final validation and integration
+
+Committed the surround work before normally merging `origin/feat/room-atmosphere`
+with PR #20's drinks/effects. The Room.ts merge preserves its render camera and
+label projection as well as the amber pendant change. Rebuilt `dist/` and
+`lan-dist/` from source rather than resolving generated bundle conflicts by hand.
+The node_modules-path-only comment in `dist-service/lan-host.mjs` is restored.
+
+- 26 focused tests pass after integration: surround, environment, effects and
+  post-processing. These include the 13-light/one-shadow budget, pinned room
+  plan, closed room rays, clearance, door depth and snowfall regressions.
+- `npm run build` passes (typecheck plus SDK, LAN and service builds); both SDK
+  contract tests and the exact-byte production preview test pass.
+- `npm run verify` was attempted before and after integration. Each run was
+  stopped at 120 seconds in the unit-test phase without reporting results.
+  The full suite is **not verified** in this pass. Per the user's request,
+  do not leave repeated unbounded test runs consuming the machine.
+- Fresh source and shipped-production browser captures cover centre, both
+  look-around extremes and the ceiling. Production smoke checks exercise
+  card inspection, cigar, a legal fold, pause/resume and saved-table restore.
+  These are browser checks, not installed Electron acceptance or measured FPS.
+
+| View | Before | After (merged production build) |
+| --- | --- | --- |
+| Reading nook / piano | [Before](../evidence/room-atmosphere/before-left.png) | [After](../evidence/room-atmosphere/after-left.png) |
+| Sideboard / entrance | [Before](../evidence/room-atmosphere/before-right.png) | [After](../evidence/room-atmosphere/after-right.png) |
+
+Also: [main window and hearth](../evidence/room-atmosphere/after-main.png),
+[ceiling lighting](../evidence/room-atmosphere/after-ceiling.png).
