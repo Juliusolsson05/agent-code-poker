@@ -25,8 +25,8 @@ const withDocument = <T>(run: () => T): T => {
 test('every direction in the 280° field of regard lands on a finished surface', () => {
   // #10's contract. Before the rear wall existed, rays past ~118° from forward
   // left through the missing back of the room into the clear colour. Sample
-  // the full sweep at every elevation the seated lens can show (look pitch
-  // -.25..+.2 rad plus a 35° half-height lens).
+  // the full sweep at every elevation the seated lens can show, including the
+  // bottom image corners with pitch -.25 (about -1.05 rad).
   const plan = createSurroundPlan(), room = createRoomPlan({ fireplace: true }).blocks
   const solids = [...room, ...plan.shell].map(b => new Box3().setFromCenterAndSize(new Vector3(...b.position), new Vector3(...b.size)))
   const eye = new Vector3(...PLAYER_LAYOUT.eye), half = FIELD_OF_REGARD / 2
@@ -40,7 +40,7 @@ test('every direction in the 280° field of regard lands on a finished surface',
     return near <= far && far > 0 && near < 15
   })
   const misses: string[] = []
-  for (let yaw = -half; yaw <= half + 1e-9; yaw += Math.PI / 90) for (let elevation = -.9; elevation <= .82; elevation += .1) {
+  for (let yaw = -half; yaw <= half + 1e-9; yaw += Math.PI / 90) for (let elevation = -1.1; elevation <= .85; elevation += .1) {
     // Yaw 0 looks down -Z; positive yaw turns left (Room rotates about +Y).
     const dir = new Vector3(-Math.sin(yaw) * Math.cos(elevation), Math.sin(elevation), -Math.cos(yaw) * Math.cos(elevation))
     if (!hit(dir)) misses.push(`${(yaw * 180 / Math.PI).toFixed(0)}°/${(elevation * 180 / Math.PI).toFixed(0)}°`)
@@ -77,18 +77,20 @@ test('surround decor clears the pinned room, hearth, tree, chairs and table', ()
 test('lighting stays one shadow pass and one aggregate light per decor zone', async () => {
   // The 280° room needs practicals behind and beside the player, but forward
   // shading pays for every light in every lit fragment. Three new zones
-  // (nook, sideboard, door) each get ONE light standing in for their candles,
-  // raising the old ≤8 budget to ≤12 (the lighting pass adds a felt bounce).
-  // One light per bulb stays forbidden.
+  // (nook, sideboard, door) each get ONE light standing in for their candles.
+  // Room-wide: rig 6 (incl. felt bounce) + tree 1 + sconces 2 + surround 3 +
+  // the production hearth 1 = 13. The hearth was missing from the first count
+  // (review of #11). One light per bulb stays forbidden.
   const { createTavernLighting } = await import('../src/scene/environment/Lighting')
   const { Light } = await import('three')
   const lights: InstanceType<typeof Light>[] = []
   createTavernLighting().traverse(o => { if (o instanceof Light) lights.push(o) })
   withDocument(() => { const c = new ChristmasTavern(); c.root.traverse(o => { if (o instanceof Light) lights.push(o) }); c.dispose() })
+  new Fireplace().root.traverse(o => { if (o instanceof Light) lights.push(o) })
   const surround = createSurroundPlan().lights
   assert.equal(lights.filter(l => l.castShadow).length, 1)
   assert.equal(surround.length, 3)
-  assert.ok(lights.length + createRoomPlan().lights.length + surround.length <= 12)
+  assert.ok(lights.length + createRoomPlan({ fireplace: true }).lights.length + surround.length <= 13)
   const plan = createSurroundPlan(), bulbs = plan.fairy.reduce((n, strand) => n + strand.length, 0)
   assert.ok(plan.glows.length + bulbs > 300, 'candles and bulbs are emissive instances, not lights')
 })
@@ -119,13 +121,21 @@ test('flicker is a pure function of the room clock and stays gentle', () => {
   }
 })
 
-test('window views and paintings sit in front of the wallpaper they hang on', () => {
-  // Regression: the snowy side-window planes were authored 4mm off the wall
-  // while wallpaper stripes stand 12mm proud, so both windows rendered black.
+test('window views and paintings sit in front of every wall finish they overlap', () => {
+  // Regressions: the snowy side-window planes were authored 4mm off the wall
+  // while wallpaper stands 12–14mm proud (both windows rendered black), and the
+  // dado rail/panelling then ran across the bottom of both views.
   const plan = createSurroundPlan()
-  const paperDepth = Math.max(...plan.shell.filter(b => b.size[1] === 2.1).map(b => Math.min(b.size[0], b.size[2])))
   for (const p of plan.pictures) {
+    const [w, h] = p.size
     const offset = p.facing === '+x' ? p.position[0] - WALL.left : p.facing === '-x' ? WALL.right - p.position[0] : WALL.rear - p.position[2]
-    assert.ok(offset > paperDepth + .001, `${p.kind} at ${p.position} is behind the wallpaper (${offset} ≤ ${paperDepth})`)
+    const along = p.facing === '-z' ? 0 : 2
+    for (const b of plan.shell) {
+      const front = p.facing === '+x' ? b.position[0] + b.size[0] / 2 - WALL.left : p.facing === '-x' ? WALL.right - (b.position[0] - b.size[0] / 2) : WALL.rear - (b.position[2] - b.size[2] / 2)
+      if (front > .3) continue // not a finish on this wall
+      const overlapsAlong = Math.abs(b.position[along] - p.position[along]) < (b.size[along] + w) / 2
+      const overlapsUp = Math.abs(b.position[1] - p.position[1]) < (b.size[1] + h) / 2
+      if (overlapsAlong && overlapsUp) assert.ok(front < offset - .001, `${p.kind} at ${p.position} is behind a finish (${b.color}, front ${front.toFixed(4)} ≥ ${offset})`)
+    }
   }
 })

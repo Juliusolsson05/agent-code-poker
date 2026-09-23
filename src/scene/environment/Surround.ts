@@ -91,7 +91,7 @@ export function createSurroundPlan() {
   box(blocks, '#5a1a1a', 0, -.0035, -.25, 5.3, .013, 4.1)
   box(blocks, '#1f3a2a', 0, -.003, -.25, 4.7, .014, 3.5)
   box(blocks, '#5a1a1a', 0, -.0025, -.25, 4.55, .015, 3.35)
-  for (const [w, c] of [[1.4, '#8a6a35'], [1.1, '#5a1a1a'], [.5, '#8a6a35']] as const) box(blocks, c, 0, -.002 + w * .0005, -.25, w, .016, w, { rot: Math.PI / 4 })
+  for (const [w, c] of [[1.4, '#8a6a35'], [1.1, '#5a1a1a'], [.5, '#8a6a35']] as const) box(blocks, c, 0, -.002 - w * .0005, -.25, w, .016, w, { rot: Math.PI / 4 }) // smaller diamonds stand higher so each stays visible
 
   // ── LEFT WALL ────────────────────────────────────────────────────────────
   // Bookcase in the back-left corner, beside the existing snowy back window.
@@ -128,7 +128,9 @@ export function createSurroundPlan() {
   glow('#ffb15c', WALL.left + .15, ny + .11, -4.08, .018, .03, .018, 4.5, 'candle')
 
   // Snowy side window with heavy curtains, candles on the sill and a wreath.
-  const winZ = -2.0, winY = 1.9, winW = 1.5, winH = 1.8
+  // Window bottoms sit above the dado rail (top y=1.11). They started at 1.0,
+  // and the rail and panelling ran across the snowy view (review of #11).
+  const winZ = -2.0, winY = 2.03, winW = 1.5, winH = 1.76
   // The view plane must stand in front of the wallpaper (which is 12mm proud of
   // the wall) and behind the mullions (30mm+). At 4mm the paper hid it and
   // both windows rendered as black panes.
@@ -157,12 +159,17 @@ export function createSurroundPlan() {
 
   // Grandfather clock with a swinging pendulum behind its glass.
   const clockZ = -.55
-  L('#3a2418', .13, .15, clockZ, .26, .3, .5); L('#452b1c', .12, 1.0, clockZ, .22, 1.4, .38)
-  L('#140f0c', .232, .95, clockZ, .006, .86, .24)
+  // The trunk stops at .20 with a dark back panel, so the pendulum (at .215)
+  // swings in an open, framed case. First pass hung it inside the solid trunk,
+  // behind an opaque panel, where it could never be seen (review of #11).
+  L('#3a2418', .13, .15, clockZ, .26, .3, .5); L('#452b1c', .105, 1.0, clockZ, .19, 1.4, .38)
+  L('#140f0c', .203, 1.0, clockZ, .006, 1.0, .28)
+  for (const z of [clockZ - .165, clockZ + .165]) L('#452b1c', .215, 1.0, z, .03, 1.4, .05)
+  L('#452b1c', .215, .45, clockZ, .03, .3, .38)
   L('#452b1c', .14, 1.95, clockZ, .28, .5, .46); L('#3a2418', .15, 2.24, clockZ, .3, .08, .52)
   L('#c9a24e', .152, 2.3, clockZ, .04, .06, .1, brass)
   pictures.push({ kind: 'clock', position: [WALL.left + .282, 1.95, clockZ], size: [.32, .32], facing: '+x', lit: true })
-  pendulums.push({ pivot: [WALL.left + .226, 1.36, clockZ], length: .66, facing: '+x' })
+  pendulums.push({ pivot: [WALL.left + .215, 1.62, clockZ], length: .9, facing: '+x' })
 
   // Landscape painting with a brass picture light.
   const art = (x: number, y: number, z: number, w: number, h: number, kind: PictureKind, facing: Facing, light = true) => {
@@ -248,7 +255,7 @@ export function createSurroundPlan() {
   garlands.push({ from: [WALL.right - .12, 2.45, sideZ - .75], to: [WALL.right - .12, 2.45, sideZ + .75], sag: .12 })
 
   // Second snowy window, green curtains, candles.
-  const rZ = .65, rW = 1.3, rH = 1.7, rY = 1.9
+  const rZ = .65, rW = 1.3, rH = 1.64, rY = 1.97
   pictures.push({ kind: 'snowscape', position: [WALL.right - .016, rY, rZ], size: [rW, rH], facing: '-x', lit: false })
   R('#3a2a1e', .04, rY + rH / 2 + .04, rZ, .08, .08, rW + .12)
   for (const s of [-1, 1]) R('#3a2a1e', .04, rY, rZ + s * (rW / 2 + .04), .08, rH + .16, .08)

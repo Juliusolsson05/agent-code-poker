@@ -90,11 +90,15 @@ test('opponents grip the outer face of their glass, not the side toward their ow
     for(const time of [.8,1.2,2,2.6,3.3,4.2,4.8]){
       poseHuman(h,time,{reduced:false,active:false,folded:false,showing:false,hasCards:true,dealt:1,actionAge:time,gaze:0})
       h.root.updateMatrixWorld(true)
-      const toVessel=h.drink.root.matrixWorld.clone().invert()
-      const palm=new Vector3(...GLASS_HAND_CONTACT).applyMatrix4(h.rightRig.hand.root.matrixWorld).applyMatrix4(toVessel)
-      const wrist=h.rightRig.hand.root.getWorldPosition(new Vector3()).applyMatrix4(toVessel)
-      assert.ok(palm.x>DRINKS[h.drink.kind].radius*.9,`seat${seat} t${time}: palm on the inner face (${palm.x.toFixed(3)})`)
-      assert.ok(wrist.z<0,`seat${seat} t${time}: wrist on the far side of the glass`)
+      // Measure in the OPPONENT's body frame, not the glass frame: in the glass
+      // frame the held palm equals drink.grip by construction, so a regression
+      // that re-spun the glass would still pass (review of #11).
+      const toBody=h.root.matrixWorld.clone().invert()
+      const palm=new Vector3(...GLASS_HAND_CONTACT).applyMatrix4(h.rightRig.hand.root.matrixWorld).applyMatrix4(toBody)
+      const wrist=h.rightRig.hand.root.getWorldPosition(new Vector3()).applyMatrix4(toBody)
+      const centre=h.drink.root.getWorldPosition(new Vector3()).applyMatrix4(toBody)
+      assert.ok(palm.x>centre.x+DRINKS[h.drink.kind].radius*.8,`seat${seat} t${time}: palm on the inner face (${(palm.x-centre.x).toFixed(3)})`)
+      assert.ok(wrist.z<centre.z,`seat${seat} t${time}: wrist on the far side of the glass`)
       // The flipped wrap must not push fingers under the vessel base, which
       // stands on felt while the hand closes around it.
       if(time<=.8||time>=4.8)assert.ok(lowestSkinY(h)>-.001,`seat${seat} t${time}: fingers under the glass base`)
