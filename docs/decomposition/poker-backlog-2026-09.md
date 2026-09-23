@@ -11,26 +11,60 @@ several workstreams cross repositories (agent-code host, extension SDK) and
 touch security and networking policy. Those parts get real stages; the
 cosmetic parts are listed plainly.
 
-## Status board
+## Status board (updated 2026-09-23, after the final review of c967242)
 
-| # | Workstream | Status | Issue / PR |
-|---|---|---|---|
-| 1 | Room atmosphere: outer glass grip, seated anatomy, lighting, 280° decor | implemented on `feat/room-atmosphere`, PR open for review | #7 #8 #9 #10 |
-| 2 | Fireplace sound inside the Agent Code plugin | not started | to file |
-| 3 | LAN play inside the Agent Code plugin | not started, cross-repo | to file |
-| 4 | See other LAN players smoke (and drink) | not started | to file |
-| 5 | LAN chat with bubbles + host-enabled ElevenLabs voices | **blocked on a policy decision** | to file |
-| 6 | Twelve more drinks | implemented on `feat/drinks-and-effects` (stacked on #11), PR open | #13 |
-| 7 | Orderable cosmetic "mushrooms" and "LSD" effects | implemented, same PR | #14 |
-| 8 | Much stronger drink/intoxication effect with screen wobble | implemented, same PR | #15 |
+All eight workstreams are **implemented and merged**. "Merged" means the code,
+unit/contract tests and `npm run verify` passed; it does not mean the
+acceptance checks below were run. Those are listed separately on purpose, so
+a green row is never read as "verified in the installed app".
+
+| # | Workstream | Implementation | Poker PR (issues) | Cross-repo |
+|---|---|---|---|---|
+| 1 | Room atmosphere: outer glass grip, seated anatomy, lighting, 280° decor | merged | #11 (#7 #8 #9 #10) | none |
+| 2 | Fireplace sound inside the Agent Code plugin | merged | #18 (#12) | none (in-page decode, no host CSP change) |
+| 3 | LAN play inside the Agent Code plugin | merged | #19 (#17); seat recovery after a host restart #26 (#24) | agent-code #1148 (caller identity through the service proxy and LAN listener) |
+| 4 | See other LAN players smoke (and drink) | merged | #21 (#16) | none |
+| 5 | LAN chat with bubbles + host-enabled ElevenLabs voices | merged; policy decided (option 1, see §5) | #23 (#22) | agent-code #1151 + SDK #4 (declared network origins, binary fetch bodies, per-extension secrets) |
+| 6 | Twelve more drinks | merged | #20 (#13) | none |
+| 7 | Orderable cosmetic "mushrooms" and "LSD" effects | merged | #20 (#14) | none |
+| 8 | Much stronger drink/intoxication effect with screen wobble | merged | #20 (#15) | none |
+
+Version 0.3.0 is the first release carrying 3–5 together. It needs
+Agent Code 0.1.3 or later, which has #1148 and #1151. agent-code #1146 merged
+the same day but is unrelated to poker (Agent Management label targeting).
+
+### Outstanding acceptance (not implementation work)
+
+None of these can be closed by tests in this repository. Each needs a person,
+real devices or a real key:
+
+- **Installed app.** Load the released build in Agent Code 0.1.3+ and confirm
+  the fireplace is audible (2), the LAN host starts and exposes its share
+  line (3), and chat plus the voices toggle work in the extension frame (5).
+  Browser previews do not count (AGENTS.md).
+- **Two-device LAN game.** A host in the plugin plus a guest on a second
+  device on the same network: join, deal, bet, pause, reconnect, host restart
+  and seat resume (3, #26), and see each other's smokes/sips (4). Recorded
+  two-browser runs on one machine exist (`testing/lan-two-browser.mjs`); a
+  second device does not.
+- **Real-key voice.** With a real ElevenLabs key and voice ID, hear a line
+  spoken locally and relayed to another seat (5). The fixtures are a locally
+  encoded MP3 plus recorded no-key error bodies; no real synthesis has been
+  heard.
+- **Listening and art.** Fire loop seam and mix, and close-up motion of the
+  new drinks/treats (1, 2, 6, 7). Listening quality has never been signed off.
+
+Sections 1–8 below are the **pre-implementation decomposition**, kept as the
+record of what was planned and why. File:line citations in them point at
+`d37e0eb` and are stale; each workstream's `docs/plans/*.md` records what
+actually changed from the sketch.
 
 ---
 
-## 1. Room atmosphere (in progress)
+## 1. Room atmosphere
 
-Plan: `docs/plans/room-atmosphere.md`. All four stages are implemented
-(grip, anatomy, 280° decor, then lighting tuned over the finished room) and
-`npm run verify` passes. The PR is open; it is not merged.
+Plan: `docs/plans/room-atmosphere.md`. All four stages (grip, anatomy, 280°
+decor, then lighting tuned over the finished room) merged in #11.
 
 ## 2. Fireplace sound in the plugin
 
@@ -92,7 +126,7 @@ is stale and must be corrected in this PR.
 
 ## 4. See other LAN players smoke (and drink)
 
-**Status:** implemented on `feat/lan-visible-leisure` (#16); see
+**Status:** merged in #21 (#16); see
 `docs/plans/lan-visible-leisure.md` for what changed from this sketch (notably
 `ageMs` instead of `startedAt`, and the from-above pickup route).
 
@@ -110,14 +144,22 @@ is stale and must be corrected in this PR.
 | 4c NPC cigar rig | `Human.ts` gains a cigar prop plus a smoke gesture reusing the hero's contact frames, driven by projected events instead of a timer for human seats | Anatomy-style contact tests (bite point at mouth, no skin penetration) | The hard, visual part; isolated from networking | Rig inspector captures |
 | 4d Two-browser acceptance | Recording of player A smoking, seen by player B | Real two-browser session | End-to-end timing | Real session |
 
-## 5. LAN chat with host-enabled ElevenLabs voices (**policy decision needed**)
+## 5. LAN chat with host-enabled ElevenLabs voices
+
+> **Historical: the policy question below is resolved.** On 2026-09-23 the
+> user chose **option 1** (each player's own app calls ElevenLabs with that
+> player's own key; only finished audio travels through the LAN host's
+> in-memory relay). The binding rules are recorded in AGENTS.md ("One
+> recorded exception"), and the implementation is #23 with agent-code #1151
+> and SDK #4. The text below is kept only as the record of the options
+> weighed; its "cannot call api.elevenlabs.io today" facts no longer hold.
 
 Requested behaviour: a LAN chat. A sent message appears as a bubble over
 the sender's name label and is spoken aloud with the sender's own ElevenLabs
 API key and voice ID. The host decides, before or during the session, whether
 the spoken-voice feature is enabled.
 
-**Conflicts with current rules. The user must choose before any code:**
+**Conflicts with the rules at the time (historical, see the note above):**
 - AGENTS.md: "No external assets or runtime networking." The extension frame
   CSP allows `connect-src` self only, and `net.fetch` can reach only literal
   private/loopback IPs. The shipped extension **cannot** call
