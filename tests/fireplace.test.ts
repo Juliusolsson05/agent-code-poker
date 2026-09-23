@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { gunzipSync } from 'node:zlib'
 import { Box3, Euler, Light, Matrix4, Mesh, Quaternion, Vector3 } from 'three'
-import { Fireplace } from '../src/scene/environment/Fireplace'
+import { Fireplace, FIRE_LIGHT } from '../src/scene/environment/Fireplace'
 import { CHAIR_BLOCKS, FIREPLACE_LAYOUT, SEATS, seatYaw } from '../src/scene/environment/layout'
 import { createRoomPlan, type RoomBlock } from '../src/scene/environment/RoomPlan'
 
@@ -52,7 +52,7 @@ test('fire uses two opaque batches, one bounded light, no shadow and stable fram
     fire.flames.computeBoundingBox(); fire.root.updateMatrixWorld(true)
     assert.ok(envelope.containsBox(fire.flames.boundingBox!.clone().applyMatrix4(fire.flames.matrixWorld)), 'flame escapes hearth envelope')
     assert.equal(fire.flames.geometry, geometry); assert.equal(fire.flames.instanceMatrix.array, array)
-    assert.ok(fire.light.intensity >= 1.59 && fire.light.intensity <= 1.81)
+    assert.ok(Math.abs(fire.light.intensity - FIRE_LIGHT.base) <= FIRE_LIGHT.swing, 'fire light stays a bounded warm flicker')
   }
   assert.equal(fire.flames.count, 128)
   const version = matrix.version
@@ -61,7 +61,7 @@ test('fire uses two opaque batches, one bounded light, no shadow and stable fram
   fire.frame(20, true); const still = matrix.array.slice(), frozenVersion = matrix.version
   fire.frame(100, true)
   assert.deepEqual(matrix.array, still); assert.equal(matrix.version, frozenVersion)
-  assert.equal(fire.light.intensity, 1.7, 'reduced motion freezes light as well as flame')
+  assert.equal(fire.light.intensity, FIRE_LIGHT.base, 'reduced motion freezes light as well as flame')
 })
 
 test('redesigned left bar has complete shelf ends, bottles and cabinet panels, not clipped fragments', () => {

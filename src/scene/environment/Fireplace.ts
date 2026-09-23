@@ -7,10 +7,18 @@ import { FIREPLACE_LAYOUT } from './layout'
  * its recorded-room clearance test cover logs, mantel and chimney, not just a
  * convenient proxy rectangle. Positive wall clearance avoids coplanar masonry shimmer.
  * No hand, game state, timers, audio or DOM belongs in this geometry owner. */
+/** The hearth is the room's main living light (#8). At 1.7cd over 3.2m it
+ * never reached a chair (under 1 lux at the right-hand seats 3.5–4m away), so
+ * the fire read as a picture of a fire. At 8cd over 7m it puts a warm moving
+ * rim on the right-side players and the rail. Intensity combines a slow
+ * "breath" (logs settling, ~7s) with two faster flutters. Amplitude stays
+ * under ±20% and far below 3Hz: warm movement, not strobing. */
+export const FIRE_LIGHT = { base: 8, range: 7, swing: 1.5 } as const
+
 export class Fireplace {
   readonly root = new Group()
   readonly flames: InstancedMesh
-  readonly light = new PointLight('#ffb36d', 1.7, 3.2, 2)
+  readonly light = new PointLight('#ff9f52', FIRE_LIGHT.base, FIRE_LIGHT.range, 2)
   readonly solidBounds: Box3[] = []
   private dummy = new Object3D()
   private lastTick = -1
@@ -130,7 +138,7 @@ export class Fireplace {
       this.dummy.updateMatrix(); this.flames.setMatrixAt(i, this.dummy.matrix)
     }
     this.flames.instanceMatrix.needsUpdate = true
-    this.light.intensity = reduced ? 1.7 : 1.7 + .07 * Math.sin(t * 2.1) + .04 * Math.sin(t * 3.7)
+    this.light.intensity = reduced ? FIRE_LIGHT.base : FIRE_LIGHT.base + .7 * Math.sin(t * .9) + .5 * Math.sin(t * 2.7 + 1.3) + .3 * Math.sin(t * 6.1 + .4)
   }
   // Room's shared scene traversal disposes these meshes/materials/instances.
   // This owner deliberately installs no listeners or independently owned GPU

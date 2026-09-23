@@ -142,7 +142,9 @@ export class PokerRoom {
       this.renderer.domElement.style.touchAction = 'none'
       this.renderer.domElement.style.cursor = 'grab'
     }
-    this.scene.fog = new THREE.FogExp2('#0a0b10', .048)
+    // Warm, thinner haze (#8): blue-black fog greyed the far practicals out;
+    // a smoky amber haze keeps depth while letting candles reach the eye.
+    this.scene.fog = new THREE.FogExp2('#150e0a', .036)
     RectAreaLightUniformsLib.init()
     this.scene.add(createTavernLighting())
     this.buildRoom()
@@ -297,7 +299,9 @@ export class PokerRoom {
     plan.glows.forEach(args => this.glow(...args))
     plan.signs.forEach(args => this.sign(...args))
     plan.lights.forEach(([color, power, x, y, z]) => {
-      const light = new THREE.PointLight(color, power, 2.5, 1.5)
+      // Back-wall sconces: a longer reach (2.5 → 3.4m) so they pool on the
+      // brick and bottles instead of lighting only their own brackets.
+      const light = new THREE.PointLight(color, power * 1.3, 3.4, 1.5)
       light.position.set(x, y, z); this.scene.add(light)
     })
     this.scene.add(createTableSurface())

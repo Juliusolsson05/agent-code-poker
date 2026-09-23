@@ -33,7 +33,10 @@ export class PostProcessing {
     this.composer = new EffectComposer(renderer, target)
     this.composer.addPass(new RenderPass(scene, camera))
     // Paper/skin never emit into this threshold; only the practicals bloom.
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(1100, 800), .18, .45, 4)
+    // Strength .18 → .32 (#8): candles, fairy bulbs and lanterns now halo the
+    // way warm bulbs do in a dim room. The threshold, which is what keeps
+    // cards and faces out of the bloom, is unchanged.
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(1100, 800), .32, .5, 4)
     this.composer.addPass(this.bloom); this.composer.addPass(this.output)
   }
   setSize(width: number, height: number, ratio: number): void {
