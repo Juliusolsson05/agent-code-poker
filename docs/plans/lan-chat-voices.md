@@ -51,7 +51,7 @@ session/http leisure seam this work extends; later #21 commits are merged in
   response is text. So the voice relay speaks JSON with base64 audio in both
   directions — one format that fits every transport.
 - ElevenLabs shapes recorded 2026-09-23 with curl, no key (see
-  `tests/fixtures/elevenlabs/`): invalid key → 401
+  `testing/fixtures/elevenlabs/`): invalid key → 401
   `detail.status=invalid_api_key`; missing key → 401 `needs_authorization`;
   malformed voice id → 400 `invalid_uid`; CORS preflight allows `*` origin and
   headers (browser fetch from the standalone site works). **No success body or
@@ -67,11 +67,17 @@ session/http leisure seam this work extends; later #21 commits are merged in
   (403 otherwise), exact shape, same body/rate/origin gates as `/api/pause`.
   Turning voices off drops every relayed clip immediately.
 - `envelope()` carries `features` for every member.
-- `HostTable.leisure(..., { paused, treats })`: the context carries the treats
-  switch so the #20 merge (which adds treat kinds to leisure) is a one-line
-  `if (isTreatKind(kind) && !context.treats) return reply('disabled')`. In this
-  base leisure carries only drink kinds, so there is nothing to reject yet; the
-  client-side hide lives in client.js's leisure context (`treatsAllowed`).
+- Treats: this base (#21) has no treat kinds anywhere. Leisure carries only
+  drink kinds, and the LAN client has no treat control. Adding an unused
+  `treats` parameter to `HostTable.leisure` would be dead code. So this branch
+  ships the switch, its host-only route and its propagation to every client.
+  The gate itself is a documented merge point for when #20's treats reach
+  LAN leisure:
+  - `HostTable.leisure` takes `features.treats` in its context and returns
+    `disabled` for an order of an `isTreatKind` kind while it is off;
+  - `client.js` passes `treat: null` to `LeisureControls` while
+    `state.features.treats` is false.
+  Implementation decision recorded 2026-09-23.
 
 ## Stage B2 — chat intent + public projection
 
@@ -96,7 +102,7 @@ session/http leisure seam this work extends; later #21 commits are merged in
 - `put(seq, owner, bytes)`: only the SENDER of `seq`, only within 60 s of the
   message, once per seq, only with voices on (checked by http.ts).
 - bytes: decoded ≤ 96 KiB, `audio/mpeg` only, magic bytes `ID3` or an MPEG
-  audio frame sync (`src/voice/mp3.ts`, shared with the client).
+  audio frame sync (`src/voice/audioClip.ts`, shared with the client).
 - memory only, never disk: TTL 90 s, at most 16 clips (oldest evicted).
 - routes: `POST /api/voice {seq, mime:'audio/mpeg', data:base64}` with its own
   132 KiB body cap (the 4 KB JSON cap still applies everywhere else);
@@ -158,3 +164,15 @@ port ≥ 5305, with the fake voice provider installed through a QA hook: host
 turns voices on, guest sends a chat, both see the bubble/log, the other side
 fetches and decodes the relayed clip. Live ElevenLabs output and listening
 quality are the user's step (no key available to this agent).
+
+## Found while wiring the in-app path
+
+- `src/lanView.tsx` built the guest transport as `url => net.fetch(url)`,
+  which drops the method, headers and body. Every in-app guest POST therefore
+  reached the host as a bare GET without a token. Chat depends on guest POSTs,
+  so this branch passes `init` through. PR #19 has the same line; whichever
+  merges second resolves a one-line conflict.
+- On the Agent Code side, the view broker (`frameProtocol`) did not accept
+  `net.fetch` or `service.expose`, and the view/runtime documents read
+  `init.method` while the SDK type says `httpMethod`. Both are fixed in the host
+  PR for agent-code#1150. The in-app path needs that host build.

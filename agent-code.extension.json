@@ -15,7 +15,11 @@
     "service.run",
     "service.transport",
     "net.listen",
-    "net.connect"
+    "net.connect",
+    "net.origins"
+  ],
+  "networkOrigins": [
+    "https://api.elevenlabs.io"
   ],
   "contributes": {
     "commands": [
