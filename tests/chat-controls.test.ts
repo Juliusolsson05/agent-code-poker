@@ -61,3 +61,22 @@ test('the voice panel states where the key lives and never renders a saved key',
   assert.match(html, /local storage/); assert.match(html, /type="password"/); assert.match(html, /value=""/)
   assert.match(html, /Test voice/)
 })
+
+test('host Treats switch off: no treat button, E does nothing, and a treat order never reaches the room', async () => {
+  const { LeisureControls } = await import('../server/client/LeisureControls')
+  const ordered: string[] = []
+  const props = { blocked: false, available: true, menuOpen: true, kind: 'old-fashioned' as const, onSmoke: () => {}, onSip: () => {},
+    onMenuChange: () => {}, onOrder: (kind: string) => { ordered.push(kind) }, treat: { kind: 'mushrooms' as const, remaining: 2 }, canConsume: true, onConsume: () => {} }
+  const off = renderToStaticMarkup(createElement(LeisureControls, { ...props, treatsAllowed: false }))
+  assert.match(off, /class="lan-leisure lan-no-treats"/); assert.doesNotMatch(off, /<kbd>E<\/kbd>/)
+  const on = renderToStaticMarkup(createElement(LeisureControls, { ...props, treatsAllowed: true }))
+  assert.doesNotMatch(on, /lan-no-treats/); assert.match(on, /<kbd>E<\/kbd>/)
+  const ctx = { blocked: false, available: true, menuOpen: false }
+  assert.equal(leisureShortcut({ key: 'e' }, 'table', { ...ctx, treatsAllowed: false }), null)
+  assert.equal(leisureShortcut({ key: 'e' }, 'table', { ...ctx, treatsAllowed: true }), 'consume')
+  // The real gate is the order filter: exercise it through the element tree.
+  const element = LeisureControls({ ...props, treatsAllowed: false }) as any
+  const menu = element.props.children.find((child: any) => child && child.props?.onOrder)
+  menu.props.onOrder('mushrooms'); menu.props.onOrder('wine')
+  assert.deepEqual(ordered, ['wine'])
+})

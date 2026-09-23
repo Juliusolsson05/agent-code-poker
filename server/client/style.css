@@ -32,3 +32,6 @@
 .lan-features,.lan-voice-settings{border-top:1px solid #b9a07835;margin-top:12px;padding-top:10px;display:grid;gap:8px}
 .lan-features label,.lan-voice-settings label{display:grid;gap:5px;font-size:12px}
 .lan-voice-settings h3{margin:0;font-size:13px}
+/* Host Treats switch off: hide #20's Curiosities group in the shared drink
+ * menu. Presentation only; LeisureControls' onOrder filter refuses the order. */
+.lan-no-treats [aria-labelledby="drink-section-curiosities"]{display:none}
