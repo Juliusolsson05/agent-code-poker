@@ -122,14 +122,39 @@ function renderLeisure() {
       // Recheck current context on dispatch, not the last React frame. Polls
       // may pause/disconnect the table between rendering and a queued click.
       const context=leisureContext()
-      if(!context.blocked && context.available && room?.orderDrink(kind)) drinkMenu(false)
+      if(!context.blocked && context.available && room?.orderDrink(kind)) { sendLeisure({action:'order',kind});drinkMenu(false) }
     }}))
+}
+// Other players only see this avatar's gestures through the host. Send AFTER
+// the local room accepted (never instead of it: the local animation owner may
+// refuse, e.g. mid-inspection) and outside run()/pending, so a cigar can never
+// disable wagering or show "Sending…". Fire-and-forget: the reply is a bare
+// receipt (no envelope), the next poll carries the projected result, and a
+// refusal (paused, rate-limited) only means the others miss one cosmetic
+// gesture. Never retried: replaying a puff late is worse than missing it.
+let leisureSending=false,lastLeisureHeal=-Infinity
+function sendLeisure(body) {
+  if(!token || ended)return
+  leisureSending=true
+  void api('/api/leisure',body).catch(()=>{}).finally(()=>{leisureSending=false})
 }
 function requestLeisure(kind) {
   const context=leisureContext()
   if(context.blocked || context.menuOpen || !context.available)return
-  if(kind==='smoke')room?.smokeCigar();else room?.sipDrink()
+  const accepted=kind==='smoke'?room?.smokeCigar():room?.sipDrink()
+  // publishLeisure ran synchronously inside the call, so leisure.kind is the
+  // glass actually being lifted, which is what the others must see.
+  if(accepted)sendLeisure(kind==='smoke'?{action:'smoke'}:{action:'sip',kind:leisure.kind})
   focusTable()
+}
+/** The host remembers the drink it last heard about; this tab's glass resets
+ * on reload (and a newcomer never ordered at all). One throttled order heals
+ * the difference so the others see the glass this player actually holds. */
+function healProjectedDrink(v) {
+  const projected=v.players[v.self.seat]?.leisure
+  if(!projected || projected.drinkKind===leisure.kind || leisureSending || state.paused || v.self.waiting ||
+    connectionLost || ended || !room || performance.now()-lastLeisureHeal<3000)return
+  lastLeisureHeal=performance.now();sendLeisure({action:'order',kind:leisure.kind})
 }
 function drinkMenu(open) {
   if(open && leisureContext().blocked)return
@@ -185,7 +210,7 @@ function render() {
   // Closing a menu must not resume a queued leisure request after an authority
   // interruption. The existing Room clock/owner handles held prop continuity.
   if(state.paused || connectionLost || ended || menuOpen || v.self.waiting) drinkMenuOpen=false
-  syncLookBlocked();renderLeisure()
+  syncLookBlocked();renderLeisure();healProjectedDrink(v)
   for(const p of v.players) if(p.displaySeat!==0) {
     const label=labels.get(p.displaySeat)
     if(!label)continue
