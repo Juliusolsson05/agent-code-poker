@@ -31,7 +31,10 @@ standalone website sends `media-src data:`, which is why it plays there.
    and loop between `loopStart` and `loopEnd` inside that window. No per-frame
    work. Listener updates still write AudioParams only.
 5. **Focus resync.** `App.tsx` also re-syncs ambience on window `focus`, which
-   matches the LAN client.
+   matches the LAN client. Finding during implementation: a blur on a live
+   table also sets `paused`, so today focus alone still leaves the fire off
+   until the player resumes. The listener makes the gates the single source of
+   truth. It does not add a new audible resume path.
 6. **Tests.** Rewrite `tests/fire-audio.test.ts` and the fire parts of
    `tests/audio-mix.test.ts` against a fake `AudioContext`. Poison `Audio`,
    `createMediaElementSource` and `fetch`, so any regression to a media element
