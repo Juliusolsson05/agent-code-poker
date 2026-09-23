@@ -2,6 +2,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
 import { request } from 'node:http'
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { startLanHost } from '../server/http'
 import { RoomProjection } from '../src/presentation/RoomProjection'
 import { ChipLedger } from '../src/scene/ChipLedger'
@@ -149,4 +152,41 @@ test('real join attempts are rate bounded and cannot create unlimited identity s
   let last = 0
   for (let i = 0; i < 25; i++) last = (await call(host.origin, '/api/join', { name: 'x', nonce: nonce(), code: 'WRONG' })).status
   assert.equal(last, 429)
+})
+
+test('real leisure packets are token-bound, paused like wagers, never saved and visible to the other player', async t => {
+  const directory = mkdtempSync(join(tmpdir(), 'poker-leisure-http-'))
+  let now = 1000
+  const host = await startLanHost({ port: 0, now: () => now, automaticTicks: false, checkpointDirectory: directory })
+  t.after(async () => { await host.close(); rmSync(directory, { recursive: true, force: true }) })
+  const a = (await call(host.origin, '/api/create', { name: 'Host', nonce: nonce() })).body
+  const b = (await call(host.origin, '/api/join', { name: 'Guest', nonce: nonce(), code: a.code })).body
+  const ready = (await call(host.origin, '/api/state', undefined, a.token)).body
+  await call(host.origin, '/api/start', { revision: ready.view.revision }, a.token)
+  const before = (await call(host.origin, '/api/state', undefined, b.token)).body.view
+  assert.equal((await call(host.origin, '/api/leisure', { action: 'smoke' })).status, 401)
+  assert.equal((await call(host.origin, '/api/leisure', { action: 'smoke' }, b.token, { origin: 'http://evil.invalid' })).status, 403)
+  assert.equal((await call(host.origin, '/api/leisure', { action: 'smoke', pad: 'x'.repeat(5000) }, b.token)).status, 413)
+  const forged = await call(host.origin, '/api/leisure', { action: 'smoke', seat: 0 }, b.token)
+  assert.equal(forged.status, 409); assert.equal(forged.body.receipt.code, 'invalid')
+  // A leisure commit would fail against this blocking directory (see the bank
+  // test): a 200 here proves the checkpoint was never rewritten for a gesture.
+  mkdirSync(join(directory, 'table.pending'))
+  const smoked = await call(host.origin, '/api/leisure', { action: 'smoke' }, b.token)
+  assert.equal(smoked.status, 200)
+  assert.deepEqual(smoked.body, { receipt: { ok: true, code: 'accepted' } }, 'a bare receipt: no view, generation or observation to reorder')
+  now += 300
+  const seen = (await call(host.origin, '/api/state', undefined, a.token)).body.view.players[1].leisure
+  assert.equal(seen.action, 'smoke'); assert.equal(seen.ageMs, 300)
+  const after = (await call(host.origin, '/api/state', undefined, b.token)).body.view
+  assert.equal(after.revision, before.revision); assert.equal(after.self.nextSequence, before.self.nextSequence)
+  rmSync(join(directory, 'table.pending'), { recursive: true })
+  await call(host.origin, '/api/pause', { paused: true }, a.token)
+  now += 3000
+  const paused = await call(host.origin, '/api/leisure', { action: 'sip', kind: 'wine' }, b.token)
+  assert.equal(paused.status, 409); assert.equal(paused.body.receipt.code, 'paused')
+  await call(host.origin, '/api/pause', { paused: false }, a.token)
+  assert.equal((await call(host.origin, '/api/leisure', { action: 'sip', kind: 'wine' }, b.token)).status, 200)
+  assert.equal((await call(host.origin, '/api/leisure', { action: 'sip', kind: 'wine' }, b.token)).body.receipt.code, 'rate-limited')
+  assert.equal((await call(host.origin, '/api/state', undefined, a.token)).body.view.players[1].leisure.drinkKind, 'wine')
 })

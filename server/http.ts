@@ -76,7 +76,7 @@ export async function startLanHost(options: Options = {}) {
       shape(saved, ['version', 'code', 'host', 'table', 'credentials'])
       if (saved.version !== 1 || typeof saved.code !== 'string' || !/^[A-F0-9]{10}$/.test(saved.code) ||
         typeof saved.host !== 'string' || !Array.isArray(saved.credentials) || saved.credentials.length < 1 || saved.credentials.length > 6) throw new Error()
-      const table = HostTable.restoreHostCheckpoint(saved.table), privateState = table.exportHostCheckpoint()
+      const table = HostTable.restoreHostCheckpoint(saved.table, { now }), privateState = table.exportHostCheckpoint()
       if (saved.host !== privateState.host) throw new Error()
       const credentials = new Map<string, Credential>(), ids = new Set<string>(), nonces = new Set<string>()
       for (const c of saved.credentials) {
@@ -185,7 +185,7 @@ export async function startLanHost(options: Options = {}) {
       if (request.method === 'GET' && route === '/api/state') {
         const { r, c } = authorize(request); send(response, 200, envelope(r, c)); return
       }
-      if (request.method !== 'POST' || !['/api/create', '/api/join', '/api/start', '/api/action', '/api/pause', '/api/leave'].includes(route)) fail(404, 'Not found.')
+      if (request.method !== 'POST' || !['/api/create', '/api/join', '/api/start', '/api/action', '/api/leisure', '/api/pause', '/api/leave'].includes(route)) fail(404, 'Not found.')
       if (route === '/api/create' || route === '/api/join') rate('admission')
       const input = await body(request)
       if (closed || storageFailed) fail(503, 'Host closed or storage failed; table frozen.')
@@ -200,7 +200,7 @@ export async function startLanHost(options: Options = {}) {
           send(response, 200, { token: room.host.token, code: room.code }); return
         }
         const c = credential(a.name, a.nonce)
-        const table = new HostTable({ id: c.id, name: a.name })
+        const table = new HostTable({ id: c.id, name: a.name }, { now })
         room = { table, code: randomBytes(5).toString('hex').toUpperCase(), host: c,
           credentials: new Map([[c.token, c]]), paused: false, nextTick: now() + 1000, observation: 0 }
         send(response, 201, { token: c.token, code: room.code }); return
@@ -230,6 +230,18 @@ export async function startLanHost(options: Options = {}) {
         shape(input, ['paused']); if (typeof input.paused !== 'boolean') fail(400, 'Invalid pause state.')
         r.paused = input.paused as boolean; r.nextTick = now() + 1000
         send(response, 200, envelope(r, c)); return
+      }
+      if (route === '/api/leisure') {
+        // Same token, origin, 4KB body cap, global rate bucket and pause rule
+        // as a wager, but the pause is answered as a receipt code instead of
+        // an HTTP failure. The response is a bare receipt, never an envelope:
+        // an envelope carries an observation number, and a cosmetic reply
+        // racing a wager's reply must not be able to reorder or obsolete it in
+        // the browser's ResponseOrder. The next poll carries the new view.
+        // send() still runs persist(), but leisure is outside the checkpoint,
+        // so its serialized form is unchanged and nothing is written to disk.
+        const receipt = r.table.leisure(c.id, input, { paused: r.paused || !r.host.connected })
+        send(response, receipt.ok ? 200 : 409, { receipt }); return
       }
       if (r.paused || !r.host.connected) fail(409, 'The host has paused or disconnected.')
       if (route === '/api/start') {
