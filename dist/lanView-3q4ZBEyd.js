@@ -1,5 +1,5 @@
-import { d as S } from "./runtime-XLX8az2X.js";
-import { s as I } from "./styles-DJYLcAU6.js";
+import { d as I } from "./runtime-XLX8az2X.js";
+import { s as S } from "./styles-DJYLcAU6.js";
 const m = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Agent Code Poker · LAN</title><script src="/client.js" type="module"><\/script></head>
 <body class="poker-preview"><main id="app" class="poker" tabindex="-1">
@@ -45,8 +45,12 @@ function O(e) {
   }
   return new URL(o).origin + "/";
 }
+const R = { apiTransport: null, voice: null, shareUrls: null };
+function N(e) {
+  Object.assign(R, e);
+}
 const y = "agent-code-poker.lan-host";
-function R() {
+function P() {
   return async ({ path: e, method: o, headers: n, body: t }) => {
     const i = await fetch(`./__service/${y}${e}`, {
       method: o,
@@ -57,7 +61,7 @@ function R() {
     return { ok: i.ok, status: i.status, json: () => i.json() };
   };
 }
-function N(e, o) {
+function V(e, o) {
   const n = new URL(o).origin;
   return async ({ path: t, method: i, headers: c, body: l }) => {
     if (!t.startsWith("/")) throw new Error("Invalid service path.");
@@ -96,30 +100,30 @@ function N(e, o) {
     };
   };
 }
-function P(e, o) {
-  return N((n, t) => e.fetch(n, t), o);
+function z(e, o) {
+  return V((n, t) => e.fetch(n, t), o);
 }
-function V(e, o) {
+function j(e, o) {
   const n = e?.lanAddresses;
   return Array.isArray(n) ? n.filter((t) => typeof t == "string" && /^\d{1,3}(?:\.\d{1,3}){3}$/.test(t)).map((t) => `http://${t}:${o}`) : [];
 }
-function z(e, o) {
+function q(e, o) {
   return e.length > 0 ? `Friends join at ${e.join(" or ")}` : `Friends join at http://<this-computer’s-Wi-Fi-IP>:${o} (no private network address found)`;
 }
-const Q = "audio/mpeg", Z = 96 * 1024;
-function j(e) {
+const ee = "audio/mpeg", te = 96 * 1024;
+function M(e) {
   if (e.length < 4) return !1;
   if (e[0] === 73 && e[1] === 68 && e[2] === 51) return e[3] >= 2 && e[3] <= 4;
   if (e[0] !== 255 || (e[1] & 224) !== 224) return !1;
   const o = e[1] >> 3 & 3, n = e[1] >> 1 & 3, t = e[2] >> 4, i = e[2] >> 2 & 3;
   return o !== 1 && n !== 0 && t !== 15 && i !== 3;
 }
-function ee(e) {
+function oe(e) {
   let o = "";
   for (let n = 0; n < e.length; n += 32768) o += String.fromCharCode(...e.subarray(n, n + 32768));
   return btoa(o);
 }
-function q(e) {
+function B(e) {
   if (typeof e != "string" || e.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(e)) return null;
   try {
     const o = atob(e), n = new Uint8Array(o.length);
@@ -129,7 +133,7 @@ function q(e) {
     return null;
   }
 }
-const M = "https://api.elevenlabs.io", B = "mp3_22050_32", $ = "eleven_flash_v2_5", te = {
+const U = "https://api.elevenlabs.io", $ = "mp3_22050_32", D = "eleven_flash_v2_5", ne = {
   "not-configured": "Add your ElevenLabs API key and voice ID in the table menu to speak.",
   "invalid-key": "ElevenLabs does not recognise this API key. Check it in the table menu.",
   "missing-permissions": "Your ElevenLabs key lacks Text to Speech permission. Enable it for this key in ElevenLabs → API keys.",
@@ -142,12 +146,12 @@ const M = "https://api.elevenlabs.io", B = "mp3_22050_32", $ = "eleven_flash_v2_
   network: "Could not reach ElevenLabs. This message stays text-only.",
   "invalid-response": "ElevenLabs returned something that is not audio.",
   failed: "ElevenLabs could not speak this message."
-}, U = /^[A-Za-z0-9]{8,64}$/, D = /^[\x21-\x7e]{8,256}$/;
+}, H = /^[A-Za-z0-9]{8,64}$/, K = /^[\x21-\x7e]{8,256}$/;
 function _(e) {
   const o = typeof e.apiKey == "string" ? e.apiKey.trim() : "", n = typeof e.voiceId == "string" ? e.voiceId.trim() : "";
-  return D.test(o) && U.test(n) ? { apiKey: o, voiceId: n } : null;
+  return K.test(o) && H.test(n) ? { apiKey: o, voiceId: n } : null;
 }
-const H = 512 * 1024, E = {
+const Y = 512 * 1024, E = {
   invalid_api_key: "invalid-key",
   missing_api_key: "invalid-key",
   needs_authorization: "invalid-key",
@@ -172,7 +176,7 @@ const H = 512 * 1024, E = {
   service_unavailable: "busy",
   maintenance: "busy"
 };
-function K(e, o) {
+function F(e, o) {
   let n = {};
   try {
     const t = JSON.parse(new TextDecoder().decode(o.subarray(0, 4096)));
@@ -183,7 +187,7 @@ function K(e, o) {
     if (typeof t == "string" && Object.hasOwn(E, t)) return E[t];
   return e === 402 ? "quota" : e === 404 ? "voice-not-found" : e === 429 || e === 503 ? "busy" : e === 401 || e === 403 ? "refused" : "failed";
 }
-function oe(e, o) {
+function ie(e, o) {
   return {
     async synthesize(n) {
       const t = e();
@@ -192,19 +196,19 @@ function oe(e, o) {
       try {
         i = await o({
           // voiceId passed VOICE_ID, so it cannot add a path segment or query.
-          url: `${M}/v1/text-to-speech/${t.voiceId}?output_format=${B}`,
+          url: `${U}/v1/text-to-speech/${t.voiceId}?output_format=${$}`,
           headers: { "xi-api-key": t.apiKey, "content-type": "application/json", accept: "audio/mpeg" },
-          body: JSON.stringify({ text: n, model_id: $ })
+          body: JSON.stringify({ text: n, model_id: D })
         });
       } catch {
         return { ok: !1, reason: "network" };
       }
-      return i.status < 200 || i.status >= 300 ? { ok: !1, reason: K(i.status, i.bytes) } : i.bytes.length > H || !j(i.bytes) ? { ok: !1, reason: "invalid-response" } : { ok: !0, audio: i.bytes };
+      return i.status < 200 || i.status >= 300 ? { ok: !1, reason: F(i.status, i.bytes) } : i.bytes.length > Y || !M(i.bytes) ? { ok: !1, reason: "invalid-response" } : { ok: !0, audio: i.bytes };
     }
   };
 }
 const v = "poker-lan-elevenlabs-key", g = "poker-lan-elevenlabs-voice";
-function ne(e) {
+function ae(e) {
   return {
     where: "Saved in this browser’s local storage on this computer only. It is never sent to the table host or other players. Use Forget before sharing this browser.",
     async load() {
@@ -230,7 +234,7 @@ function ne(e) {
   };
 }
 const x = "elevenlabs.apiKey", w = "lan.elevenlabsVoiceId";
-function Y(e) {
+function G(e) {
   const o = e.secrets;
   return {
     where: o ? "Your key is encrypted by Agent Code with this computer’s keychain and readable only by this extension. It is never sent to the table host or other players." : "This Agent Code build has no secret storage. Update Agent Code to save a key; voices stay text-only until then.",
@@ -255,7 +259,7 @@ function Y(e) {
     }
   };
 }
-function ie(e = (...o) => fetch(...o)) {
+function re(e = (...o) => fetch(...o)) {
   return async ({ url: o, headers: n, body: t }) => {
     const i = await e(o, {
       method: "POST",
@@ -271,7 +275,7 @@ function ie(e = (...o) => fetch(...o)) {
   };
 }
 const L = 15e3;
-function F(e, o = L) {
+function J(e, o = L) {
   return async ({ url: n, headers: t, body: i }) => {
     let c;
     const l = new Promise((d, p) => {
@@ -283,18 +287,18 @@ function F(e, o = L) {
       headers: Object.entries(t).map(([d, p]) => ({ name: d, value: p }))
     }), l]).finally(() => clearTimeout(c));
     if (r.bodyEncoding !== "base64") throw new Error("This Agent Code build cannot return binary responses.");
-    const s = q(r.body);
+    const s = B(r.body);
     if (!s) throw new Error("The host returned an invalid body.");
     return { status: r.status, contentType: r.contentType, bytes: s };
   };
 }
-const G = `
+const W = `
 html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
 #app{width:1600px;height:1000px}
-`, J = m.slice(m.indexOf("<main"), m.indexOf("</main>") + 7), ae = S({
+`, X = m.slice(m.indexOf("<main"), m.indexOf("</main>") + 7), se = I({
   mount(e, o) {
     const n = document.createElement("style");
-    n.textContent = A + I + C + G, document.head.append(n), e.innerHTML = J, document.body.classList.add("poker-preview");
+    n.textContent = A + S + C + W, document.head.append(n), e.innerHTML = X, document.body.classList.add("poker-preview");
     const t = document.createElement("section");
     t.className = "panel-scrim", t.style.position = "absolute", t.style.zIndex = "40", t.innerHTML = `
       <aside class="side-panel" role="dialog" aria-modal="true" aria-label="Play over LAN">
@@ -308,21 +312,26 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
           <button class="secondary" type="submit">Join friend</button></form>
         <p id="lan-error" role="alert" style="color:#e2a79c;min-height:1em"></p>
         <p class="small">Practice chips only · trusted local network only.</p>
-      </aside>`, e.querySelector("#entry")?.append(t);
+      </aside>`;
+    const i = e.querySelector("#entry");
+    i?.append(t);
     const c = t.querySelector("#lan-error"), l = document.createElement("p");
     l.id = "lan-share", l.setAttribute("role", "status"), l.style.color = "#c1db9c";
     const r = (a) => {
-      l.isConnected || t.querySelector(".side-panel").append(l), l.textContent = a;
+      l.isConnected || i?.append(l), l.textContent = a;
     }, s = o.api.services, d = o.api.net;
     let p = !1;
-    const k = async (a) => {
-      const u = await import("./client-C5lZwUaQ.js");
-      u.setVoiceEnvironment({
-        store: Y(o.api),
-        http: F(d ? (b, f) => d.fetch(b, f) : async () => {
-          throw new Error("This Agent Code build does not support brokered fetch.");
-        })
-      }), u.setApiTransport(a);
+    const k = async (a, u = null) => {
+      N({
+        apiTransport: a,
+        voice: {
+          store: G(o.api),
+          http: J(d ? (b, f) => d.fetch(b, f) : async () => {
+            throw new Error("This Agent Code build does not support brokered fetch.");
+          })
+        },
+        shareUrls: u
+      }), await import("./client-BYqAxbll.js");
     }, h = (a) => {
       c.textContent = a;
     };
@@ -346,8 +355,8 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
           await s.start(y);
           const a = await s.expose(y, !0);
           if (!a.lan || !a.port) throw new Error("LAN exposure was not granted.");
-          const u = V(await s.invoke(y, "status", {}), a.port);
-          await k(R()), t.hidden = !0, r(`${z(u, a.port)} — then use Create table below.`);
+          const u = j(await s.invoke(y, "status", {}), a.port);
+          await k(P(), u), t.hidden = !0, r(`${q(u, a.port)} — then use Create table below.`);
         } catch (a) {
           p = !1, h(a instanceof Error ? a.message : String(a));
         }
@@ -366,7 +375,7 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
         return;
       }
       T(async () => {
-        await k(P(d, b));
+        await k(z(d, b));
       });
     }), () => {
       t.remove(), n.remove();
@@ -374,15 +383,16 @@ html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
   }
 });
 export {
-  Z as M,
-  Q as V,
-  q as a,
-  ee as b,
+  te as M,
+  ee as V,
+  B as a,
+  oe as b,
   ne as c,
-  oe as d,
-  te as e,
-  ie as f,
+  ie as d,
+  R as e,
+  re as f,
   ae as g,
-  j as l,
+  se as h,
+  M as l,
   _ as n
 };

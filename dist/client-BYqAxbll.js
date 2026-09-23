@@ -1,7 +1,7 @@
-import { j as c, D as Qe, d as et, g as tt, p as nt, r as d, b as at, a as st, o as x, f as ot, T as rt, F as Le, n as it, q as he, i as me, C as Te, S as lt, e as ct, c as dt, h as ut, k as ft, l as ht, m as mt, B as pt } from "./BankControls-BGR_gOq3.js";
-import { M as Ae, b as bt, V as je, a as gt, l as vt, c as yt, d as kt, e as be, n as wt, f as Ct } from "./lanView-iwExM7kB.js";
-const Q = "poker-lan-connection-test-v1", U = "poker-lan-saved-seat-v1:";
-function _(e, t = !1) {
+import { j as c, D as Qe, d as et, g as tt, p as nt, r as d, o as x, a as at, f as st, T as ot, F as Le, b as rt, C as Te, S as it, e as lt, c as ct, h as dt, k as ut, l as ft, m as ht, B as mt, n as pt, i as he, q as me } from "./BankControls-BGR_gOq3.js";
+import { M as Ae, b as bt, V as je, a as gt, l as vt, e as Se, n as yt, c as be, d as kt, f as wt, g as Ct } from "./lanView-3q4ZBEyd.js";
+const ee = "poker-lan-connection-test-v1", _ = "poker-lan-saved-seat-v1:";
+function z(e, t = !1) {
   if (!e || e.length > 2048) return null;
   try {
     const n = JSON.parse(e), a = t && n?.name === void 0 ? "Saved player" : n?.name;
@@ -20,7 +20,7 @@ class St {
   local;
   current() {
     try {
-      return _(this.session().getItem(Q), !0);
+      return z(this.session().getItem(ee), !0);
     } catch {
       return null;
     }
@@ -30,9 +30,9 @@ class St {
       const t = this.local(), n = [];
       for (let a = 0; a < Math.min(t.length, 4096) && n.length < 64; a++) {
         const o = t.key(a);
-        if (!o?.startsWith(U)) continue;
-        const l = _(t.getItem(o));
-        l?.token && o === U + l.nonce && n.push(l);
+        if (!o?.startsWith(_)) continue;
+        const i = z(t.getItem(o));
+        i?.token && o === _ + i.nonce && n.push(i);
       }
       return n.sort((a, o) => (o.at ?? 0) - (a.at ?? 0));
     } catch {
@@ -40,17 +40,17 @@ class St {
     }
   }
   save(t, n) {
-    const a = _(JSON.stringify(t));
+    const a = z(JSON.stringify(t));
     if (!a) return !1;
     let o = !0;
     try {
-      this.session().setItem(Q, JSON.stringify(a));
+      this.session().setItem(ee, JSON.stringify(a));
     } catch {
       o = !1;
     }
     if (n && a.token)
       try {
-        this.local().setItem(U + a.nonce, JSON.stringify(a));
+        this.local().setItem(_ + a.nonce, JSON.stringify(a));
       } catch {
         o = !1;
       }
@@ -59,14 +59,14 @@ class St {
   forget(t) {
     let n = !0;
     try {
-      const a = _(this.session().getItem(Q), !0);
-      a?.nonce === t.nonce && a.token === t.token && this.session().removeItem(Q);
+      const a = z(this.session().getItem(ee), !0);
+      a?.nonce === t.nonce && a.token === t.token && this.session().removeItem(ee);
     } catch {
       n = !1;
     }
     try {
       const a = this.local();
-      _(a.getItem(U + t.nonce))?.token === t.token && a.removeItem(U + t.nonce);
+      z(a.getItem(_ + t.nonce))?.token === t.token && a.removeItem(_ + t.nonce);
     } catch {
       n = !1;
     }
@@ -82,12 +82,12 @@ async function Et(e, t, n) {
 }
 function xt(e, t) {
   const n = t.trim();
-  return n ? e.filter((a) => qe(a.name, n)) : [];
+  return n ? e.filter((a) => Ue(a.name, n)) : [];
 }
 function Rt(e, t) {
-  return [e, ...t.filter((n) => n.nonce !== e.nonce && qe(n.name, e.name))];
+  return [e, ...t.filter((n) => n.nonce !== e.nonce && Ue(n.name, e.name))];
 }
-function qe(e, t) {
+function Ue(e, t) {
   return e.trim() === t.trim();
 }
 class N extends Error {
@@ -174,25 +174,25 @@ class Nt {
   async send(t, n, a = () => {
   }) {
     const o = this.#a;
-    let l;
+    let i;
     try {
-      const f = await this.deps.hostApi("/api/chat", { text: t });
-      if (!Number.isSafeInteger(f?.receipt?.seq)) return { sent: !1, error: "The host did not accept the message." };
-      l = Number(f.receipt.seq);
-    } catch (f) {
-      return { sent: !1, error: f instanceof Error ? f.message : "Message not sent." };
+      const m = await this.deps.hostApi("/api/chat", { text: t });
+      if (!Number.isSafeInteger(m?.receipt?.seq)) return { sent: !1, error: "The host did not accept the message." };
+      i = Number(m.receipt.seq);
+    } catch (m) {
+      return { sent: !1, error: m instanceof Error ? m.message : "Message not sent." };
     }
-    return this.#e.add(l), this.#o(l, t, n, o).then(a, () => a({ seq: l, voice: "off", issue: "failed" })), { sent: !0, seq: l };
+    return this.#e.add(i), this.#o(i, t, n, o).then(a, () => a({ seq: i, voice: "off", issue: "failed" })), { sent: !0, seq: i };
   }
   async #o(t, n, a, o) {
-    const l = this.deps.provider();
-    if (!a || !l || !this.#s(o)) return { seq: t, voice: "off" };
-    const f = await l.synthesize(n);
+    const i = this.deps.provider();
+    if (!a || !i || !this.#s(o)) return { seq: t, voice: "off" };
+    const m = await i.synthesize(n);
     if (!this.#s(o)) return { seq: t, voice: "off" };
-    if (!f.ok) return { seq: t, voice: "off", issue: f.reason };
-    if (this.deps.play(f.audio, 0), f.audio.length > Ae) return { seq: t, voice: "local-only", issue: "too-long" };
+    if (!m.ok) return { seq: t, voice: "off", issue: m.reason };
+    if (this.deps.play(m.audio, 0), m.audio.length > Ae) return { seq: t, voice: "local-only", issue: "too-long" };
     try {
-      return await this.deps.hostApi("/api/voice", { seq: t, mime: je, data: bt(f.audio) }), { seq: t, voice: "spoken" };
+      return await this.deps.hostApi("/api/voice", { seq: t, mime: je, data: bt(m.audio) }), { seq: t, voice: "spoken" };
     } catch {
       return { seq: t, voice: "local-only", issue: "relay-refused" };
     }
@@ -214,8 +214,8 @@ class Nt {
         o.voice && (this.#e.add(o.seq), !(o.displaySeat === 0 || o.ageMs > jt) && this.#r(o.seq, o.displaySeat, this.#a));
       }
     if (this.#e.size > 64) {
-      const o = new Set(t.map((l) => l.seq));
-      for (const l of this.#e) o.has(l) || this.#e.delete(l);
+      const o = new Set(t.map((i) => i.seq));
+      for (const i of this.#e) o.has(i) || this.#e.delete(i);
     }
   }
   /** A new table generation (host restart, a different table) starts a new
@@ -234,9 +234,9 @@ class Nt {
     try {
       const o = await this.deps.hostApi(`/api/voice/${t}`);
       if (!this.#s(a) || o?.mime !== je || typeof o.data != "string") return;
-      const l = gt(o.data);
-      if (!l || l.length > Ae || !vt(l)) return;
-      this.deps.play(l, n);
+      const i = gt(o.data);
+      if (!i || i.length > Ae || !vt(i)) return;
+      this.deps.play(i, n);
     } catch {
     }
   }
@@ -251,10 +251,10 @@ function Bt(e, t) {
   return null;
 }
 const Kt = (e) => e <= 2 ? "start" : e >= 4 ? "end" : "center";
-function Mt({ line: e }) {
+function $t({ line: e }) {
   return /* @__PURE__ */ c.jsx("div", { className: `chat-bubble ${Kt(e.displaySeat)}`, "aria-hidden": "true", children: e.text });
 }
-function Pt({ lines: e, status: t }) {
+function Mt({ lines: e, status: t }) {
   return /* @__PURE__ */ c.jsxs("section", { className: "lan-chat-log", "aria-label": "Table chat", children: [
     /* @__PURE__ */ c.jsx("ol", { "aria-live": "polite", "aria-relevant": "additions", children: e.slice(-6).map((n) => /* @__PURE__ */ c.jsxs("li", { children: [
       /* @__PURE__ */ c.jsx("b", { children: n.displaySeat === 0 ? "You" : n.name }),
@@ -264,15 +264,15 @@ function Pt({ lines: e, status: t }) {
     t && /* @__PURE__ */ c.jsx("p", { className: "lan-chat-status", role: "status", children: t })
   ] });
 }
-function Vt(e) {
-  const [t, n] = d.useState(""), [a, o] = d.useState(!1), l = d.useRef(null);
+function Pt(e) {
+  const [t, n] = d.useState(""), [a, o] = d.useState(!1), i = d.useRef(null);
   return d.useEffect(() => {
-    l.current?.focus();
-  }, []), /* @__PURE__ */ c.jsxs("form", { className: "lan-chat-input", onSubmit: (f) => {
-    f.preventDefault();
-    const P = t.trim();
-    !P || a || (o(!0), e.onSend(P).then((ue) => {
-      o(!1), ue && e.onClose();
+    i.current?.focus();
+  }, []), /* @__PURE__ */ c.jsxs("form", { className: "lan-chat-input", onSubmit: (m) => {
+    m.preventDefault();
+    const A = t.trim();
+    !A || a || (o(!0), e.onSend(A).then((q) => {
+      o(!1), q && e.onClose();
     }));
   }, children: [
     /* @__PURE__ */ c.jsxs("label", { children: [
@@ -280,16 +280,16 @@ function Vt(e) {
       /* @__PURE__ */ c.jsx(
         "input",
         {
-          ref: l,
+          ref: i,
           value: t,
           maxLength: Ne.maxChars,
           autoComplete: "off",
           spellCheck: !0,
           "aria-describedby": "lan-chat-hint",
           disabled: a,
-          onChange: (f) => n(f.target.value),
-          onKeyDown: (f) => {
-            f.key === "Escape" && (f.preventDefault(), f.stopPropagation(), e.onClose());
+          onChange: (m) => n(m.target.value),
+          onKeyDown: (m) => {
+            m.key === "Escape" && (m.preventDefault(), m.stopPropagation(), e.onClose());
           }
         }
       )
@@ -303,7 +303,7 @@ function Vt(e) {
     ] })
   ] });
 }
-function $t(e) {
+function Vt(e) {
   const t = (n, a, o) => /* @__PURE__ */ c.jsxs("label", { children: [
     a,
     e.isHost ? /* @__PURE__ */ c.jsx("button", { "aria-pressed": e.features[n], disabled: e.pending, onClick: () => e.onChange({ ...e.features, [n]: !e.features[n] }), children: e.features[n] ? "On" : "Off" }) : /* @__PURE__ */ c.jsxs("span", { children: [
@@ -332,7 +332,7 @@ function Ft(e) {
           autoComplete: "off",
           spellCheck: !1,
           placeholder: e.configured ? "Saved · type to replace" : "xi-api-key",
-          onChange: (l) => n(l.target.value)
+          onChange: (i) => n(i.target.value)
         }
       )
     ] }),
@@ -345,7 +345,7 @@ function Ft(e) {
           autoComplete: "off",
           spellCheck: !1,
           placeholder: "e.g. 21m00Tcm4TlvDq8ikWAM",
-          onChange: (l) => o(l.target.value)
+          onChange: (i) => o(i.target.value)
         }
       )
     ] }),
@@ -359,112 +359,109 @@ function Ft(e) {
     /* @__PURE__ */ c.jsx("p", { className: "small", role: "status", children: e.status })
   ] });
 }
-const s = (e) => document.getElementById(e), A = new St(() => sessionStorage, () => localStorage), E = new Lt(), oe = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), (e) => e.toString(16).padStart(2, "0")).join("");
-let v = "", I = oe(), r = null, b = !1, pe = !1, m = !1, u = null, se = !1, R = !1, g = !1, p = !1, G = 0, ee = -1, C = !1, Z = !1, T = { kind: "old-fashioned", available: !1, treat: null, canConsume: !1 };
-const te = /* @__PURE__ */ new Map(), Ue = d.createRef(), Oe = x.createRoot(s("actions")), ge = x.createRoot(s("leisure")), Ie = x.createRoot(s("bank")), De = x.createRoot(s("chat")), Be = x.createRoot(s("features")), Ht = x.createRoot(s("voice-settings")), qt = x.createRoot(s("header")), Ke = x.createRoot(s("hud")), Me = x.createRoot(s("pot")), Pe = x.createRoot(s("table-info")), y = new st(
-  rt.fireplace ? ot : void 0,
+const s = (e) => document.getElementById(e), j = new St(() => sessionStorage, () => localStorage), E = new Lt(), re = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), (e) => e.toString(16).padStart(2, "0")).join("");
+let v = "", I = re(), r = null, b = !1, pe = !1, h = !1, u = null, oe = !1, R = !1, g = !1, p = !1, W = 0, te = -1, C = !1, Q = !1, T = { kind: "old-fashioned", available: !1, treat: null, canConsume: !1 };
+const ne = /* @__PURE__ */ new Map(), qe = d.createRef(), Oe = x.createRoot(s("actions")), ge = x.createRoot(s("leisure")), Ie = x.createRoot(s("bank")), De = x.createRoot(s("chat")), Be = x.createRoot(s("features")), Ht = x.createRoot(s("voice-settings")), Ut = x.createRoot(s("header")), Ke = x.createRoot(s("hud")), $e = x.createRoot(s("pot")), Me = x.createRoot(s("table-info")), y = new at(
+  ot.fireplace ? st : void 0,
   [Le.position[0], 0.4, Le.position[2] + 0.05]
 );
-let S = !1, Ve = null, re = document.hasFocus(), V = !0;
-const ie = () => y.setAmbienceActive(!!r && !r.paused && !p && !m && !g && !document.hidden && re);
+let S = !1, Pe = null, ie = document.hasFocus(), $ = !0;
+const le = () => y.setAmbienceActive(!!r && !r.paused && !p && !h && !g && !document.hidden && ie);
 s("app").addEventListener("pointerdown", () => y.unlock());
 s("app").addEventListener("keydown", (e) => {
   e.repeat || y.unlock();
 });
 document.addEventListener("visibilitychange", () => {
-  ie(), document.hidden || h();
+  le(), document.hidden || f();
 });
-document.addEventListener("fullscreenchange", () => h());
+document.addEventListener("fullscreenchange", () => f());
 window.addEventListener("blur", () => {
-  re = !1, ie();
+  ie = !1, le();
 });
 window.addEventListener("focus", () => {
-  re = !0, ie();
+  ie = !0, le();
 });
 window.addEventListener("pagehide", () => y.dispose(), { once: !0 });
-const D = () => s("app").focus(), q = () => u?.setLookBlocked(Z || g || C || $), Ut = (e) => {
-  Z = e, q(), xe();
-};
-let B = { store: yt(() => localStorage), http: Ct() }, j = null, K = "", $ = !1, z = "", ne = !1;
-const _e = () => j ? kt(() => j, B.http) : null, _t = (e) => e === 0 || !he[e] ? null : [he[e][0], 1.45, he[e][1]], F = new Nt({
+const D = () => s("app").focus(), U = () => u?.setLookBlocked(Q || g || C || V), qt = (e) => {
+  Q = e, U(), xe();
+}, _t = { store: Ct(() => localStorage), http: wt() }, M = () => Se.voice ?? _t;
+let B = null, P = "", V = !1, Y = "", ae = !1;
+const _e = () => B ? kt(() => B, M().http) : null, zt = (e) => e === 0 || !me[e] ? null : [me[e][0], 1.45, me[e][1]], F = new Nt({
   hostApi: (e, t) => k(e, t),
   provider: _e,
   play: (e, t) => {
-    y.playVoice(e, t, _t(t));
+    y.playVoice(e, t, zt(t));
   },
   stopAll: () => y.stopVoices()
 });
-function rn(e) {
-  B = e, j = null, K = "", ze();
+async function Yt() {
+  const e = M(), t = await e.store.load().catch(() => null);
+  e === M() && (B = t, f());
 }
-async function ze() {
-  const e = B, t = await e.store.load().catch(() => null);
-  e === B && (j = t, h());
-}
-async function zt(e, t) {
-  const n = wt({ apiKey: e, voiceId: t });
+async function Jt(e, t) {
+  const n = yt({ apiKey: e, voiceId: t });
   if (!n) {
-    K = "That key or voice ID does not look right. Copy both from your ElevenLabs account.", h();
+    P = "That key or voice ID does not look right. Copy both from your ElevenLabs account.", f();
     return;
   }
-  const a = await B.store.save(n);
-  j = n, K = a ? "Voice saved." : "Could not save it here; it will be used in this tab until you close it.", h();
+  const a = await M().store.save(n);
+  B = n, P = a ? "Voice saved." : "Could not save it here; it will be used in this tab until you close it.", f();
 }
-async function Yt() {
-  await B.store.clear(), j = null, K = "Key forgotten on this device.", h();
+async function Gt() {
+  await M().store.clear(), B = null, P = "Key forgotten on this device.", f();
 }
-async function Jt() {
+async function Wt() {
   const e = _e();
   if (!e) return;
-  K = "Asking ElevenLabs…", h(), y.unlock();
+  P = "Asking ElevenLabs…", f(), y.unlock();
   const t = await e.synthesize("This is how I sound at the table.");
-  K = t.ok ? S ? "Voice works. Unmute sound (M) to hear it." : "Voice works." : be[t.reason], t.ok && y.playVoice(t.audio, 0, null), h();
+  P = t.ok ? S ? "Voice works. Unmute sound (M) to hear it." : "Voice works." : be[t.reason], t.ok && y.playVoice(t.audio, 0, null), f();
 }
-const Gt = {
+const Xt = {
   "rate-limited": "Slow down: one message every few seconds.",
   invalid: "Messages are one line of plain text, up to 200 characters.",
   disconnected: "Reconnecting; message not sent.",
   unauthorized: "You are no longer at this table."
 };
-async function Wt(e) {
+async function Zt(e) {
   const t = await F.send(e, !!r?.features?.voices, (n) => {
-    z = n.issue === "too-long" ? "Too long to relay: only you heard it; others see the text." : n.issue === "relay-refused" ? "Others see this line as text only." : n.issue && be[n.issue] ? be[n.issue] : "", h();
+    Y = n.issue === "too-long" ? "Too long to relay: only you heard it; others see the text." : n.issue === "relay-refused" ? "Others see this line as text only." : n.issue && be[n.issue] ? be[n.issue] : "", f();
   });
-  return t.sent ? (z = "", h(), !0) : (z = Gt[t.error] ?? t.error, h(), !1);
+  return t.sent ? (Y = "", f(), !0) : (Y = Xt[t.error] ?? t.error, f(), !1);
 }
 function Ee(e) {
-  $ = e, q(), h(), e || D();
+  V = e, U(), f(), e || D();
 }
-function Xt(e) {
-  !r?.isHost || ne || (ne = !0, h(), k("/api/features", e).catch((t) => {
+function Qt(e) {
+  !r?.isHost || ae || (ae = !0, f(), k("/api/features", e).catch((t) => {
     t instanceof N || (s("error").textContent = t.message);
   }).finally(() => {
-    ne = !1, h();
+    ae = !1, f();
   }));
 }
-const Y = A.current();
-let J = [], O = Y?.name || "Guest", W = Y?.code || "";
-Y && (v = Y.token, I = Y.nonce, s("name").value = O);
-const ve = [], $e = (/* @__PURE__ */ new Date()).toISOString();
-let Ye = !1;
-const le = () => ({ token: v, nonce: I, name: O, ...W ? { code: W } : {}, at: Date.now() }), Zt = (e) => String(e || "").toUpperCase().replace(/[^A-F0-9]/g, "");
+const J = j.current();
+let G = [], O = J?.name || "Guest", X = J?.code || "";
+J && (v = J.token, I = J.nonce, s("name").value = O);
+const ve = [], Ve = (/* @__PURE__ */ new Date()).toISOString();
+let ze = !1;
+const ce = () => ({ token: v, nonce: I, name: O, ...X ? { code: X } : {}, at: Date.now() }), en = (e) => String(e || "").toUpperCase().replace(/[^A-F0-9]/g, "");
 function ye(e = !1) {
-  A.save(le(), e) || (s("storage-warning").textContent = "Browser storage is unavailable. You can play, but keep this tab open: your seat may not survive closing or reloading it.");
+  j.save(ce(), e) || (s("storage-warning").textContent = "Browser storage is unavailable. You can play, but keep this tab open: your seat may not survive closing or reloading it.");
 }
-function ce(e) {
-  A.forget(e) || (s("storage-warning").textContent = "Browser storage blocked cleanup. This device may still remember the seat; clear its poker site data before sharing this browser.");
+function de(e) {
+  j.forget(e) || (s("storage-warning").textContent = "Browser storage blocked cleanup. This device may still remember the seat; clear its poker site data before sharing this browser.");
 }
-function X() {
-  J = A.saved(), s("recovery").hidden = v || !J.length, s("saved-seats").replaceChildren(...J.map((e, t) => {
+function Z() {
+  G = j.saved(), s("recovery").hidden = v || !G.length, s("saved-seats").replaceChildren(...G.map((e, t) => {
     const n = document.createElement("option");
     n.value = String(t);
     const a = e.at ? new Date(e.at).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "earlier";
     return n.textContent = `${e.name} · ${e.code ? `table ${e.code.slice(0, 5)}-${e.code.slice(5)}` : "unknown table"} · ${a}`, n;
   })), s("resume-seat").disabled = s("forget-seat").disabled = b;
 }
-function Qt(e, t, n) {
+function tn(e, t, n) {
   if (ve.length >= 512) {
-    Ye = !0;
+    ze = !0;
     return;
   }
   const a = n?.view;
@@ -487,15 +484,12 @@ function Qt(e, t, n) {
     }))
   } : {} });
 }
-let ke = null;
-function ln(e) {
-  ke = e;
-}
 async function k(e, t) {
   const n = E.begin();
   let a, o;
   try {
-    a = ke ? await ke({
+    const i = Se.apiTransport;
+    a = i ? await i({
       path: e,
       method: t === void 0 ? "GET" : "POST",
       headers: { ...t === void 0 ? {} : { "Content-Type": "application/json" }, ...v ? { Authorization: `Bearer ${v}` } : {} },
@@ -507,25 +501,25 @@ async function k(e, t) {
       body: t === void 0 ? void 0 : JSON.stringify(t),
       signal: AbortSignal.timeout(5e3)
     }), o = await a.json();
-  } catch (l) {
-    throw E.failureCurrent(n) ? l : new N();
+  } catch (i) {
+    throw E.failureCurrent(n) ? i : new N();
   }
   if (!E.current(n)) throw new N();
-  if (Qt(e, a.status, o), o.view) {
+  if (tn(e, a.status, o), o.view) {
     if (!E.accept(n, o)) throw new N();
-    const l = r && o.generation !== r.generation;
-    (l || p) && y.resetEvents(), l && (G++, ee = -1, R = !1, u?.setInspection(!1), F.reset()), r = o, p = !1, h();
+    const i = r && o.generation !== r.generation;
+    (i || p) && y.resetEvents(), i && (W++, te = -1, R = !1, u?.setInspection(!1), F.reset()), r = o, p = !1, f();
   } else if (!a.ok && !E.failureCurrent(n))
     throw new N();
-  if (v && [401, 410].includes(a.status) && (m = !0, E.reset(), s("forget").hidden = !1), !a.ok) throw Object.assign(new Error(o.error || o.receipt?.code || "Request rejected."), { status: a.status });
+  if (v && [401, 410].includes(a.status) && (h = !0, E.reset(), s("forget").hidden = !1), !a.ok) throw Object.assign(new Error(o.error || o.receipt?.code || "Request rejected."), { status: a.status });
   return o;
 }
-function M() {
+function K() {
   return {
     available: T.available,
     menuOpen: C,
     treatsAllowed: !!r?.features?.treats,
-    blocked: !r || !u || se || b || p || m || r.paused || r.view.phase === "ready" || r.view.self.waiting || R || g || Z
+    blocked: !r || !u || oe || b || p || h || r.paused || r.view.phase === "ready" || r.view.self.waiting || R || g || Q
   };
 }
 function xe() {
@@ -534,76 +528,76 @@ function xe() {
     return;
   }
   ge.render(d.createElement(At, {
-    ...M(),
+    ...K(),
     kind: T.kind,
     treat: T.treat,
     canConsume: T.canConsume,
-    onSmoke: () => ae("smoke"),
-    onSip: () => ae("drink"),
-    onConsume: () => ae("consume"),
-    onMenuChange: Se,
+    onSmoke: () => se("smoke"),
+    onSip: () => se("drink"),
+    onConsume: () => se("consume"),
+    onMenuChange: Ce,
     onOrder: (e) => {
-      const t = M();
-      !me(e) && !t.treatsAllowed || !t.blocked && t.available && (me(e) ? u?.orderDrink(e) : u?.orderTreat(e)) && (me(e) && Re({ action: "order", kind: e }), Se(!1));
+      const t = K();
+      !he(e) && !t.treatsAllowed || !t.blocked && t.available && (he(e) ? u?.orderDrink(e) : u?.orderTreat(e)) && (he(e) && Re({ action: "order", kind: e }), Ce(!1));
     }
   }));
 }
-let we = !1, Ce = -1 / 0;
+let ke = !1, we = -1 / 0;
 function Re(e) {
-  !v || m || (we = !0, Ce = performance.now(), k("/api/leisure", e).catch(() => {
+  !v || h || (ke = !0, we = performance.now(), k("/api/leisure", e).catch(() => {
   }).finally(() => {
-    we = !1;
+    ke = !1;
   }));
 }
-function en(e) {
+function nn(e) {
   Re(e === "smoke" ? { action: "smoke" } : { action: "sip", kind: T.kind });
 }
-function ae(e) {
-  const t = M();
+function se(e) {
+  const t = K();
   t.blocked || t.menuOpen || !t.available || e === "consume" && !t.treatsAllowed || (e === "smoke" ? u?.smokeCigar() : e === "consume" ? u?.consumeTreat() : u?.sipDrink(), D());
 }
-function tn(e) {
+function an(e) {
   const t = e.players[e.self.seat]?.leisure;
-  !t || t.drinkKind === T.kind || we || r.paused || e.self.waiting || p || m || !u || performance.now() - Ce < 3e3 || (Ce = performance.now(), Re({ action: "order", kind: T.kind }));
+  !t || t.drinkKind === T.kind || ke || r.paused || e.self.waiting || p || h || !u || performance.now() - we < 3e3 || (we = performance.now(), Re({ action: "order", kind: T.kind }));
 }
-function Se(e) {
-  e && M().blocked || (C = e, G++, q(), h(), e || D());
+function Ce(e) {
+  e && K().blocked || (C = e, W++, U(), f(), e || D());
 }
 function Fe(e, t = !1) {
   const n = t ? -1 : e;
-  if (u && Ve !== n) {
+  if (u && Pe !== n) {
     u.dispose(), u = null;
-    for (const o of te.values()) o.root.unmount();
-    te.clear(), s("labels").replaceChildren();
+    for (const o of ne.values()) o.root.unmount();
+    ne.clear(), s("labels").replaceChildren();
   }
-  if (u || se || document.hidden) return;
+  if (u || oe || document.hidden) return;
   const a = () => {
-    se = !0, s("error").textContent = "3D rendering unavailable. Reload this tab to reconnect without losing your seat.";
+    oe = !0, s("error").textContent = "3D rendering unavailable. Reload this tab to reconnect without losing your seat.";
   };
   try {
-    u = new it(s("scene"), a, void 0, (o) => {
+    u = new pt(s("scene"), a, void 0, (o) => {
       T = o, xe();
-    }, e), u.setLookEnabled(V), u.onLeisureStarted = en, u.setDrinkEffect(s("drink-effect").value), Ve = n;
+    }, e), u.setLookEnabled($), u.onLeisureStarted = nn, u.setDrinkEffect(s("drink-effect").value), Pe = n;
     for (let o = 1; o < 6; o++) {
-      const l = document.createElement("div");
-      l.className = "seat", s("labels").append(l), te.set(o, { node: l, root: x.createRoot(l) }), u.bindWorldLabel(o, l);
+      const i = document.createElement("div");
+      i.className = "seat", s("labels").append(i), ne.set(o, { node: i, root: x.createRoot(i) }), u.bindWorldLabel(o, i);
     }
     u.bindWorldLabel(-1, s("pot")), u.onAudioListener = (o) => y.setListenerMatrix(o);
   } catch {
     a();
   }
 }
-function h() {
-  if (s("entry").hidden = !!r, s("table").hidden = !r, s("inspect").hidden = s("details").hidden = !r, qt.render(d.createElement(
-    at,
+function f() {
+  if (s("entry").hidden = !!r, s("table").hidden = !r, s("inspect").hidden = s("details").hidden = !r, Ut.render(d.createElement(
+    rt,
     { onLobby: () => {
       r && H(!0);
     } },
     d.createElement("button", { "aria-label": S ? "Unmute sound" : "Mute sound", title: "Sound (M)", onClick: () => {
-      S = !S, y.setMuted(S), S || y.unlock(), h();
+      S = !S, y.setMuted(S), S || y.unlock(), f();
     } }, S ? "♪̸" : "♪"),
     r && d.createElement("button", { "aria-label": "Settings", title: "Table settings", onClick: () => H(!0) }, "⚙"),
-    r && d.createElement("button", { "aria-label": "Recenter view", title: "Drag the room to look · Recenter (R)", disabled: M().blocked || C, onClick: () => {
+    r && d.createElement("button", { "aria-label": "Recenter view", title: "Drag the room to look · Recenter (R)", disabled: K().blocked || C, onClick: () => {
       u?.recenterLook(), D();
     } }, "⌖"),
     r?.isHost && d.createElement("button", { "aria-label": r.paused ? "Resume table" : "Pause table", disabled: b, onClick: () => L(() => k("/api/pause", { paused: !r.paused })) }, r.paused ? "▶" : "Ⅱ"),
@@ -612,50 +606,52 @@ function h() {
         s("error").textContent = "Fullscreen unavailable. The game still fills the browser.";
       });
     } }, "⤢")
-  )), s("app").classList.toggle("inspecting", R), ie(), s("create").disabled = b || !!v, s("join").disabled = b || !!v, !r) {
-    Fe(0, !0), u?.setPlaying(!1), Oe.render(null), y.resetEvents(), Ke.render(null), Me.render(null), Pe.render(null), s("actions").hidden = s("deal-actions").hidden = !0, R = !1, g = !1, C = !1, Z = !1, T = { kind: "old-fashioned", available: !1, treat: null, canConsume: !1 }, p = !1, ee = -1, s("menu").hidden = !0, ge.render(null), Ie.render(null), $ = !1, z = "", F.reset(), De.render(null), Be.render(null), He(), X();
+  )), s("app").classList.toggle("inspecting", R), le(), s("create").disabled = b || !!v, s("join").disabled = b || !!v, !r) {
+    Fe(0, !0), u?.setPlaying(!1), Oe.render(null), y.resetEvents(), Ke.render(null), $e.render(null), Me.render(null), s("actions").hidden = s("deal-actions").hidden = !0, R = !1, g = !1, C = !1, Q = !1, T = { kind: "old-fashioned", available: !1, treat: null, canConsume: !1 }, p = !1, te = -1, s("menu").hidden = !0, ge.render(null), Ie.render(null), V = !1, Y = "", F.reset(), De.render(null), Be.render(null), He(), Z();
     return;
   }
   const e = r.view, t = e.players[e.self.seat];
-  e.revision !== ee && (ee = e.revision, G++), Fe(e.self.seat), u?.updateRemote(e, e.self.seat), u?.setPlaying(e.phase !== "ready" && !e.self.waiting), u?.setPaused(r.paused || p || m || g), (r.paused || p || m || g || e.self.waiting) && (C = !1), q(), xe(), tn(e);
-  for (const i of e.players) if (i.displaySeat !== 0) {
-    const w = te.get(i.displaySeat);
+  e.revision !== te && (te = e.revision, W++), Fe(e.self.seat), u?.updateRemote(e, e.self.seat), u?.setPlaying(e.phase !== "ready" && !e.self.waiting), u?.setPaused(r.paused || p || h || g), (r.paused || p || h || g || e.self.waiting) && (C = !1), U(), xe(), an(e);
+  for (const l of e.players) if (l.displaySeat !== 0) {
+    const w = ne.get(l.displaySeat);
     if (!w) continue;
-    w.node.classList.toggle("active", e.actor === i.seat), w.node.classList.toggle("folded", i.folded), w.node.classList.toggle("out", i.stack === 0 && !i.committed), w.node.style.setProperty("--seat-color", Te[i.seat].color);
-    const fe = Bt(e.chat ?? [], i.displaySeat);
-    w.root.render(d.createElement(d.Fragment, null, d.createElement(lt, {
-      name: i.name,
-      dealer: e.dealer === i.seat,
-      blind: e.smallBlindSeat === i.seat ? "SB" : e.bigBlindSeat === i.seat ? "BB" : "",
-      stack: i.stack,
-      action: e.actor === i.seat ? i.kind === "human" ? "DECIDING" : "THINKING" : i.action || Te[i.seat].title,
-      visibleCards: i.cards.kind === "visible" ? i.cards.values : []
-    }), fe && d.createElement(Mt, { key: fe.seq, line: fe })));
+    w.node.classList.toggle("active", e.actor === l.seat), w.node.classList.toggle("folded", l.folded), w.node.classList.toggle("out", l.stack === 0 && !l.committed), w.node.style.setProperty("--seat-color", Te[l.seat].color);
+    const fe = Bt(e.chat ?? [], l.displaySeat);
+    w.root.render(d.createElement(d.Fragment, null, d.createElement(it, {
+      name: l.name,
+      dealer: e.dealer === l.seat,
+      blind: e.smallBlindSeat === l.seat ? "SB" : e.bigBlindSeat === l.seat ? "BB" : "",
+      stack: l.stack,
+      action: e.actor === l.seat ? l.kind === "human" ? "DECIDING" : "THINKING" : l.action || Te[l.seat].title,
+      visibleCards: l.cards.kind === "visible" ? l.cards.values : []
+    }), fe && d.createElement($t, { key: fe.seq, line: fe })));
   }
   s("labels").hidden = R;
   const n = !!r.features?.voices;
   F.observe(e.chat ?? [], n, !S && !document.hidden), De.render(d.createElement(
     d.Fragment,
     null,
-    d.createElement(Pt, { lines: e.chat ?? [], status: z }),
-    $ && d.createElement(Vt, {
-      onSend: Wt,
+    d.createElement(Mt, { lines: e.chat ?? [], status: Y }),
+    V && d.createElement(Pt, {
+      onSend: Zt,
       onClose: () => Ee(!1),
-      voiceHint: n ? j ? "spoken in your voice" : "voices are on: add your key in Table menu" : ""
+      voiceHint: n ? B ? "spoken in your voice" : "voices are on: add your key in Table menu" : ""
     })
-  )), Be.render(d.createElement($t, { isHost: !!r.isHost, features: r.features ?? { voices: !1, treats: !1 }, pending: ne || b, onChange: Xt })), He(), s("connection").textContent = p || m ? "Connection interrupted — wagering disabled" : r.hostConnected ? r.paused ? "Table paused" : e.self.waiting ? "Seat reserved — joining next hand" : e.actor === e.self.seat ? "Your move" : "Connected · LAN" : "Host disconnected — table suspended", s("invite").textContent = r.code ? `Lobby code: ${r.code.slice(0, 5)}-${r.code.slice(5)}` : "Six playing seats · empty seats are NPCs", s("host-storage").textContent = r.durable ? "Host saves this table privately. A host restart pauses play until the host resumes." : "Disposable host: stopping its process ends this table.";
-  const a = e.phase === "betting" ? ["Pre-flop", "Flop", "Turn", "River"][e.street] : e.phase === "ready" ? "Waiting for host" : e.phase === "complete" ? "Hand complete" : e.phase === "showdown" ? "Showdown" : "Dealing", o = e.phase === "complete" ? e.results.filter((i) => i.won > 0).map((i) => `${e.players[i.seat].name} wins ${i.won}`).join(" · ") : "", l = t.cards.kind === "visible" ? t.cards.values : [], f = e.phase === "complete", P = e.phase === "betting" && e.actor === e.self.seat, ue = l.length === 2 && e.board.length >= 3 ? ct([...l, ...e.board]).name : "Practice chips", Xe = p || m ? "Connection interrupted" : r.paused ? "Table paused" : e.self.waiting ? "Your seat is reserved." : f ? o : P ? "Your move." : e.actor !== null ? `${e.players[e.actor].name} is thinking…` : a;
-  Pe.render(d.createElement(dt, { handNumber: e.handNumber, smallBlind: e.smallBlind, bigBlind: e.bigBlind })), Me.render(d.createElement(ut, { finished: f, amount: f ? e.awards.reduce((i, w) => i + w.amount, 0) : e.pot, sidePots: e.awards.length - 1 })), Ke.render(d.createElement(ft, {
+  )), Be.render(d.createElement(Vt, { isHost: !!r.isHost, features: r.features ?? { voices: !1, treats: !1 }, pending: ae || b, onChange: Qt })), He(), s("connection").textContent = p || h ? "Connection interrupted — wagering disabled" : r.hostConnected ? r.paused ? "Table paused" : e.self.waiting ? "Seat reserved — joining next hand" : e.actor === e.self.seat ? "Your move" : "Connected · LAN" : "Host disconnected — table suspended";
+  const a = Se.shareUrls ?? (Array.isArray(r.shareUrls) ? r.shareUrls : []);
+  s("invite").textContent = r.code ? `Lobby code: ${r.code.slice(0, 5)}-${r.code.slice(5)}${a.length ? ` · Friends join at ${a.join(" or ")}` : ""}` : "Six playing seats · empty seats are NPCs", s("host-storage").textContent = r.durable ? "Host saves this table privately. A host restart pauses play until the host resumes." : "Disposable host: stopping its process ends this table.";
+  const o = e.phase === "betting" ? ["Pre-flop", "Flop", "Turn", "River"][e.street] : e.phase === "ready" ? "Waiting for host" : e.phase === "complete" ? "Hand complete" : e.phase === "showdown" ? "Showdown" : "Dealing", i = e.phase === "complete" ? e.results.filter((l) => l.won > 0).map((l) => `${e.players[l.seat].name} wins ${l.won}`).join(" · ") : "", m = t.cards.kind === "visible" ? t.cards.values : [], A = e.phase === "complete", q = e.phase === "betting" && e.actor === e.self.seat, We = m.length === 2 && e.board.length >= 3 ? lt([...m, ...e.board]).name : "Practice chips", Xe = p || h ? "Connection interrupted" : r.paused ? "Table paused" : e.self.waiting ? "Your seat is reserved." : A ? i : q ? "Your move." : e.actor !== null ? `${e.players[e.actor].name} is thinking…` : o;
+  Me.render(d.createElement(ct, { handNumber: e.handNumber, smallBlind: e.smallBlind, bigBlind: e.bigBlind })), $e.render(d.createElement(dt, { finished: A, amount: A ? e.awards.reduce((l, w) => l + w.amount, 0) : e.pot, sidePots: e.awards.length - 1 })), Ke.render(d.createElement(ut, {
     board: e.board,
-    street: ht[e.street],
-    ownCards: l,
+    street: ft[e.street],
+    ownCards: m,
     stack: t.stack,
     position: `${e.dealer === t.seat ? " · DEALER" : ""}${e.smallBlindSeat === t.seat ? " · SB" : ""}${e.bigBlindSeat === t.seat ? " · BB" : ""}`,
-    handLabel: t.folded ? "Folded" : ue,
+    handLabel: t.folded ? "Folded" : We,
     status: Xe,
     detail: b ? "Sending…" : e.self.waiting ? "Joining at the next hand" : t.action,
-    winningCards: f ? e.results.find((i) => i.seat === t.seat && i.won > 0)?.hand?.cards ?? [] : [],
-    withActions: P || f || e.phase === "ready"
+    winningCards: A ? e.results.find((l) => l.seat === t.seat && l.won > 0)?.hand?.cards ?? [] : [],
+    withActions: q || A || e.phase === "ready"
   })), y.observe(
     e.gameRevision,
     {
@@ -663,132 +659,132 @@ function h() {
       phase: e.phase,
       actor: e.actor,
       boardCount: e.board.length,
-      players: e.players.map((i) => ({ seat: i.seat, stack: i.stack, bet: i.bet, folded: i.folded, action: i.action }))
+      players: e.players.map((l) => ({ seat: l.seat, stack: l.stack, bet: l.bet, folded: l.folded, action: l.action }))
     },
-    !r.paused && !p && !m && !g && !e.self.waiting && re && !document.hidden,
+    !r.paused && !p && !h && !g && !e.self.waiting && ie && !document.hidden,
     e.self.seat
-  ), s("players").replaceChildren(...[...e.players].sort((i, w) => i.displaySeat - w.displaySeat).map((i) => {
+  ), s("players").replaceChildren(...[...e.players].sort((l, w) => l.displaySeat - w.displaySeat).map((l) => {
     const w = document.createElement("li");
-    return w.textContent = `${i.name} · ${i.kind}${i.pendingName ? " · next: " + i.pendingName : ""} · ${i.stack} chips · ${i.action || "waiting"}${e.actor === i.seat ? " · to act" : ""}`, w;
-  })), s("deal-actions").hidden = !r.isHost || !["ready", "complete"].includes(e.phase) || r.paused || g, s("pause").hidden = !r.isHost, s("start").disabled = b || r.paused || p || m, s("pause").disabled = b, s("pause").textContent = r.paused ? "Resume table" : "Pause table", s("leave").disabled = b, s("leave").textContent = r.isHost ? "End session for everyone" : "Leave table", Ie.render(d.createElement(mt, {
+    return w.textContent = `${l.name} · ${l.kind}${l.pendingName ? " · next: " + l.pendingName : ""} · ${l.stack} chips · ${l.action || "waiting"}${e.actor === l.seat ? " · to act" : ""}`, w;
+  })), s("deal-actions").hidden = !r.isHost || !["ready", "complete"].includes(e.phase) || r.paused || g, s("pause").hidden = !r.isHost, s("start").disabled = b || r.paused || p || h, s("pause").disabled = b, s("pause").textContent = r.paused ? "Resume table" : "Pause table", s("leave").disabled = b, s("leave").textContent = r.isHost ? "End session for everyone" : "Leave table", Ie.render(d.createElement(ht, {
     offer: e.self.bank,
     revision: e.revision,
-    blocked: b || r.paused || p || m || !g,
-    onConfirm: an
+    blocked: b || r.paused || p || h || !g,
+    onConfirm: on
   }));
-  const Ze = !b && !r.paused && !p && !m && !g && !C && !e.self.waiting && e.actor === e.self.seat && e.phase === "betting";
-  s("actions").hidden = !P || r.paused || g || p || m, Oe.render(d.createElement(pt, {
-    ref: Ue,
-    revision: G,
+  const Ze = !b && !r.paused && !p && !h && !g && !C && !e.self.waiting && e.actor === e.self.seat && e.phase === "betting";
+  s("actions").hidden = !q || r.paused || g || p || h, Oe.render(d.createElement(mt, {
+    ref: qe,
+    revision: W,
     blocked: !Ze,
     legal: e.legal,
     pot: e.pot,
     currentBet: e.currentBet,
     ownBet: t.bet,
     bigBlind: e.bigBlind,
-    onAction: nn,
-    onOpenChange: Ut,
+    onAction: sn,
+    onOpenChange: qt,
     focusTable: D
-  })), s("inspect").disabled = r.paused || e.self.waiting || p || m || g, s("inspect").setAttribute("aria-pressed", String(R)), s("inspect").firstChild.nodeValue = R ? "Look up " : "Cards & chips ";
+  })), s("inspect").disabled = r.paused || e.self.waiting || p || h || g, s("inspect").setAttribute("aria-pressed", String(R)), s("inspect").firstChild.nodeValue = R ? "Look up " : "Cards & chips ";
 }
 function He() {
   Ht.render(d.createElement(Ft, {
-    where: B.store.where,
-    configured: !!j,
-    status: K,
+    where: M().store.where,
+    configured: !!B,
+    status: P,
     onSave: (e, t) => {
-      zt(e, t);
+      Jt(e, t);
     },
     onForget: () => {
-      Yt();
+      Gt();
     },
     onTest: () => {
-      Jt();
+      Wt();
     }
   }));
 }
 async function L(e) {
   if (!b) {
-    b = !0, s("error").textContent = "", h();
+    b = !0, s("error").textContent = "", f();
     try {
       await e();
     } catch (t) {
-      t instanceof N || (G++, s("error").textContent = t.message);
+      t instanceof N || (W++, s("error").textContent = t.message);
     } finally {
-      b = !1, h();
+      b = !1, f();
     }
   }
 }
-async function Je(e) {
+async function Ye(e) {
   O = s("name").value, ye();
   let t;
   try {
     t = await k(e ? "/api/join" : "/api/create", { name: O, nonce: I, ...e ? { code: s("code").value } : {} });
   } catch (n) {
     if (!e && n?.status === 409) {
-      const a = xt(A.saved(), O);
-      if (a.length && await Ge(a)) return;
-      throw X(), new Error(A.saved().length ? 'This host already has a table. No saved seat under this name belongs to it; choose one under "Return to a saved seat", or restart the host with a fresh table.' : "This host already has a table, and this browser has no saved seat for it. Resume from the browser that created it, or restart the host with a fresh table.");
+      const a = xt(j.saved(), O);
+      if (a.length && await Je(a)) return;
+      throw Z(), new Error(j.saved().length ? 'This host already has a table. No saved seat under this name belongs to it; choose one under "Return to a saved seat", or restart the host with a fresh table.' : "This host already has a table, and this browser has no saved seat for it. Resume from the browser that created it, or restart the host with a fresh table.");
     }
     throw n;
   }
-  W = Zt(t.code || (e ? s("code").value : "")), E.reset(), v = t.token, ye(s("remember").checked), await k("/api/state");
+  X = en(t.code || (e ? s("code").value : "")), E.reset(), v = t.token, ye(s("remember").checked), await k("/api/state");
 }
-async function Ge(e) {
+async function Je(e) {
   const t = () => {
-    E.reset(), v = "", I = oe(), O = s("name").value || "Guest", W = "", r = null, m = !1, s("forget").hidden = !0;
+    E.reset(), v = "", I = re(), O = s("name").value || "Guest", X = "", r = null, h = !1, s("forget").hidden = !0;
   };
   let n;
   try {
     n = await Et(e, async (a) => {
-      E.reset(), v = a.token, I = a.nonce, O = a.name, W = a.code || "", m = !1, se = !1;
+      E.reset(), v = a.token, I = a.nonce, O = a.name, X = a.code || "", h = !1, oe = !1;
       try {
         return await k("/api/state"), "accepted";
       } catch (o) {
-        if (m) return "rejected";
+        if (h) return "rejected";
         throw o;
       }
-    }, (a) => ce(a));
+    }, (a) => de(a));
   } catch (a) {
-    throw t(), X(), a;
+    throw t(), Z(), a;
   }
-  return n ? (ye(!0), !0) : (t(), X(), !1);
+  return n ? (ye(!0), !0) : (t(), Z(), !1);
 }
-s("create").onclick = () => L(() => Je(!1));
-s("join").onclick = () => L(() => Je(!0));
+s("create").onclick = () => L(() => Ye(!1));
+s("join").onclick = () => L(() => Ye(!0));
 s("start").onclick = () => L(() => k("/api/start", { revision: r.view.revision }));
 s("pause").onclick = () => L(() => k("/api/pause", { paused: !r.paused }));
 s("leave").onclick = () => L(async () => {
-  await k("/api/leave", {}), E.reset(), ce(le()), v = "", r = null, F.reset(), I = oe(), s("connection").textContent = "Left table";
+  await k("/api/leave", {}), E.reset(), de(ce()), v = "", r = null, F.reset(), I = re(), s("connection").textContent = "Left table";
 });
 s("forget").onclick = () => {
-  E.reset(), ce(le()), v = "", r = null, m = !1, I = oe(), F.reset(), s("forget").hidden = !0, s("error").textContent = "", s("connection").textContent = "Not connected", h();
+  E.reset(), de(ce()), v = "", r = null, h = !1, I = re(), F.reset(), s("forget").hidden = !0, s("error").textContent = "", s("connection").textContent = "Not connected", f();
 };
 s("resume-seat").onclick = () => {
-  const e = J[Number(s("saved-seats").value)];
+  const e = G[Number(s("saved-seats").value)];
   e && L(async () => {
-    if (!await Ge(Rt(e, A.saved()))) throw new Error(`None of the seats saved as "${e.name}" belong to a table on this host. They were removed; choose another saved seat, or create or join a table.`);
+    if (!await Je(Rt(e, j.saved()))) throw new Error(`None of the seats saved as "${e.name}" belong to a table on this host. They were removed; choose another saved seat, or create or join a table.`);
   });
 };
 s("forget-seat").onclick = () => {
-  const e = J[Number(s("saved-seats").value)];
-  e && (ce(e), X());
+  const e = G[Number(s("saved-seats").value)];
+  e && (de(e), Z());
 };
 s("remember-current").onclick = () => {
-  A.save(le(), !0) ? s("seat-note").textContent = "Seat remembered on this browser. Close this tab before resuming it in another." : s("storage-warning").textContent = "Browser storage is unavailable. Keep this tab open; the seat was not safely remembered.";
+  j.save(ce(), !0) ? s("seat-note").textContent = "Seat remembered on this browser. Close this tab before resuming it in another." : s("storage-warning").textContent = "Browser storage is unavailable. Keep this tab open; the seat was not safely remembered.";
 };
-function nn(e) {
-  if (b || m || p || g || C || !r || r.paused || r.view.actor !== r.view.self.seat) return !1;
+function sn(e) {
+  if (b || h || p || g || C || !r || r.paused || r.view.actor !== r.view.self.seat) return !1;
   const t = r.view;
   return L(() => k("/api/action", { sequence: t.self.nextSequence, revision: t.revision, action: e })), !0;
 }
-function an(e, t) {
-  if (b || m || p || !r || r.paused || !g || r.view.revision !== t) return !1;
+function on(e, t) {
+  if (b || h || p || !r || r.paused || !g || r.view.revision !== t) return !1;
   const n = r.view, a = n.self.bank;
   return (e.type === "borrow" ? !a.canBorrow : e.amount <= 0 || e.amount > a.repayMax) ? !1 : (L(() => k("/api/action", { sequence: n.self.nextSequence, revision: t, action: e })), !0);
 }
 function H(e) {
-  g = e, s("menu").hidden = !e, q(), h(), e || D();
+  g = e, s("menu").hidden = !e, U(), f(), e || D();
 }
 s("details").onclick = () => H(!g);
 s("close-menu").onclick = () => H(!1);
@@ -797,43 +793,43 @@ for (const e of ["ambience-level", "effects-level"]) s(e).onchange = () => {
 };
 s("drink-effect").onchange = () => u?.setDrinkEffect(s("drink-effect").value);
 s("look-enabled").onclick = () => {
-  V = !V, u?.setLookEnabled(V), s("look-enabled").setAttribute("aria-pressed", String(V)), s("look-enabled").textContent = V ? "On" : "Off";
+  $ = !$, u?.setLookEnabled($), s("look-enabled").setAttribute("aria-pressed", String($)), s("look-enabled").textContent = $ ? "On" : "Off";
 };
-function de(e) {
-  e && (C = !1), R = e, u?.setInspection(e), s("labels").hidden = e, q(), h();
+function ue(e) {
+  e && (C = !1), R = e, u?.setInspection(e), s("labels").hidden = e, U(), f();
 }
 s("inspect").onclick = () => {
-  de(!R), D();
+  ue(!R), D();
 };
 s("app").addEventListener("keydown", (e) => {
   const t = e.target.closest("input,select,textarea,[contenteditable=true]") ? "editing" : e.target.closest("button,a") ? "control" : "table";
   if (!r || t === "editing" || e.altKey || e.ctrlKey || e.metaKey || e.isComposing) return;
-  if (Ot(e, t, !r || m || p || g || C || R || Z || $)) {
+  if (Ot(e, t, !r || h || p || g || C || R || Q || V)) {
     e.preventDefault(), Ee(!0);
     return;
   }
   if (e.key.toLowerCase() === "m" && !e.repeat) {
-    e.preventDefault(), S = !S, y.setMuted(S), S || y.unlock(), h();
+    e.preventDefault(), S = !S, y.setMuted(S), S || y.unlock(), f();
     return;
   }
   if (e.key === "Escape" && C) {
-    e.preventDefault(), e.stopPropagation(), Se(!1);
+    e.preventDefault(), e.stopPropagation(), Ce(!1);
     return;
   }
   if (e.key === "Escape" && g) {
     e.preventDefault(), H(!1);
     return;
   }
-  if (e.key.toLowerCase() === "r" && t === "table" && !e.repeat && !M().blocked && !C) {
+  if (e.key.toLowerCase() === "r" && t === "table" && !e.repeat && !K().blocked && !C) {
     e.preventDefault(), u?.recenterLook();
     return;
   }
-  const n = Tt(e, t, M());
+  const n = Tt(e, t, K());
   if (n) {
-    e.preventDefault(), ae(n);
+    e.preventDefault(), se(n);
     return;
   }
-  if (!Ue.current?.handleKey({
+  if (!qe.current?.handleKey({
     key: e.key,
     repeat: e.repeat,
     shiftKey: e.shiftKey,
@@ -848,37 +844,33 @@ s("app").addEventListener("keydown", (e) => {
       e.preventDefault(), r.isHost ? L(() => k("/api/pause", { paused: !r.paused })) : H(!0);
       return;
     }
-    e.key === " " && t === "table" && !g && !C && !p && !m && !r.paused && !r.view.self.waiting && (e.preventDefault(), de(!0));
+    e.key === " " && t === "table" && !g && !C && !p && !h && !r.paused && !r.view.self.waiting && (e.preventDefault(), ue(!0));
   }
 });
 s("app").addEventListener("keyup", (e) => {
-  e.key === " " && de(!1);
+  e.key === " " && ue(!1);
 });
-window.addEventListener("blur", () => de(!1));
+window.addEventListener("blur", () => ue(!1));
 s("export").onclick = () => {
-  const e = new Blob([JSON.stringify({ source: "actual-browser-lan-3d-client", started: $e, truncated: Ye, records: ve }, null, 2)], { type: "application/json" }), t = URL.createObjectURL(e), n = document.createElement("a");
-  n.href = t, n.download = `poker-lan-${$e.replaceAll(":", "-")}.json`, n.click(), setTimeout(() => URL.revokeObjectURL(t), 1e3);
+  const e = new Blob([JSON.stringify({ source: "actual-browser-lan-3d-client", started: Ve, truncated: ze, records: ve }, null, 2)], { type: "application/json" }), t = URL.createObjectURL(e), n = document.createElement("a");
+  n.href = t, n.download = `poker-lan-${Ve.replaceAll(":", "-")}.json`, n.click(), setTimeout(() => URL.revokeObjectURL(t), 1e3);
 };
-async function We() {
-  if (!(!v || m || b || pe)) {
+async function Ge() {
+  if (!(!v || h || b || pe)) {
     pe = !0;
     try {
       await k("/api/state");
     } catch (e) {
-      e instanceof N || (p = !0, s("error").textContent = e.message, h());
+      e instanceof N || (p = !0, s("error").textContent = e.message, f());
     } finally {
       pe = !1;
     }
   }
 }
 s("chat-open").onclick = () => {
-  r && !$ && Ee(!0);
+  r && !V && Ee(!0);
 };
-setInterval(We, 500);
-h();
-We();
-ze();
-export {
-  ln as setApiTransport,
-  rn as setVoiceEnvironment
-};
+setInterval(Ge, 500);
+f();
+Ge();
+Yt();

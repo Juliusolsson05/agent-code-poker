@@ -1415,7 +1415,10 @@ async function startLanHost(options = {}) {
     hostConnected: r.host.connected,
     durable: !!store,
     features: { voices: r.features.voices, treats: r.features.treats },
-    ...c === r.host ? { code: r.code } : {}
+    // shareUrls: the non-loopback addresses this host really listens on, for
+    // the host's invite line. Empty when hosting inside Agent Code (lan:false,
+    // the app's listener fronts it) — the view supplies them there instead.
+    ...c === r.host ? { code: r.code, shareUrls: addresses.filter((a) => a !== "127.0.0.1").map((a) => `http://${a}:${port}`) } : {}
   });
   const send = (response, status, value) => {
     persist();
