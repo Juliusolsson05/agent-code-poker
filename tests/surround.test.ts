@@ -1,10 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { Box3, Euler, Matrix4, Quaternion, Vector3 } from 'three'
+import { Box3, Euler, InstancedMesh, Matrix4, Mesh, Quaternion, Vector3 } from 'three'
 import { createSurroundPlan, WALL, type SurroundBlock } from '../src/scene/environment/Surround'
-import { flickerAt } from '../src/scene/environment/SurroundDecor'
+import { flickerAt, SurroundDecor } from '../src/scene/environment/SurroundDecor'
 import { createRoomPlan, type RoomBlock } from '../src/scene/environment/RoomPlan'
 import { CHAIR_BLOCKS, PLAYER_LAYOUT, SEATS, seatYaw } from '../src/scene/environment/layout'
+import { MAIN_WINTER_VIEW, SnowyWindows } from '../src/scene/environment/SnowyWindows'
 import { Fireplace } from '../src/scene/environment/Fireplace'
 import { ChristmasTavern } from '../src/scene/Christmas'
 import { FIELD_OF_REGARD, LOOK_LIMITS, SeatedLook, yawLimitForView } from '../src/scene/camera/SeatedLook'
@@ -51,7 +52,10 @@ test('every direction in the 280° field of regard lands on a finished surface',
 test('surround decor clears the pinned room, hearth, tree, chairs and table', () => {
   const plan = createSurroundPlan()
   const interior = new Box3(new Vector3(WALL.left, WALL.floor, WALL.back), new Vector3(WALL.right, WALL.ceiling, WALL.rear))
-  const decor = [...plan.blocks, ...plan.glows.map(g => ({ color: g.color, position: g.position, size: g.size }))]
+  // The sampled upholstery and piano case use continuous volumes. Audit their
+  // authored envelopes too: a sculpt hidden from this test could clip a chair
+  // while all the old box-only checks still passed.
+  const decor = [...plan.blocks, ...plan.sculpts, ...plan.glows.map(g => ({ color: g.color, position: g.position, size: g.size }))]
   const room = createRoomPlan({ fireplace: true }).blocks.filter(b => b.position[1] > 0) // the floor slab is support
   const fire = new Fireplace()
   const tree = withDocument(() => { const c = new ChristmasTavern(); const r = [c.treeBounds.clone(), ...c.decorBounds.values()]; c.dispose(); return r })
@@ -138,4 +142,60 @@ test('window views and paintings sit in front of every wall finish they overlap'
       if (overlapsAlong && overlapsUp) assert.ok(front < offset - .001, `${p.kind} at ${p.position} is behind a finish (${b.color}, front ${front.toFixed(4)} ≥ ${offset})`)
     }
   }
+})
+
+test('the produced surround uses two voxel sculptures and stays batched', () => {
+  // The pure plan alone cannot catch a renderer accidentally restoring canvas
+  // paintings or splitting every voxel into a mesh. Audit the scene graph that
+  // the room actually mounts, including every little light and pendulum.
+  const decor = new SurroundDecor(), meshes: Mesh[] = []
+  decor.root.traverse(o => { if (o instanceof Mesh) meshes.push(o) })
+  assert.ok(meshes.length <= 18, `surround needs ${meshes.length} draws`)
+  for (const name of ['surround-sampled-furniture', 'surround-voxel-relief']) {
+    const mesh = meshes.find(m => m.name === name)
+    assert.ok(mesh, `${name} must be in production`)
+    assert.ok(mesh.geometry.getAttribute('position').count > 1000, `${name} needs real sampled geometry`)
+  }
+  assert.ok(meshes.every(m => !('map' in m.material) || !m.material.map), 'no canvas/textured picture planes')
+  decor.dispose()
+})
+
+
+test('the door rebate fully covers wall mouldings without coplanar flashing', () => {
+  // The former backing and dado moulding both ended at .060m, producing
+  // flashing stripes during look-around. Inspect actual authored geometry,
+  // not a renderer offset which could hide the mistake at only one angle.
+  const plan = createSurroundPlan()
+  const wallFront = Math.max(...plan.shell.filter(b =>
+    b.position[2] > 3.1 && b.position[0] + b.size[0] / 2 > 2.20 &&
+    b.position[0] - b.size[0] / 2 < 3.70 && b.position[1] < 2.6
+  ).map(b => WALL.rear - b.position[2] + b.size[2] / 2))
+  assert.ok(plan.blocks.some(b => b.position[0] - b.size[0] / 2 <= 2.20 &&
+    b.position[0] + b.size[0] / 2 >= 3.70 && b.position[1] - b.size[1] / 2 <= .01 &&
+    b.position[1] + b.size[1] / 2 >= 2.50 &&
+    WALL.rear - b.position[2] + b.size[2] / 2 > wallFront + .01),
+  'a continuous opaque door rebate must stand ahead of the wall finish')
+})
+
+test('winter views preserve the main snowfall depth and freeze side snow on the room clock', () => {
+  const main = new SnowyWindows([MAIN_WINTER_VIEW])
+  for (const name of ['surround-window-voxel-landscapes', 'surround-window-frost-and-reflections']) {
+    const mesh = main.root.getObjectByName(name) as Mesh
+    const bounds = mesh.geometry.boundingBox!
+    assert.ok(bounds.min.z > -5.025, 'scenery must cover the original opaque panes')
+    assert.ok(bounds.max.z < -5.017, 'original moving snowfall must stay in front of scenery and frost')
+    assert.ok(bounds.min.x >= -4.171 && bounds.max.x <= -2.929)
+    assert.ok(bounds.min.y >= 1.034 && bounds.max.y <= 2.956)
+  }
+  const sides = new SnowyWindows(createSurroundPlan().pictures.filter(p => p.kind === 'snowscape'))
+  const snow = sides.root.getObjectByName('surround-window-snow') as InstancedMesh
+  const snapshot = () => Array.from(snow.instanceMatrix.array)
+  sides.frame(4, false); const first = snapshot()
+  sides.frame(8, false); assert.notDeepEqual(snapshot(), first, 'snow must fall')
+  sides.frame(4, false); assert.deepEqual(snapshot(), first, 'time alone determines snowfall')
+  sides.frame(10, true); const still = snapshot()
+  sides.frame(100, true); assert.deepEqual(snapshot(), still, 'reduced motion freezes the outdoor view')
+  for (const root of [main.root, sides.root]) root.traverse(o => {
+    if (o instanceof Mesh) { o.geometry.dispose(); for (const m of Array.isArray(o.material) ? o.material : [o.material]) m.dispose() }
+  })
 })
