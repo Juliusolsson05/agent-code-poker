@@ -180,3 +180,63 @@ The node_modules-path-only comment in `dist-service/lan-host.mjs` is restored.
 
 Also: [main window and hearth](../evidence/room-atmosphere/after-main.png),
 [ceiling lighting](../evidence/room-atmosphere/after-ceiling.png).
+
+### Review round (PR #11 surround): mount cost, relief depth, clearance
+
+One adversarial review, four findings, all fixed; no second round.
+
+**F1 — mount-time stall (major).** `new SurroundDecor()` runs synchronously in
+the `PokerRoom` constructor. The review measured ~1.5–1.8s on a loaded machine
+(furniture sculpt 902ms, windows 566ms, relief 108ms). Re-measured here with a
+timing script interleaving a pristine copy of 65516a8 against the fix (node,
+5 builds per run, 6 runs, machine load average 3–6):
+
+| Stage | Before (median) | After (median) | Triangles |
+| --- | --- | --- | --- |
+| Furniture sculpt | 148–198ms | 66–80ms | 61,240 (unchanged) |
+| Window landscapes | 135–201ms | 66–82ms | 137,732 (unchanged) |
+| Picture relief | 10–15ms | 6–7ms | 8,452 → 10,088 (F2) |
+| Whole `SurroundDecor` | ~300–320ms | ~120–160ms | |
+
+Headless Chrome (Vite source, 3 builds): `SurroundDecor` 351/294/254ms before →
+152/114/82ms after; furniture 171/155/154 → 55/56/35; windows 163/185/134 → 63/55/44.
+
+Every speed-up keeps the geometry **byte-identical** (hashes of position,
+normal, colour and index buffers compared before/after, for the furniture,
+windows, and deformable/rigid anatomy sculpts):
+- `VoxelSculpt.mesh` answers occupancy from a dense bitset over the cells'
+  bounding box instead of `Map.has` on heap-double keys, uses numeric patch
+  keys, and allocates nothing per normal sample. This also speeds every
+  character sculpt.
+- `SnowyWindows` hoists per-window tree tables out of the per-cell sampler
+  (~80 `Math.sin` per cell), parses each palette hex once, and writes quads
+  straight into the arrays.
+
+Rejected: coarser furniture or fewer window columns (visible loss, and the
+lookup cost, not triangle count, was the problem); greedy merges for 25mm
+decor (changes smooth-normal shading near rounded edges, for little CPU gain);
+deferring the build to an idle frame (the main window view would pop in at
+yaw 0, and probe/capture modes need the full room on their first frame).
+`tests/surround.test.ts` now pins triangle caps (~3% headroom) and a generous
+1s best-of-two build budget.
+
+**F2 — relief parallax did not exist.** Layers 5–12mm apart shared the 25mm
+grid, so they collapsed onto one or two planes. They are now authored in whole
+grid levels (0/1/2 = one/two/three voxels proud), filled down to the backing
+as bas-relief. The backing's front sits exactly on level 0's culled back
+face, so there is no z-fight and no see-through slot. A finer relief step
+was rejected because it would cost ~4× the cells. Landscape: 2 real planes.
+Village: 3. Hound, clock (hands proud of a painted dial) and sheet music: 2.
+The sheet-music note heads (7mm) had never landed on a sample; seven one-voxel
+heads replace them.
+
+**F3 — clearance test scope.** The test now also audits the mounted scene
+graph per instance: sprigs, berries, bows, fairy wire and every glow class,
+the pendulum swing (±.08 rad union), each picture's backing and relief, the
+side winter views including 60s of snowfall, and `MAIN_WINTER_VIEW`. The main
+view is exempt only from room blocks, because it sits inside the pinned window
+assembly by design; the snowfall test pins that ordering. A mutation (sag
+3.3m) fails it.
+
+**F4 — poinsettia bracts.** Odd (darker) bracts sit 1mm higher, so no two
+overlapping, differently coloured bracts share a top plane.

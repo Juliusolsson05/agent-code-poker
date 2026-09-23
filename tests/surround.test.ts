@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { Box3, Euler, InstancedMesh, Matrix4, Mesh, Quaternion, Vector3 } from 'three'
 import { createSurroundPlan, WALL, type SurroundBlock } from '../src/scene/environment/Surround'
 import { flickerAt, SurroundDecor } from '../src/scene/environment/SurroundDecor'
+import { buildPictureRelief } from '../src/scene/environment/SurroundVoxel'
 import { createRoomPlan, type RoomBlock } from '../src/scene/environment/RoomPlan'
 import { CHAIR_BLOCKS, PLAYER_LAYOUT, SEATS, seatYaw } from '../src/scene/environment/layout'
 import { MAIN_WINTER_VIEW, SnowyWindows } from '../src/scene/environment/SnowyWindows'
@@ -52,10 +53,6 @@ test('every direction in the 280° field of regard lands on a finished surface',
 test('surround decor clears the pinned room, hearth, tree, chairs and table', () => {
   const plan = createSurroundPlan()
   const interior = new Box3(new Vector3(WALL.left, WALL.floor, WALL.back), new Vector3(WALL.right, WALL.ceiling, WALL.rear))
-  // The sampled upholstery and piano case use continuous volumes. Audit their
-  // authored envelopes too: a sculpt hidden from this test could clip a chair
-  // while all the old box-only checks still passed.
-  const decor = [...plan.blocks, ...plan.sculpts, ...plan.glows.map(g => ({ color: g.color, position: g.position, size: g.size }))]
   const room = createRoomPlan({ fireplace: true }).blocks.filter(b => b.position[1] > 0) // the floor slab is support
   const fire = new Fireplace()
   const tree = withDocument(() => { const c = new ChristmasTavern(); const r = [c.treeBounds.clone(), ...c.decorBounds.values()]; c.dispose(); return r })
@@ -66,16 +63,80 @@ test('surround decor clears the pinned room, hearth, tree, chairs and table', ()
   // The table and its rail fit inside this footprint; nothing but the rug may
   // enter it, and the rug stays below the chair feet (y=.01).
   const table = new Box3(new Vector3(-1.95, 0, -1.2), new Vector3(1.95, .9, 1.2))
-  for (const b of decor) {
-    const box = envelope(b), label = `${b.color} @ ${b.position.map(v => v.toFixed(2))}`
+  const audit = (label: string, box: Box3, roomBlocks: RoomBlock[] = room) => {
+    assert.ok(!box.isEmpty(), `${label} has no geometry to audit`)
     assert.ok(interior.containsBox(box), `${label} leaves the room`)
-    if (box.max.y <= .01) continue // rugs and mats lie on the floor under everything
-    for (const r of room) assert.ok(!box.intersectsBox(envelope(r)), `${label} intersects room block ${r.color} @ ${r.position}`)
+    if (box.max.y <= .01) return // rugs and mats lie on the floor under everything
+    for (const r of roomBlocks) assert.ok(!box.intersectsBox(envelope(r)), `${label} intersects room block ${r.color} @ ${r.position}`)
     for (const s of fire.solidBounds) assert.ok(!box.intersectsBox(s), `${label} intersects the hearth`)
     for (const t of tree) assert.ok(!box.intersectsBox(t), `${label} intersects the Christmas tree/garland`)
     for (const c of chairs) assert.ok(!box.intersectsBox(c), `${label} intersects a seated chair`)
     assert.ok(!box.intersectsBox(table), `${label} intersects the table`)
   }
+
+  // 1. The pure plan. The sampled upholstery and piano case use continuous
+  // volumes; their authored envelopes are audited too, because a sculpt
+  // hidden from this test could clip a chair while box-only checks passed.
+  for (const b of [...plan.blocks, ...plan.sculpts, ...plan.glows.map(g => ({ color: g.color, position: g.position, size: g.size }))])
+    audit(`${b.color} @ ${b.position.map(v => v.toFixed(2))}`, envelope(b))
+
+  // 2. Everything the renderer DERIVES from the plan, measured on the scene
+  // graph the room actually mounts. The first version audited only the three
+  // families above while claiming the whole surround (review of PR #11):
+  // wreath and garland sprigs, berries, bows, fairy bulbs and wire, picture
+  // backings and relief, the swinging pendulum and all three winter views
+  // were unchecked, so a garland drooping into the tree stayed green.
+  // Per-instance boxes keep one family's spread across three walls from
+  // masquerading as a single room-sized collision.
+  const decor = new SurroundDecor(); decor.root.updateMatrixWorld(true)
+  const instanced = (mesh: InstancedMesh, label: string) => {
+    mesh.geometry.computeBoundingBox(); const m = new Matrix4()
+    assert.ok(mesh.count > 0, `${label} rendered nothing`)
+    for (let i = 0; i < mesh.count; i++) {
+      mesh.getMatrixAt(i, m); m.premultiply(mesh.matrixWorld)
+      audit(`${label} #${i}`, mesh.geometry.boundingBox!.clone().applyMatrix4(m))
+    }
+  }
+  const families = ['surround-sprigs', 'surround-berries', 'surround-bows', 'surround-fairy-wire', 'surround-glow-fairy', 'surround-glow-candle', 'surround-glow-lamp', 'surround-glow-steady']
+  for (const name of families) {
+    const mesh = decor.root.getObjectByName(name)
+    assert.ok(mesh instanceof InstancedMesh, `${name} must be rendered`)
+    instanced(mesh, name)
+  }
+  // The bob sweeps ±.08 rad; the union of both extremes and the rest pose
+  // bounds that monotone arc, including the bob's lowest point at rest.
+  const pendulums = decor.root.children.filter(o => o.name === 'surround-pendulum')
+  assert.equal(pendulums.length, plan.pendulums.length)
+  for (const [i, pivot] of pendulums.entries()) {
+    const swing = new Box3()
+    for (const angle of [-.08, 0, .08]) { pivot.rotation.x = angle; pivot.updateMatrixWorld(true); swing.union(new Box3().setFromObject(pivot, true)) }
+    audit(`pendulum #${i} swing`, swing)
+  }
+  // Framed art: backing plate plus relief, built one picture at a time so
+  // each envelope belongs to one frame.
+  for (const p of plan.pictures.filter(p => p.kind !== 'snowscape')) {
+    const group = buildPictureRelief([p]), relief = group.getObjectByName('surround-voxel-relief') as Mesh
+    instanced(group.getObjectByName('surround-picture-backings') as InstancedMesh, `${p.kind} backing`)
+    audit(`${p.kind} relief`, relief.geometry.boundingBox!.clone())
+  }
+  // Winter views, including every position the snowfall reaches.
+  const winterView = (view: typeof MAIN_WINTER_VIEW) => {
+    const windows = new SnowyWindows([view]), box = new Box3(), snow = windows.root.getObjectByName('surround-window-snow') as InstancedMesh
+    for (const name of ['surround-window-voxel-landscapes', 'surround-window-frost-and-reflections'])
+      box.union((windows.root.getObjectByName(name) as Mesh).geometry.boundingBox!)
+    if (view.snowfall !== false) for (let t = 0; t < 60; t += 1 / 24) {
+      windows.frame(t, false); snow.computeBoundingBox(); box.union(snow.boundingBox!)
+    }
+    return box
+  }
+  for (const p of plan.pictures.filter(p => p.kind === 'snowscape')) audit(`${p.kind} @ ${p.position}`, winterView(p))
+  // The main view is sandwiched INSIDE the pinned window assembly (panes
+  // behind, original snowfall and mullions in front), so overlapping those
+  // room blocks is its job; its depth ordering within that assembly is pinned
+  // by the snowfall test below. Here it must still stay in the room and clear
+  // the hearth, tree, chairs and table.
+  audit('main winter view', winterView(MAIN_WINTER_VIEW), [])
+  decor.dispose()
 })
 
 test('lighting stays one shadow pass and one aggregate light per decor zone', async () => {
@@ -160,6 +221,36 @@ test('the produced surround uses two voxel sculptures and stays batched', () => 
   decor.dispose()
 })
 
+
+test('the surround stays inside its mount-time geometry and CPU budget', () => {
+  // SurroundDecor is built synchronously in the PokerRoom constructor, so its
+  // cost is a main-thread stall on every mount/remount/HMR. PR #11's review
+  // measured ~1.5–1.8s on a loaded machine; the same build was ~300ms median
+  // unloaded here, of which furniture meshing and the window sampler were
+  // ~90%. The fixes (bitset occupancy in VoxelSculpt.mesh, hoisted per-window
+  // tree tables, cached palette parsing, allocation-free quad emission) keep
+  // the geometry byte-identical and halve that (~150ms). Two guards:
+  //  - Triangle counts, pinned with ~3% headroom. These catch the cheap way
+  //    to "improve the look" that silently multiplies the stall: a finer
+  //    sculpt/relief step or more window columns. Raise a cap only together
+  //    with a fresh timing measurement recorded in the plan doc.
+  //  - A deliberately generous wall-clock cap (best of two builds, ~6× the
+  //    measured cost) for regressions such as restoring Map lookups in the
+  //    mesher. The full suite runs files in parallel, so a tight timing cap
+  //    would flake; the counts are the precise guard.
+  const triangles = (m: Mesh) => (m.geometry.index?.count ?? 0) / 3
+  let best = Infinity, decor!: SurroundDecor
+  for (let i = 0; i < 2; i++) {
+    const started = performance.now(); const built = new SurroundDecor(); best = Math.min(best, performance.now() - started)
+    if (decor) decor.dispose(); decor = built
+  }
+  const mesh = (name: string) => decor.root.getObjectByName(name) as Mesh
+  assert.ok(triangles(mesh('surround-sampled-furniture')) <= 63_000, `furniture ${triangles(mesh('surround-sampled-furniture'))} triangles`)
+  assert.ok(triangles(mesh('surround-window-voxel-landscapes')) <= 142_000, `windows ${triangles(mesh('surround-window-voxel-landscapes'))} triangles`)
+  assert.ok(triangles(mesh('surround-voxel-relief')) <= 10_500, `relief ${triangles(mesh('surround-voxel-relief'))} triangles`)
+  assert.ok(best < 1000, `SurroundDecor took ${best.toFixed(0)}ms to build`)
+  decor.dispose()
+})
 
 test('the door rebate fully covers wall mouldings without coplanar flashing', () => {
   // The former backing and dado moulding both ended at .060m, producing
