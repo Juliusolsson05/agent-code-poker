@@ -188,7 +188,7 @@ const GARNISH: Record<DrinkKind, Garnish> = {
     placed(s, [.004, fill + .002, .002], [0, .4, 0], [.017, .0017, .017], (x, _y, z) => z > .0015 && Math.hypot(x, z) < .0142, '#efe2b0')
     for (const [x, z] of scatter(5, inner - .006, 1.3)) dots(s, [[x, z]], fill - .010 - Math.abs(x) * .6, .0009, '#f2dca0')
   },
-  'mulled-wine': (s, { fill, inner, top }) => {
+  'mulled-wine': (s, { fill, top }) => {
     wheel(s, [-.006, fill + .0025, .004], [.05, 0, .04], .0135, '#d86a1c', '#e9973e')
     cinnamon(s, [.010, .018, -.012], [.016, top, -.016])
     placed(s, [.012, fill + .002, .010], [0, .3, 0], [.007, .0015, .007], (x, _y, z) => { const a = Math.atan2(z, x); return Math.hypot(x, z) < .0065 * (.55 + .45 * Math.abs(Math.cos(a * 4))) }, '#4a2a17')

@@ -80,7 +80,7 @@ export class AnatomicalHand {
     }
     let parent: THREE.Object3D = base
     for (let j = 0; j < 3; j++) {
-      const bone = new THREE.Bone(); const length = [.030, .025, .022][j]
+      const bone = new THREE.Bone()
       bone.position.set(j ? 0 : -.026, j ? [.030, .025][j - 1] : .025, j ? 0 : .003)
       if (j === 0) {
         const surface = new VoxelSculpt(step).segment(.077, .0105, .0075, skin, .68).mesh(material, { deformable: true })

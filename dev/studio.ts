@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { FirstPerson, type LeisureAction } from '../src/scene/FirstPerson'
+import { FirstPerson } from '../src/scene/FirstPerson'
 import { buildHuman, humanMaterial, poseHuman } from '../src/scene/Human'
 import { createHeldCardFan } from '../src/scene/CardGrip'
 import { PLAYER_LAYOUT } from '../src/scene/environment/layout'
