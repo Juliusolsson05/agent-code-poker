@@ -3,7 +3,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { sep } from "node:path";
 
-// node_modules/agent-code-extension-api/dist/service.js
+// ../agent-code-poker-voxel-table/node_modules/agent-code-extension-api/dist/service.js
 function defineService(module) {
   return module;
 }
@@ -544,7 +544,7 @@ function chooseAction(o, random = Math.random) {
 }
 
 // src/session/view.ts
-function projectTable(state, privateSeat, legal, viewSeat = privateSeat ?? 0) {
+function projectTable(state, privateSeat, legal, viewSeat = privateSeat ?? 0, leisure = []) {
   const count = state.players.length;
   if (count !== 6 || !Number.isInteger(viewSeat) || viewSeat < 0 || viewSeat >= count || privateSeat !== null && (!Number.isInteger(privateSeat) || privateSeat < 0 || privateSeat >= count))
     throw new Error("A LAN view requires six valid seats.");
@@ -582,7 +582,10 @@ function projectTable(state, privateSeat, legal, viewSeat = privateSeat ?? 0) {
       startStack: p.startStack,
       folded: p.folded,
       action: p.action,
-      cards: p.hole.length === 0 ? { kind: "absent" } : p.seat === privateSeat || publicShowdown && !p.folded ? { kind: "visible", values: [...p.hole] } : { kind: "hidden", count: p.hole.length }
+      cards: p.hole.length === 0 ? { kind: "absent" } : p.seat === privateSeat || publicShowdown && !p.folded ? { kind: "visible", values: [...p.hole] } : { kind: "hidden", count: p.hole.length },
+      // Field by field for the same reason as everything above: the owner's
+      // private record (rate-limit clocks, member IDs) must never ride along.
+      leisure: copyLeisure(leisure[p.seat] ?? null)
     })),
     awards: state.awards.map((a) => ({ amount: a.amount, winners: [...a.winners], shares: [...a.shares], label: a.label })),
     results: state.results.map((r) => ({
@@ -592,6 +595,16 @@ function projectTable(state, privateSeat, legal, viewSeat = privateSeat ?? 0) {
     }))
   };
 }
+var copyLeisure = (l) => l ? { seq: l.seq, action: l.action, ageMs: l.ageMs, drinkKind: l.drinkKind } : null;
+
+// src/scene/props/specs.ts
+var DRINKS = {
+  "old-fashioned": { label: "Old Fashioned", note: "Whiskey \xB7 orange peel \xB7 clear ice", radius: 0.036, height: 0.088, fill: 0.041, color: "#a65518" },
+  beer: { label: "Winter ale", note: "Golden ale \xB7 a soft foam head", radius: 0.036, height: 0.136, fill: 0.108, color: "#ae7928" },
+  wine: { label: "Red wine", note: "A small pour in a stemless glass", radius: 0.036, height: 0.1, fill: 0.043, color: "#632533" },
+  water: { label: "Water", note: "Still water \xB7 clear ice", radius: 0.036, height: 0.106, fill: 0.07, color: "#8daca8" }
+};
+var isDrinkKind = (value) => typeof value === "string" && Object.hasOwn(DRINKS, value);
 
 // src/bank/PracticeBank.ts
 var BANK_CAPACITY = 1e6;
@@ -643,6 +656,7 @@ function planBankTransfer(value, id, operation, context) {
 }
 
 // src/session/HostTable.ts
+var LEISURE_LIMITS = { animatedMs: 2500, orderMs: 1e3, maxAgeMs: 6e4 };
 function displayName(value) {
   if (typeof value !== "string" || value.length > 96 || /[\p{Cc}\p{Cf}]/u.test(value)) throw new Error("Invalid display name.");
   const name = value.normalize("NFC").trim().replace(/\s+/gu, " ");
@@ -669,6 +683,13 @@ function intent(value) {
   if (!keys2(a, ["type"]) || a.type !== "fold" && a.type !== "check" && a.type !== "call") return null;
   return { sequence: Number(value.sequence), revision: Number(value.revision), action: { type: a.type } };
 }
+function leisureRequest(value) {
+  if (!record(value)) return null;
+  if (value.action === "smoke") return keys2(value, ["action"]) ? { action: "smoke" } : null;
+  if ((value.action === "sip" || value.action === "order") && keys2(value, ["action", "kind"]) && isDrinkKind(value.kind))
+    return { action: value.action, kind: value.kind };
+  return null;
+}
 var HostTable = class _HostTable {
   #game;
   #host;
@@ -677,6 +698,13 @@ var HostTable = class _HostTable {
   #bot;
   #random;
   #bank;
+  #now;
+  // Cosmetic and volatile BY DESIGN: not a Member field (members are exported
+  // verbatim into the private checkpoint, whose restore demands exact keys) and
+  // not part of exportHostCheckpoint. A sip must never cost a disk commit, and a
+  // host restart simply forgets who was holding a cigar.
+  #leisure = /* @__PURE__ */ new Map();
+  #leisureSeq = 0;
   constructor(host2, options = {}) {
     principal2(host2.id);
     const name = displayName(host2.name);
@@ -686,6 +714,7 @@ var HostTable = class _HostTable {
     this.#game = new PokerGame(deckRandom);
     this.#bank = createPracticeBank(this.#game.snapshot().initialTotal);
     this.#bot = options.bot ?? ((o) => chooseAction(o));
+    this.#now = options.now ?? Date.now;
     this.#host = host2.id;
     this.#members.set(host2.id, { id: host2.id, name, seat: 0, active: true, connected: true, leaving: false, sequence: 0, lastRequest: null });
   }
@@ -795,8 +824,10 @@ var HostTable = class _HostTable {
     if (revision !== this.#revision) throw new Error("Stale session revision.");
     this.#game.startHand();
     for (const [key, m] of this.#members) {
-      if (m.leaving) this.#members.delete(key);
-      else m.active = true;
+      if (m.leaving) {
+        this.#members.delete(key);
+        this.#leisure.delete(key);
+      } else m.active = true;
     }
     this.#revision++;
   }
@@ -835,6 +866,39 @@ var HostTable = class _HostTable {
     this.#revision++;
     return reply("accepted");
   }
+  /** Cosmetic intent: smoke, sip or order a drink. It is intentionally NOT an
+   * act() command. act() shares one per-member sequence and the table revision
+   * with wagers; consuming either would make every other player's in-flight
+   * wager 'stale' (or this player's next one 'out-of-order') because somebody
+   * lit a cigar. So this path never touches PokerGame, the bank, Member.sequence
+   * or #revision, and a pending wager built before it stays valid.
+   *
+   * Pause is the transport's state, so the transport passes it in. A queued
+   * human (inactive) does not own the seat's body yet: a bot is still playing
+   * it, and a gesture there would animate a body the person does not control. */
+  leisure(id, request, context) {
+    const reply = (code) => ({ ok: code === "accepted", code });
+    const m = this.#members.get(id);
+    if (!m || m.leaving) return reply("unauthorized");
+    const parsed = leisureRequest(request);
+    if (!parsed) return reply("invalid");
+    if (!m.connected) return reply("disconnected");
+    if (!m.active) return reply("waiting");
+    if (context.paused) return reply("paused");
+    const at = this.#now(), prior = this.#leisure.get(id);
+    const animated = parsed.action !== "order";
+    if (prior && (animated ? at - prior.animatedAt < LEISURE_LIMITS.animatedMs : at - prior.orderedAt < LEISURE_LIMITS.orderMs)) return reply("rate-limited");
+    this.#leisureSeq = Math.max(this.#leisureSeq + 1, Math.floor(at));
+    this.#leisure.set(id, {
+      seq: this.#leisureSeq,
+      action: parsed.action,
+      at,
+      drinkKind: parsed.action === "smoke" ? prior?.drinkKind ?? null : parsed.kind,
+      animatedAt: animated ? at : prior?.animatedAt ?? -Infinity,
+      orderedAt: animated ? prior?.orderedAt ?? -Infinity : at
+    });
+    return reply("accepted");
+  }
   /** Called by the host scheduler, not a client packet. Timer cancellation alone
    * cannot prevent queued callbacks: revision check makes a late tick harmless.
    * Bots see the existing observe() allowlist, never another player's cards.
@@ -855,7 +919,20 @@ var HostTable = class _HostTable {
     const member = this.#member(id);
     if (!member.connected || member.leaving) throw new Error("Principal is disconnected or has left.");
     const state = this.#game.snapshot(), privateSeat = member.active ? member.seat : null;
-    const view = projectTable(state, privateSeat, this.#game.legal(privateSeat), member.seat);
+    const at = this.#now();
+    const leisure = state.players.map((_, seat) => {
+      const occupant = [...this.#members.values()].find((m) => m.seat === seat);
+      if (!occupant?.active || !occupant.connected || occupant.leaving) return null;
+      const l = this.#leisure.get(occupant.id);
+      if (!l) return { seq: 0, action: null, ageMs: null, drinkKind: null };
+      return {
+        seq: l.seq,
+        action: l.action,
+        drinkKind: l.drinkKind,
+        ageMs: Math.min(LEISURE_LIMITS.maxAgeMs, Math.max(0, Math.floor(at - l.at)))
+      };
+    });
+    const view = projectTable(state, privateSeat, this.#game.legal(privateSeat), member.seat, leisure);
     const debt = this.#bank.accounts.find((a) => a.id === id)?.debt ?? 0, stack = state.players[member.seat].stack;
     const boundary = state.phase === "ready" || state.phase === "complete";
     let reason = !boundary ? "Bank transfers are only available between hands." : stack !== 0 ? "Rebuys are available when your stack is empty." : null;
@@ -1087,7 +1164,7 @@ async function startLanHost(options = {}) {
     if (saved !== null) {
       shape(saved, ["version", "code", "host", "table", "credentials"]);
       if (saved.version !== 1 || typeof saved.code !== "string" || !/^[A-F0-9]{10}$/.test(saved.code) || typeof saved.host !== "string" || !Array.isArray(saved.credentials) || saved.credentials.length < 1 || saved.credentials.length > 6) throw new Error();
-      const table = HostTable.restoreHostCheckpoint(saved.table), privateState = table.exportHostCheckpoint();
+      const table = HostTable.restoreHostCheckpoint(saved.table, { now }), privateState = table.exportHostCheckpoint();
       if (saved.host !== privateState.host) throw new Error();
       const credentials = /* @__PURE__ */ new Map(), ids = /* @__PURE__ */ new Set(), nonces = /* @__PURE__ */ new Set();
       for (const c of saved.credentials) {
@@ -1216,7 +1293,7 @@ async function startLanHost(options = {}) {
         send(response, 200, envelope(r2, c2));
         return;
       }
-      if (request.method !== "POST" || !["/api/create", "/api/join", "/api/start", "/api/action", "/api/pause", "/api/leave"].includes(route)) fail(404, "Not found.");
+      if (request.method !== "POST" || !["/api/create", "/api/join", "/api/start", "/api/action", "/api/leisure", "/api/pause", "/api/leave"].includes(route)) fail(404, "Not found.");
       if (route === "/api/create" || route === "/api/join") rate("admission");
       const input = await body(request);
       if (closed || storageFailed) fail(503, "Host closed or storage failed; table frozen.");
@@ -1229,7 +1306,7 @@ async function startLanHost(options = {}) {
           return;
         }
         const c2 = credential(a.name, a.nonce);
-        const table = new HostTable({ id: c2.id, name: a.name });
+        const table = new HostTable({ id: c2.id, name: a.name }, { now });
         room = {
           table,
           code: randomBytes(5).toString("hex").toUpperCase(),
@@ -1276,6 +1353,11 @@ async function startLanHost(options = {}) {
         r.paused = input.paused;
         r.nextTick = now() + 1e3;
         send(response, 200, envelope(r, c));
+        return;
+      }
+      if (route === "/api/leisure") {
+        const receipt2 = r.table.leisure(c.id, input, { paused: r.paused || !r.host.connected });
+        send(response, receipt2.ok ? 200 : 409, { receipt: receipt2 });
         return;
       }
       if (r.paused || !r.host.connected) fail(409, "The host has paused or disconnected.");
