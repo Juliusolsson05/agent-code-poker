@@ -32,7 +32,7 @@ const markup = pageMarkup.slice(pageMarkup.indexOf('<main'), pageMarkup.indexOf(
 type ServicesLike = {
   start(id: string): Promise<{ endpoints: Array<{ port: number }> }>
   expose(id: string, lan: boolean): Promise<{ lan: boolean; port?: number }>
-  invoke(id: string, name: string): Promise<unknown>
+  invoke(id: string, name: string, params: Record<string, never>): Promise<unknown>
 }
 // responseType/bodyEncoding exist on hosts with agent-code#1151 (binary
 // bodies for the ElevenLabs voice); older hosts ignore the one and omit the other.
@@ -140,7 +140,15 @@ export default defineView({
           await services.start(SERVICE_ID)
           const exposure = await services.expose(SERVICE_ID, true)
           if (!exposure.lan || !exposure.port) throw new Error('LAN exposure was not granted.')
-          const urls = lanShareUrls(await services.invoke(SERVICE_ID, 'status'), exposure.port)
+          // WHY `{}` and not the SDK's optional params: a view's
+          // `invoke(id, name)` reaches the host as `params: undefined`, and
+          // Agent Code (through 0.1.3) rejects any undefined value with
+          // "Extension host request exceeds the JSON limits." — the Host button
+          // failed on every click. The runtime channel serializes to JSON and
+          // drops the key, which is why the removed host-lan command never hit
+          // it. An empty object is valid JSON on every host; the service's
+          // `status` handler ignores params.
+          const urls = lanShareUrls(await services.invoke(SERVICE_ID, 'status', {}), exposure.port)
           await installClient(proxyTransport())
           overlay.hidden = true
           // This view can't see network interfaces; the service can, and its
