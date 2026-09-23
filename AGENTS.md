@@ -4,11 +4,14 @@ This is a separate Agent Code API-v2 extension repository. Keep poker rules inde
 
 Write generous WHY comments around rules, lifecycle, persistence and rendering tradeoffs. Preserve deterministic test injection. Bots receive only their own cards and public information, never the deck or opponents’ hands.
 
-Commit production `dist/` artifacts and the dependency lockfile. GitHub installation loads source archives without building. Use the entire pinned SDK Vite preset, bundle all dependencies and inject CSS from the view. No external assets or runtime networking.
+Commit production `dist/` artifacts and the dependency lockfile. GitHub installation loads source archives without building. Use the entire pinned SDK Vite preset, bundle all dependencies and inject CSS from the view. No external assets. The view and runtime never open sockets; LAN traffic goes only through Agent Code's permission-gated service, listener and brokered-fetch APIs (see README, LAN inside the extension).
 
 The user subsequently authorized website-first LAN multiplayer. Networking is
-confined to the explicitly launched standalone `server/` process; the shipped
-extension still has no network API. Do not expose Vite/repository files, bypass
+confined to the `server/` process: the standalone CLI, or the extension's
+declared LAN service, which Agent Code runs on loopback and exposes on the LAN.
+Security rules in `server/http.ts` read the resolved caller (`resolveCaller`),
+never the raw socket, because in-app requests all arrive from 127.0.0.1. Never
+add CORS: it would make the host's `service` marker forgeable. Do not expose Vite/repository files, bypass
 the SDK sandbox, add a public relay, or send full GameState to clients. The
 LAN website projects the actual3D room. Standalone hosting uses private local
 checkpoints by default, with explicit --memory-only for disposable tests; it is
