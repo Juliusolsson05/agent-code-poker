@@ -81,3 +81,35 @@ test('chat voices: spatial at the speaker, one voice per speaker, silenced by ma
     audio.dispose()
   } finally {globalThis.AudioContext=oldContext}
 })
+
+// #27: stopVoices() can only clean up sources that exist. A clip whose decode
+// was still pending when mute, voices-off or a chat reset stopped "every"
+// voice used to start the moment its decode landed.
+test('chat voices: a decode pending across stopVoices() never starts, and later clips still play',async()=>{
+  const parameter=()=>({value:0,setTargetAtTime(n:number){this.value=n},setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){}})
+  const decodes:((buffer:unknown)=>void)[]=[];let starts=0
+  class Device {
+    state='running';currentTime=1;destination={}
+    listener={positionX:parameter(),positionY:parameter(),positionZ:parameter(),forwardX:parameter(),forwardY:parameter(),forwardZ:parameter(),upX:parameter(),upY:parameter(),upZ:parameter()}
+    createGain(){return {connect(){},disconnect(){},gain:parameter()}}
+    createBufferSource(){return {buffer:null,onended:null,connect(){},disconnect(){},start(){starts++},stop(){}}}
+    // Held open by the test: resolved only after stopVoices() has run.
+    decodeAudioData(){return new Promise(resolve=>decodes.push(resolve))}
+    createOscillator(){throw new Error('unused')}
+    resume(){return Promise.resolve()}
+    close(){return Promise.resolve()}
+  }
+  const oldContext=globalThis.AudioContext
+  globalThis.AudioContext=Device as unknown as typeof AudioContext
+  try {
+    const audio=new PokerAudio(),clip=new Uint8Array([0xff,0xf3,0x40,0xc4])
+    audio.unlock()
+    const pending=audio.playVoice(clip,2,null)
+    audio.stopVoices()
+    decodes[0]({duration:1})
+    assert.equal(await pending,false,'canceled while decoding');assert.equal(starts,0)
+    const next=audio.playVoice(clip,2,null);decodes[1]({duration:1})
+    assert.equal(await next,true,'a clip that starts decoding after the stop is unaffected');assert.equal(starts,1)
+    audio.dispose()
+  } finally {globalThis.AudioContext=oldContext}
+})

@@ -17,7 +17,18 @@ import type { ChatLine } from '../../src/session/HostTable'
  *    line this tab watched arrive may play, once, while it is still fresh.
  *
  * The host's `features.voices` switch gates BOTH synthesis and playback: when
- * it is off nothing calls ElevenLabs, even if this player saved a key. */
+ * it is off nothing calls ElevenLabs, even if this player saved a key.
+ *
+ * 4. CANCELLATION WINS OVER ANY PENDING AWAIT (#27). Synthesis takes seconds
+ *    and a relay fetch a poll or two, so the world can change mid-flight: the
+ *    host turns voices off, or this tab resets (new table, Leave, Forget).
+ *    Checking the gates only BEFORE the await let a clip that finished after
+ *    voices-off still play and still be uploaded ("STOP, PLAY, /api/voice").
+ *    Every async path therefore captures #generation first and re-checks it
+ *    after EVERY await; anything that must cancel bumps it. A counter, not an
+ *    AbortController: ElevenLabs' transports cannot all be aborted (the
+ *    brokered Agent Code fetch has no abort), and the only thing that matters
+ *    is that a stale result has no effect when it lands. */
 export type HostApi = (path: string, body?: unknown) => Promise<unknown>
 /** What send() resolves with: only whether the HOST took the line. It resolves
  * as soon as the chat receipt arrives, so the chat box is free again while
@@ -37,6 +48,9 @@ export class ChatVoice {
   // the live projection window, so it stays bounded for a long session.
   #consumed = new Set<number>()
   #voicesWereOn = false
+  // Bumped by everything that cancels in-flight voice work: voices observed
+  // off, and reset(). See contract 4. Never compared for order, only equality.
+  #generation = 0
 
   constructor(private readonly deps: {
     hostApi: HostApi
@@ -51,6 +65,9 @@ export class ChatVoice {
    * message. Then, detached, only if the host has voices on and this player
    * configured a provider: synthesise locally, play it for ourselves, relay it. */
   async send(text: string, voicesOn: boolean, onVoice: (outcome: VoiceOutcome) => void = () => {}): Promise<SendOutcome> {
+    // Captured before the chat POST: a reset or voices-off during that request
+    // already cancels the voice, even though the text itself was sent.
+    const generation = this.#generation
     let seq: number
     try {
       const reply = await this.deps.hostApi('/api/chat', { text }) as { receipt?: { seq?: unknown } }
@@ -62,14 +79,18 @@ export class ChatVoice {
     // Our own line is ours to voice; mark it so the relay poll never fetches
     // back the clip we are about to upload.
     this.#consumed.add(seq)
-    void this.#voice(seq, text, voicesOn).then(onVoice, () => onVoice({ seq, voice: 'off', issue: 'failed' }))
+    void this.#voice(seq, text, voicesOn, generation).then(onVoice, () => onVoice({ seq, voice: 'off', issue: 'failed' }))
     return { sent: true, seq }
   }
 
-  async #voice(seq: number, text: string, voicesOn: boolean): Promise<VoiceOutcome> {
+  async #voice(seq: number, text: string, voicesOn: boolean, generation: number): Promise<VoiceOutcome> {
     const provider = this.deps.provider()
-    if (!voicesOn || !provider) return { seq, voice: 'off' }
+    if (!voicesOn || !provider || !this.#live(generation)) return { seq, voice: 'off' }
     const result = await provider.synthesize(text)
+    // The synthesis await is the long one (seconds): re-check before BOTH the
+    // local playback and the upload. A canceled line reports plain 'off', no
+    // issue text: the host's decision is not an error to show the sender.
+    if (!this.#live(generation)) return { seq, voice: 'off' }
     if (!result.ok) return { seq, voice: 'off', issue: result.reason }
     this.deps.play(result.audio, 0)
     if (result.audio.length > MAX_VOICE_BYTES) return { seq, voice: 'local-only', issue: 'too-long' }
@@ -89,6 +110,11 @@ export class ChatVoice {
     // Host switched voices off: stop what is already playing, not only what
     // would start next (review of #23).
     if (this.#voicesWereOn && !voicesOn) this.deps.stopAll()
+    // Every poll that sees voices off cancels in-flight work, not only the
+    // on->off transition: a send() started with the switch on (its caller read
+    // the same state) may still be synthesising when the first "off" arrives,
+    // and bumping on each off-poll costs nothing while nothing is pending.
+    if (!voicesOn) this.#generation++
     this.#voicesWereOn = voicesOn
     if (!this.#primed) {
       // First sight of this table: everything already here is history.
@@ -107,7 +133,7 @@ export class ChatVoice {
       this.#consumed.add(line.seq)
       // displaySeat 0 is this viewer: its own audio was played at send time.
       if (line.displaySeat === 0 || line.ageMs > VOICE_FRESH_MS) continue
-      void this.#fetchAndPlay(line.seq, line.displaySeat)
+      void this.#fetchAndPlay(line.seq, line.displaySeat, this.#generation)
     }
     // Bound memory: the projection is the last few lines, so anything that has
     // left it can never be observed again.
@@ -119,14 +145,19 @@ export class ChatVoice {
 
   /** A new table generation (host restart, a different table) starts a new
    * history; the next observe() treats its lines as already said. */
-  reset(): void { this.#primed = false; this.#consumed.clear(); this.#voicesWereOn = false; this.deps.stopAll() }
+  reset(): void { this.#generation++; this.#primed = false; this.#consumed.clear(); this.#voicesWereOn = false; this.deps.stopAll() }
 
   /** Test/diagnostic view of the bounded state. */
   get trackedCount(): number { return this.#consumed.size }
 
-  async #fetchAndPlay(seq: number, displaySeat: number): Promise<void> {
+  #live(generation: number): boolean { return generation === this.#generation }
+
+  async #fetchAndPlay(seq: number, displaySeat: number, generation: number): Promise<void> {
     try {
       const clip = await this.deps.hostApi(`/api/voice/${seq}`) as { mime?: unknown; data?: unknown }
+      // The fetch spans at least one poll: voices may have gone off or the
+      // table may have changed while it was in flight (#27).
+      if (!this.#live(generation)) return
       if (clip?.mime !== VOICE_MIME || typeof clip.data !== 'string') return
       const bytes = base64ToBytes(clip.data)
       // Re-check what the host already checked: a tab decodes only audio.
