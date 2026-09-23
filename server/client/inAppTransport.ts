@@ -39,11 +39,19 @@ export function proxyTransport(): LanTransport {
   }
 }
 
-type NetFetch = (url: string, init?: {
-  httpMethod?: 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+type HttpVerb = 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+
+/** The brokered fetch's init. `httpMethod` is the SDK 0.9 field
+ *  (NetFetchInit). `method` is the same value under the name that Agent Code
+ *  hosts up to agent-code#1151 actually read; see netFetchTransport. */
+export type NetFetchInit = {
+  httpMethod?: HttpVerb
+  method?: HttpVerb
   headers?: Array<{ name: string; value: string }>
   body?: string
-}) => Promise<{ status: number; contentType: string; body: string }>
+}
+
+type NetFetch = (url: string, init?: NetFetchInit) => Promise<{ status: number; contentType: string; body: string }>
 
 /**
  * Guest adapter: join a table hosted by a friend's Agent Code (or the standalone
@@ -63,7 +71,16 @@ export function netFetchTransport(netFetch: NetFetch, destination: string): LanT
   return async ({ path, method, headers, body }) => {
     if (!path.startsWith('/')) throw new Error('Invalid service path.')
     const result = await netFetch(`${origin}${path}`, {
+      // WHY BOTH VERB FIELDS: the SDK 0.9 type names the verb `httpMethod`, but
+      // the host's frame and runtime bridges on agent-code origin/main
+      // (frameDocument.ts, runtimeDocument.ts) read `init.method`. An
+      // SDK-shaped POST therefore left as a GET, carrying a body that fetch
+      // refuses. agent-code#1151 reads `httpMethod || method`. Sending both
+      // makes guest POSTs correct on hosts before AND after that fix, so in-app
+      // guests don't wait on it. Drop `method` once every supported host reads
+      // `httpMethod`.
       httpMethod: method,
+      method,
       // WHY THE GUEST STATES ITS ORIGIN: the host's POST rule is "Origin must
       // name the address you dialed" (server/http.ts). A browser adds that
       // header itself; Agent Code's brokered fetch runs in the host app's main
@@ -87,6 +104,15 @@ export function netFetchTransport(netFetch: NetFetch, destination: string): LanT
       json: async () => JSON.parse(result.body),
     }
   }
+}
+
+/** The view's guest wiring, kept here so a test can hold it. It used to be
+ *  `url => net.fetch(url)` inline in lanView.tsx, which dropped the whole
+ *  init: every guest POST (join, act, pause, leisure) reached the host as a
+ *  bare GET with no Authorization and no body. `init` must go through
+ *  untouched. */
+export function brokeredGuestTransport(net: { fetch: NetFetch }, destination: string): LanTransport {
+  return netFetchTransport((url, init) => net.fetch(url, init), destination)
 }
 
 /**

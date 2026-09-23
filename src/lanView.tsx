@@ -5,7 +5,7 @@ import baseStyles from './styles.css?inline'
 import previewStyles from '../dev/preview.css?inline'
 import clientStyles from '../server/client/style.css?inline'
 import { privateHostDestination } from '../dev/multiplayer/hostDestination'
-import { SERVICE_ID, proxyTransport, netFetchTransport, lanShareText, lanShareUrls } from '../server/client/inAppTransport'
+import { SERVICE_ID, proxyTransport, brokeredGuestTransport, lanShareText, lanShareUrls, type NetFetchInit } from '../server/client/inAppTransport'
 
 /** In-extension LAN view: the real multiplayer client, mounted inside the
  *  extension's own frame with its API seam re-routed.
@@ -40,7 +40,7 @@ type ServicesLike = {
   expose(id: string, lan: boolean): Promise<{ lan: boolean; port?: number }>
   invoke(id: string, name: string): Promise<unknown>
 }
-type NetLike = { fetch(url: string, init?: { httpMethod?: 'GET' | 'POST'; headers?: Array<{ name: string; value: string }>; body?: string }): Promise<{ status: number; contentType: string; body: string }> }
+type NetLike = { fetch(url: string, init?: NetFetchInit): Promise<{ status: number; contentType: string; body: string }> }
 
 export default defineView({
   mount(element, context) {
@@ -182,7 +182,8 @@ export default defineView({
       try { origin = privateHostDestination(input.value) } catch (reason) { fail(reason instanceof Error ? reason.message : 'Invalid host address.'); return }
       void boot(async () => {
         const { setApiTransport } = await import('../server/client/client.js')
-        setApiTransport(netFetchTransport(url => net.fetch(url), origin))
+        // Pass init THROUGH (see brokeredGuestTransport).
+        setApiTransport(brokeredGuestTransport(net, origin))
       })
     })
 

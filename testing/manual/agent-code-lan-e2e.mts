@@ -15,7 +15,7 @@ import { randomBytes } from 'node:crypto'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { startLanHost, lanAddresses } from '../../server/http'
-import { netFetchTransport, proxyTransport } from '../../server/client/inAppTransport'
+import { brokeredGuestTransport, proxyTransport } from '../../server/client/inAppTransport'
 
 const agentCode = process.env.AGENT_CODE_DIR
 if (!agentCode) throw new Error('Set AGENT_CODE_DIR to an agent-code checkout.')
@@ -47,7 +47,14 @@ const hostT = proxyTransport()
 // The host's own service ports are refused to net.fetch; a guest dials the
 // listener's LAN address, which is allowed.
 const guard = { isHostOwnedLoopbackPort: (p: number) => p === port || p === listener.port }
-const guest = netFetchTransport((url, init) => netFetch({ url, ...init }, nodeFetch, guard), `http://${ip}:${listener.port}/`)
+// The guest goes through the view's real wiring (brokeredGuestTransport) and a
+// net.fetch that reads init fields exactly as agent-code origin/main's frame
+// bridge does (frameDocument.ts: `httpMethod: init && init.method`). An earlier
+// version spread init straight into netFetch, which hid two bugs: lanView
+// dropped init, and the SDK's `httpMethod` field isn't what that bridge reads.
+const bridgeFetch = (url: string, init?: { method?: string; headers?: Array<{ name: string; value: string }>; body?: string }) =>
+  netFetch({ url, httpMethod: init && init.method, headers: init && init.headers, body: init && init.body }, nodeFetch, guard)
+const guest = brokeredGuestTransport({ fetch: bridgeFetch as never }, `http://${ip}:${listener.port}/`)
 
 const call = async (t: any, path: string, body?: unknown, token?: string) => {
   const r = await t({ path, method: body === undefined ? 'GET' : 'POST',
