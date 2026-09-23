@@ -92,6 +92,10 @@ is stale and must be corrected in this PR.
 
 ## 4. See other LAN players smoke (and drink)
 
+**Status:** implemented on `feat/lan-visible-leisure` (#16); see
+`docs/plans/lan-visible-leisure.md` for what changed from this sketch (notably
+`ageMs` instead of `startedAt`, and the from-above pickup route).
+
 - **A:** remote humans render as `buildHuman` NPC bodies (`Room.ts:163`).
   `Human.ts` has no cigar at all. Leisure is local only (`client.js:128-131`),
   and `projectTable` (`src/session/view.ts:29`) carries no leisure fields.

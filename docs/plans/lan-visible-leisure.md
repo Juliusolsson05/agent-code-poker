@@ -99,4 +99,43 @@ midline or enter the torso volume (`SeatedBody` exposes its torso predicate).
 
 ## Decisions made during implementation
 
-(Updated as the work proceeds.)
+- **Human seats are never `null`.** A human who has not gestured yet projects
+  `{seq: 0, action: null, ageMs: null, drinkKind: null}`. Without that, the
+  renderer cannot tell a real person from a bot and would keep playing ambient
+  sips on a player's avatar. `null` means bot-controlled only (no human, or
+  queued / disconnected / leaving, the same rule `tick()` uses).
+- **Sip carries its kind.** `{action:'sip', kind}` records what the player is
+  actually lifting, so a viewer who missed the order still shows the right glass.
+- **`seq` is seeded from the host clock** (`max(prev + 1, now)`). Leisure is
+  volatile, so a host restart resets the counter; a clock-seeded seq keeps a
+  post-restart gesture from equalling one a browser saw before and being skipped.
+- **Pickup route changed from the plan (4c).** Sliding along the cigar axis
+  does not work: the fitted pinch has one finger under the shaft, and any axial
+  or sideways approach pushes it through the tray wall. A cigar with its grip
+  outside the rim would be a cantilever that tips. The final route rests the
+  cigar across both notches (the hero's rest) and lifts it from above with the
+  fingers pointing down (a flexed wrist, palm to the body). Relative to the
+  hand, the cigar then enters between the finger pads from the tips. The swept
+  clearance is measured on production skin for every descent (min 1.27mm, with
+  a palm-first negative control). The fingertips dip 6.6mm into the open well.
+- **Tray placement.** Right of the glass is out of reach or inside the glass
+  for that grip. In front of the body at `(.05, .41)` it is an easy .51m reach
+  and clears the resting hand and the coaster. Known limitation: chip stacks
+  are laid out in world space and there is no spot in front of an opponent
+  that clears every seat's stack. The coaster and resting hand already overlap
+  some stacks; fixing that means moving the stack anchors, a separate change.
+- **Smoke frame rolled 38° about the shaft.** The mirrored hero frame put the
+  heel of the hand ~1300 skin vertices into the upper chest. A sweep over
+  shaft direction and roll (hand vs torso, head and midline; seats 1/3/5; three
+  gazes) found a clear region. The chosen point `(.20,-.05,1)`, roll .66 rad,
+  sits in its middle. `seatedTorsoContains` and `npcHeadContains` are now
+  exported from the sculpts they define, so the tests ask the real surfaces.
+- **No exhale particles on opponents** (limit, as planned).
+- **Acceptance harness traps.** SwiftShader renders the room at 2.5fps; a
+  screenshot then blocks the host's page for ~20s, its lease expires and the
+  table pauses (looking exactly like refused leisure). `captureScreenshot`
+  loops also slow the watcher's visual clock (Room caps dt at .1s). The harness
+  uses Metal plus `Page.startScreencast`, and measures sender-to-host latency
+  from Node. Recorded run: accepted 140ms after the key press; the watcher's own
+  read had it 213ms after the press; the watcher's screen shows the puff at
+  2.6-3.4s, matching the 2.54-3.54s the timeline predicts.

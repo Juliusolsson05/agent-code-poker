@@ -114,8 +114,15 @@ compact **Drinks** menu with the same free block-built choices as solo play.
 These use the existing local contact owner, not networking or poker actions.
 Typing, menus, inspection, waiting admission and paused/disconnected tables
 block new leisure requests. Orders do not count as sips or cause intoxication.
-Remote human drink/gesture synchronization is not implemented yet; opponent
-ambient gestures are still presentation-only, not evidence of a remote action.
+Other players see those gestures: an accepted smoke, sip or order is sent to
+the host (`POST /api/leisure`, same token/origin/pause rules as a wager, but it
+never touches chips, the wager sequence, the revision or the saved checkpoint)
+and projected per seat as cosmetic `{seq, action, ageMs, drinkKind}`. Every
+opponent body now has its own cigar and ashtray; a seat played by a real person
+animates only that person's gestures, while bot seats keep ambient sips and
+smokes (which are therefore never evidence of a remote action). Recorded
+two-browser acceptance: `testing/lan-two-browser.mjs` and
+`testing/fixtures/lan-leisure/`.
 The table menu includes a **Practice bank** candidate: busted players may
 borrow2,000 fictional chips between hands, with explicit confirmation and
 matching debt. Repay500 or the available maximum between hands; no interest,
