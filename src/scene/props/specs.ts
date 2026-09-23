@@ -17,3 +17,15 @@ export const drinkAnchors = (kind: DrinkKind) => ({
 })
 export const CIGAR = { radius: .0062, minX: -.063, maxX: .075, bite: [-.063, .003, 0] as [number, number, number], tip: [.077, 0, 0] as [number, number, number] } as const
 export const ASHTRAY = { radius: .060, height: .026, wellRadius: .042, floor: .007, notchFloor: .020, cigarRestY: .0275 } as const
+
+/** Authored gesture lengths in seconds: the ONE source for the hero's state
+ * machine (Leisure), the opponents' copies (Human / CigarApproach) and the
+ * host's spacing rule (HostTable.leisure). Why they must agree: a player can
+ * start their next gesture the moment the previous one ends locally. If a
+ * remote copy lasted longer than the local original, back-to-back gestures
+ * would queue behind each other on every other screen and drift further per
+ * gesture; if the host's spacing were longer than the local length, the host
+ * would refuse a gesture the player can already see themselves doing.
+ * smoke = cigar already in hand (the normal case); smokeFromTable is the
+ * rarer fetch after an interrupted drink left the cigar on the tray. */
+export const GESTURE_SECONDS = { drink: 5.35, smoke: 3.6, smokeFromTable: 4.15 } as const

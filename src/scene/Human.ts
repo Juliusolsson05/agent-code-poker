@@ -7,7 +7,7 @@ import { CIGAR_HAND_CONTACT, GLASS_HAND_CONTACT, GLASS_HAND_ROTATION_FACING } fr
 import { glassApproach, NPC_REST_ROTATION, NPC_REST_WRIST } from '../interaction/npc/GlassApproach'
 import { cigarRoute, type CigarFrame, NPC_CIGAR_REST, NPC_CIGAR_TRAY_ROTATION, NPC_SMOKE_SECONDS } from '../interaction/npc/CigarApproach'
 import { createAshtray, createCigar } from './props/Smoking'
-import { ASHTRAY } from './props/specs'
+import { ASHTRAY, GESTURE_SECONDS } from './props/specs'
 
 export const humanMaterial = () => anatomyMaterial(.91)
 // Ties and trousers vary by person so a row of seated bodies does not read as
@@ -24,7 +24,12 @@ const PEOPLE = [
  * meet THIS point, recomputed from the animated head every frame, so gaze and
  * tilt can never open a gap between prop and mouth. */
 export const NPC_LIPS = [0, -.046, .076] as const
-export const NPC_SIP_SECONDS = 6
+/** An opponent's sip lasts exactly as long as the hero's (GESTURE_SECONDS
+ * explains why remote copies must not outlast the local original). The sip
+ * curve below was authored over 6s; NPC_SIP_SCALE compresses it evenly so
+ * lift/hold/return keep their proportions and their tested contacts. */
+export const NPC_SIP_SECONDS = GESTURE_SECONDS.drink
+export const NPC_SIP_SCALE = NPC_SIP_SECONDS / 6
 export type NpcGesture = 'sip' | 'smoke'
 export type Human = {
   root: THREE.Group; head: THREE.Group; leftArm: THREE.Bone; rightArm: THREE.Bone;
@@ -39,8 +44,11 @@ export type Human = {
   /** A real LAN player controls this body: ambient timers are suppressed and
    * only projected gestures (requestNpcGesture) animate it. */
   driven: boolean;
-  /** One queued gesture that arrived while the hand was busy. */
-  pending: NpcGesture | null;
+  /** Gestures that arrived while the hand was busy, oldest first, each with
+   * its own start. A FIFO, never a single slot: a newer gesture must not
+   * overwrite one nobody has seen yet. The host's spacing rule keeps this to
+   * at most one entry overlapping by at most its jitter allowance. */
+  pending: { gesture: NpcGesture; at: number }[];
 }
 
 // Head-local solids (before the per-seat head scale). The face sculpt samples
@@ -169,7 +177,7 @@ export function buildHuman(seat: number, _geometry: THREE.BoxGeometry, material:
   // for every seat, and never inside the <6s probes existing tests pose.
   return { root, head, leftArm: leftRig.forearm, rightArm: rightRig.forearm, leftRig, rightRig, cards, eyes, pupils, drink, drinkHome, seat,
     sipAt: -100, nextSip: 4 + seat * 3.7, cigar, tray, smokeAt: -100, nextSmoke: 17 + seat * 5.3,
-    characterDrink: kinds[seat], wantDrink: kinds[seat], driven: false, pending: null }
+    characterDrink: kinds[seat], wantDrink: kinds[seat], driven: false, pending: [] }
 }
 
 /** When the right hand is next free of BOTH gestures (a sip and a smoke share
@@ -181,12 +189,17 @@ export function npcHandFreeAt(h: Human): number {
 /** Start a projected gesture that began at `startedAt` (visual seconds; may be
  * in the past so every viewer shows the same moment of it). A gesture that is
  * already over is skipped rather than replayed late; one that arrives while
- * the hand is busy waits and then plays from its beginning. */
+ * the hand is busy waits in order and starts the moment the hand is free. */
 export function requestNpcGesture(h: Human, gesture: NpcGesture, startedAt: number, now: number): 'started' | 'queued' | 'finished' {
   const duration = gesture === 'sip' ? NPC_SIP_SECONDS : NPC_SMOKE_SECONDS
   if (startedAt + duration <= now) return 'finished'
-  if (npcHandFreeAt(h) > Math.max(startedAt, now - 1e-9)) { h.pending = gesture; return 'queued' }
-  begin(h, gesture, startedAt)
+  const freeAt = npcHandFreeAt(h)
+  if (h.pending.length || freeAt > now) { h.pending.push({ gesture, at: startedAt }); return 'queued' }
+  // Free now, but a backdated start may still fall inside the previous
+  // gesture's window (it ended between the host's time and this frame).
+  // Starting at startedAt then would truncate that gesture and jump the new
+  // one forward; the hand only became available at freeAt.
+  begin(h, gesture, Math.max(startedAt, freeAt))
   return 'started'
 }
 function begin(h: Human, gesture: NpcGesture, at: number): void {
@@ -226,7 +239,13 @@ export function poseHuman(h: Human, time: number, options: { reduced: boolean; a
   // down the face during a blink. A stationary eye center preserves the sockets.
   eyes.position.y = .021 * (1 - eyes.scale.y)
   const free = time >= npcHandFreeAt(h)
-  if (free && h.pending) { begin(h, h.pending, time); h.pending = null }
+  if (free && h.pending.length) {
+    // Start at the later of "the hand became free" and the gesture's own
+    // start, not at this frame: a frame boundary must not add drift, and a
+    // sub-jitter overlap then costs exactly the overlap and nothing more.
+    const next = h.pending.shift()!
+    begin(h, next.gesture, Math.min(time, Math.max(npcHandFreeAt(h), next.at)))
+  }
   // Ambient timers belong to NPCs only. A seat driven by a real LAN player
   // animates only what that player chose (requestNpcGesture).
   else if (!h.driven && moving && free && !options.active && options.actionAge > 2) {
@@ -249,8 +268,9 @@ export function poseHuman(h: Human, time: number, options: { reduced: boolean; a
   // on the inner face, so opponents held glasses from the inside (#7).
   drink.root.position.copy(drinkHome); drink.root.rotation.set(0, 0, 0)
   if (sipping) {
-    const lift = sipAge < 2 ? THREE.MathUtils.smoothstep(sipAge, .8, 2) : sipAge < 3.3 ? 1 : 1 - THREE.MathUtils.smoothstep(sipAge, 3.3, 4.8)
-    const grip = sipAge < .8 ? THREE.MathUtils.smoothstep(sipAge, 0, .8) : sipAge < 4.8 ? 1 : 1 - THREE.MathUtils.smoothstep(sipAge, 4.8, 6)
+    const u = sipAge / NPC_SIP_SCALE // authored 6s timeline
+    const lift = u < 2 ? THREE.MathUtils.smoothstep(u, .8, 2) : u < 3.3 ? 1 : 1 - THREE.MathUtils.smoothstep(u, 3.3, 4.8)
+    const grip = u < .8 ? THREE.MathUtils.smoothstep(u, 0, .8) : u < 4.8 ? 1 : 1 - THREE.MathUtils.smoothstep(u, 4.8, 6)
     head.rotation.x -= lift * .035
     // Negative X tips the top toward -Z, the opponent's mouth side.
     drink.root.rotation.x = -.24 * lift

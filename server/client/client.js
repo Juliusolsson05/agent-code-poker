@@ -125,26 +125,32 @@ function renderLeisure() {
       if(!context.blocked && context.available && room?.orderDrink(kind)) { sendLeisure({action:'order',kind});drinkMenu(false) }
     }}))
 }
-// Other players only see this avatar's gestures through the host. Send AFTER
-// the local room accepted (never instead of it: the local animation owner may
-// refuse, e.g. mid-inspection) and outside run()/pending, so a cigar can never
-// disable wagering or show "Sending…". Fire-and-forget: the reply is a bare
-// receipt (no envelope), the next poll carries the projected result, and a
-// refusal (paused, rate-limited) only means the others miss one cosmetic
-// gesture. Never retried: replaying a puff late is worse than missing it.
+// Other players only see this avatar's gestures through the host. Sent from
+// the room's onLeisureStarted (wired in ensureRoom), i.e. when the gesture
+// ACTUALLY starts locally, never at request time: with mouse-look a request is
+// only queued until the view re-centres, and an interruption before that
+// (pause, hand end, a panel, inspection) must not have been broadcast. Outside
+// run()/pending, so a cigar can never disable wagering or show "Sending…".
+// Fire-and-forget: the reply is a bare receipt (no envelope), the next poll
+// carries the projected result, and a refusal only means the others miss one
+// cosmetic gesture. Never retried: replaying a puff late is worse than missing it.
 let leisureSending=false,lastLeisureHeal=-Infinity
 function sendLeisure(body) {
   if(!token || ended)return
-  leisureSending=true
+  // Any send already tells the host our glass; do not let the heal fire a
+  // redundant order right behind a user's own sip or order.
+  leisureSending=true;lastLeisureHeal=performance.now()
   void api('/api/leisure',body).catch(()=>{}).finally(()=>{leisureSending=false})
+}
+function leisureStarted(kind) {
+  // publishLeisure ran synchronously before the start, so leisure.kind is the
+  // glass actually being lifted, which is what the others must see.
+  sendLeisure(kind==='smoke'?{action:'smoke'}:{action:'sip',kind:leisure.kind})
 }
 function requestLeisure(kind) {
   const context=leisureContext()
   if(context.blocked || context.menuOpen || !context.available)return
-  const accepted=kind==='smoke'?room?.smokeCigar():room?.sipDrink()
-  // publishLeisure ran synchronously inside the call, so leisure.kind is the
-  // glass actually being lifted, which is what the others must see.
-  if(accepted)sendLeisure(kind==='smoke'?{action:'smoke'}:{action:'sip',kind:leisure.kind})
+  if(kind==='smoke')room?.smokeCigar();else room?.sipDrink()
   focusTable()
 }
 /** The host remembers the drink it last heard about; this tab's glass resets
@@ -175,7 +181,7 @@ function ensureRoom(viewer,neutral=false) {
     room=new PokerRoom(el('scene'),failed,undefined,value=>{leisure=value;renderLeisure()},viewer)
     // Viewer changes rebuild the room, but should not undo this browser's
     // comfort preference. It stays local: camera settings are never host state.
-    room.setLookEnabled(lookEnabled)
+    room.setLookEnabled(lookEnabled);room.onLeisureStarted=leisureStarted
     sceneViewer=identity
     for(let seat=1;seat<6;seat++) {
       const node=document.createElement('div');node.className='seat';el('labels').append(node)

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync, readdirSync } from 'node:fs'
 import { gunzipSync } from 'node:zlib'
 import { BoxGeometry, Euler, Matrix4, Quaternion, SkinnedMesh, Vector3 } from 'three'
-import { buildHuman, humanMaterial, poseHuman } from '../src/scene/Human'
+import { buildHuman, humanMaterial, NPC_SIP_SCALE, poseHuman } from '../src/scene/Human'
 import { AnatomicalHand } from '../src/scene/Hand'
 import { GLASS_HAND_CONTACT, GLASS_HAND_ROTATION } from '../src/scene/HandGrips'
 import { DRINKS } from '../src/scene/props/specs'
@@ -37,7 +37,9 @@ test('NPC acquisition and release keep actual skin outside finite glasses withou
     const h=buildHuman(seat,new BoxGeometry(),humanMaterial())
     h.root.position.set(1.3,0,-.4);h.root.rotation.y=1.7
     h.sipAt=0;h.nextSip=100
-    for(const time of [...Array.from({length:41},(_,i)=>i*.02),...Array.from({length:61},(_,i)=>4.8+i*.02)]){
+    // Authored 6s sip units (acquisition 0-.8, release 4.8-6), scaled to the
+    // shared gesture length the opponents now use.
+    for(const time of [...Array.from({length:41},(_,i)=>i*.02),...Array.from({length:61},(_,i)=>4.8+i*.02)].map(u=>u*NPC_SIP_SCALE)){
       poseHuman(h,time,{reduced:false,active:false,folded:false,showing:false,hasCards:true,dealt:1,actionAge:time,gaze:0})
       h.root.updateMatrixWorld(true)
       const transform=h.drink.root.matrixWorld.clone().invert().multiply(h.rightRig.hand.root.matrixWorld)
@@ -87,7 +89,7 @@ test('opponents grip the outer face of their glass, not the side toward their ow
   for(const seat of [1,2,3,4,5]){
     const h=buildHuman(seat,new BoxGeometry(),humanMaterial())
     h.sipAt=0;h.nextSip=100
-    for(const time of [.8,1.2,2,2.6,3.3,4.2,4.8]){
+    for(const time of [.8,1.2,2,2.6,3.3,4.2,4.8].map(u=>u*NPC_SIP_SCALE)){
       poseHuman(h,time,{reduced:false,active:false,folded:false,showing:false,hasCards:true,dealt:1,actionAge:time,gaze:0})
       h.root.updateMatrixWorld(true)
       // Measure in the OPPONENT's body frame, not the glass frame: in the glass
@@ -101,7 +103,7 @@ test('opponents grip the outer face of their glass, not the side toward their ow
       assert.ok(wrist.z<centre.z,`seat${seat} t${time}: wrist on the far side of the glass`)
       // The flipped wrap must not push fingers under the vessel base, which
       // stands on felt while the hand closes around it.
-      if(time<=.8||time>=4.8)assert.ok(lowestSkinY(h)>-.001,`seat${seat} t${time}: fingers under the glass base`)
+      if(time<=.8*NPC_SIP_SCALE+1e-9||time>=4.8*NPC_SIP_SCALE-1e-9)assert.ok(lowestSkinY(h)>-.001,`seat${seat} t${time}: fingers under the glass base`)
     }
   }
 })

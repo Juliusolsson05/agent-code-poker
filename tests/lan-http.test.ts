@@ -182,11 +182,11 @@ test('real leisure packets are token-bound, paused like wagers, never saved and 
   assert.equal(after.revision, before.revision); assert.equal(after.self.nextSequence, before.self.nextSequence)
   rmSync(join(directory, 'table.pending'), { recursive: true })
   await call(host.origin, '/api/pause', { paused: true }, a.token)
-  now += 3000
+  now += 4000
   const paused = await call(host.origin, '/api/leisure', { action: 'sip', kind: 'wine' }, b.token)
   assert.equal(paused.status, 409); assert.equal(paused.body.receipt.code, 'paused')
   await call(host.origin, '/api/pause', { paused: false }, a.token)
   assert.equal((await call(host.origin, '/api/leisure', { action: 'sip', kind: 'wine' }, b.token)).status, 200)
-  assert.equal((await call(host.origin, '/api/leisure', { action: 'sip', kind: 'wine' }, b.token)).body.receipt.code, 'rate-limited')
+  assert.equal((await call(host.origin, '/api/leisure', { action: 'sip', kind: 'wine' }, b.token)).body.receipt.code, 'busy', 'the previous sip is still playing')
   assert.equal((await call(host.origin, '/api/state', undefined, a.token)).body.view.players[1].leisure.drinkKind, 'wine')
 })

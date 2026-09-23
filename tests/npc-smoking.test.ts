@@ -7,8 +7,10 @@ import { AnatomicalHand } from '../src/scene/Hand'
 import { CIGAR_HAND_CONTACT } from '../src/scene/HandGrips'
 import { seatedTorsoContains } from '../src/scene/SeatedBody'
 import { TABLE } from '../src/scene/Table'
-import { ASHTRAY, CIGAR, DRINKS } from '../src/scene/props/specs'
+import { ASHTRAY, CIGAR, DRINKS, GESTURE_SECONDS } from '../src/scene/props/specs'
 import { NPC_CIGAR_REST, NPC_FELT_Y, NPC_SMOKE, NPC_SMOKE_SECONDS } from '../src/interaction/npc/CigarApproach'
+import { RemoteLeisure } from '../src/scene/RemoteLeisure'
+import { HostTable, LEISURE_LIMITS } from '../src/session/HostTable'
 import { skinVesselGap } from '../testing/skin-vessel'
 
 // Synthetic, dense time probes of the production rig (actual deformed skin,
@@ -52,7 +54,7 @@ test('the bite point sits exactly on the animated lips through every puff frame,
       const ember = h.cigar.root.localToWorld(new Vector3(...CIGAR.tip))
       assert.ok(ember.clone().applyMatrix4(h.head.matrixWorld.clone().invert()).z > NPC_LIPS[2] + .1, 'ember must stay well in front of the face')
     }
-    assert.ok(puffs > 80, 'the probe must actually sample the held puff')
+    assert.ok(puffs > (NPC_SMOKE.puff - NPC_SMOKE.raise) * 90, 'the probe must actually sample the held puff')
     assert.ok(brightest > 1.5, 'the ember glows while drawing')
     pose(h, NPC_SMOKE_SECONDS + 1)
     assert.ok(h.cigar.ember.emissiveIntensity < .31)
@@ -103,10 +105,12 @@ test('through the whole smoke, skin stays out of the cigar, tray, felt, head and
       assert.ok(gap >= CORNER, `seat ${seat} t${time.toFixed(2)} ${c.phase}: finger skin ${gap * 1000}mm into the cigar`)
       const cigar = h.cigar.root.position.clone()
       if (c.owner === 'table') assert.ok(cigar.distanceTo(new Vector3(...NPC_CIGAR_REST)) < 1e-12, `${c.phase}: tray owns the cigar`)
-      if (lastCigar) assert.ok(cigar.distanceTo(lastCigar) < .04, `seat ${seat} t${time.toFixed(2)}: cigar jumped ${cigar.distanceTo(lastCigar)}m`)
+      // Continuity at the scaled (3.6s) speed: peak hand speed is ~1.7m/s, so
+      // .06m per 25ms sample still flags any teleport at an owner switch.
+      if (lastCigar) assert.ok(cigar.distanceTo(lastCigar) < .06, `seat ${seat} t${time.toFixed(2)}: cigar jumped ${cigar.distanceTo(lastCigar)}m`)
       lastCigar = cigar
       const toBody = h.root.matrixWorld.clone().invert(), toHead = h.head.matrixWorld.clone().invert(), toTray = h.tray.matrixWorld.clone().invert()
-      for (let i = 0; i < skin.geometry.getAttribute('position').count; i += 3) {
+      for (let i = 0; i < skin.geometry.getAttribute('position').count; i++) {
         skin.getVertexPosition(i, p).applyMatrix4(skin.matrixWorld)
         const tray = p.clone().applyMatrix4(toTray), r = Math.hypot(tray.x, tray.z)
         assert.ok(tray.y > 0, `seat ${seat} t${time.toFixed(2)}: skin under the felt`)
@@ -121,7 +125,7 @@ test('through the whole smoke, skin stays out of the cigar, tray, felt, head and
       }
       // Forearm half of the continuous sleeve (bind Y beyond the elbow blend).
       // The upper arm starts inside the deltoid cap by design and is excluded.
-      for (let i = 0; i < sleeveBind.count; i += 3) {
+      for (let i = 0; i < sleeveBind.count; i++) {
         if (sleeveBind.getY(i) < .3) continue
         sleeve.getVertexPosition(i, p).applyMatrix4(sleeve.matrixWorld).applyMatrix4(toBody)
         assert.ok(p.x > 0, `seat ${seat} t${time.toFixed(2)} ${c.phase}: forearm crosses the midline`)
@@ -144,7 +148,7 @@ test('the resting cigar and tray are clear of the resting hand, the glass and th
     pose(h, time); h.root.updateMatrixWorld(true)
     assert.ok(cigarGap(h) > .01, `t${time.toFixed(2)} ${h.drinkContact!.phase}: drinking hand touches the resting cigar`)
     const toTray = h.tray.matrixWorld.clone().invert()
-    for (let i = 0; i < skin.geometry.getAttribute('position').count; i += 3) {
+    for (let i = 0; i < skin.geometry.getAttribute('position').count; i++) {
       const t = skin.getVertexPosition(i, p).applyMatrix4(skin.matrixWorld).applyMatrix4(toTray)
       assert.ok(!(t.y < ASHTRAY.height + .002 && Math.hypot(t.x, t.z) < ASHTRAY.radius + .002), `t${time.toFixed(2)}: drinking hand over the tray rim`)
     }
@@ -153,32 +157,90 @@ test('the resting cigar and tray are clear of the resting hand, the glass and th
   assert.ok(Math.abs(h.tray.position.y - TABLE.feltY) < 1e-12)
 })
 
-test('projected gestures queue behind the busy hand, stale ones are skipped, and only NPCs keep ambient timers', () => {
+test('a realistic chain of one player\'s gestures plays on another screen in order, none dropped, drift bounded by jitter', () => {
+  // Host + projection + RemoteLeisure + the real opponent body, driven the way
+  // Room drives them: the viewer polls every 500ms (own phase), renders 60fps,
+  // and each frame starts newly arrived gestures. The sender starts each local
+  // gesture the moment the previous one ends (the fastest an honest client
+  // can go), with 0-200ms network delay per request.
+  let wall = 0
+  const table = new HostTable({ id: 'host', name: 'Host' }, { random: () => .43, now: () => wall })
+  table.join('smoker', 'Smoker'); table.join('viewer', 'Viewer')
+  table.start('host', table.view('host').revision)
+  const h = buildHuman(1, new BoxGeometry(), humanMaterial()), remote = new RemoteLeisure<Human>()
+  const local = { smoke: GESTURE_SECONDS.smoke, sip: GESTURE_SECONDS.drink } as const
+  const chain: ('smoke' | 'sip')[] = ['smoke', 'sip', 'smoke', 'smoke', 'sip', 'sip', 'smoke']
+  const delays = [120, 10, 190, 60, 200, 0, 140]
+  const sends: { at: number; action: 'smoke' | 'sip' }[] = []
+  let localStart = 1000
+  chain.forEach((action, i) => { sends.push({ at: localStart + delays[i], action }); localStart += local[action] * 1000 })
+  // One dishonest early request (mid-gesture) must be refused, not queued.
+  sends.push({ at: sends[2].at + 1000, action: 'sip' }); sends.sort((a, b) => a.at - b.at)
+  const accepted: { at: number; action: 'smoke' | 'sip' }[] = [], starts: { at: number; action: 'smoke' | 'sip' }[] = []
+  let lastSip = h.sipAt, lastSmoke = h.smokeAt, nextPoll = 230
+  for (wall = 0; wall < localStart + 8000; wall += 1000 / 60) {
+    while (sends.length && sends[0].at <= wall) {
+      const s = sends.shift()!
+      const code = table.leisure('smoker', s.action === 'smoke' ? { action: 'smoke' } : { action: 'sip', kind: 'beer' }, { paused: false }).code
+      if (code === 'accepted') accepted.push({ at: wall, action: s.action }); else assert.equal(code, 'busy')
+    }
+    if (wall >= nextPoll) { nextPoll += 500; const l = table.view('viewer').players.find(p => p.seat === 1)!.leisure; h.driven = !!l; remote.observe(h, l, wall) }
+    const t = wall / 1000
+    for (const g of remote.take(wall)) requestNpcGesture(g.key, g.action, t - g.ageSeconds, t)
+    pose(h, t)
+    if (h.sipAt !== lastSip) { starts.push({ at: h.sipAt, action: 'sip' }); lastSip = h.sipAt }
+    if (h.smokeAt !== lastSmoke) { starts.push({ at: h.smokeAt, action: 'smoke' }); lastSmoke = h.smokeAt }
+  }
+  assert.equal(accepted.length, chain.length, 'every honest gesture accepted, the early one refused')
+  assert.deepEqual(starts.map(s => s.action), accepted.map(a => a.action), 'none dropped, none overwritten, same order')
+  starts.forEach((s, i) => {
+    // Each copy starts at its own host time or, if the previous copy still
+    // held the hand for a sub-jitter moment, right when it let go. Bounded by
+    // the jitter allowance per gesture; it cannot accumulate along the chain.
+    const lag = s.at - accepted[i].at / 1000
+    assert.ok(lag > -1e-6 && lag <= LEISURE_LIMITS.jitterMs / 1000 + 1e-6, `gesture ${i} lag ${lag.toFixed(3)}s`)
+    if (i) assert.ok(s.at >= starts[i - 1].at + (starts[i - 1].action === 'sip' ? NPC_SIP_SECONDS : NPC_SMOKE_SECONDS) - 1e-6, `gesture ${i} overlaps the previous one`)
+  })
+  assert.equal(h.pending.length, 0)
+})
+
+test('a busy hand queues, a finished gesture is skipped, and the glass only changes on the coaster', () => {
   const h = buildHuman(2, new BoxGeometry(), humanMaterial())
   h.driven = true
   for (let time = 0; time < 120; time += .5) { pose(h, time); assert.equal(h.smokeContact!.phase, 'rest'); assert.equal(h.drinkContact!.phase, 'rest') }
   assert.equal(requestNpcGesture(h, 'smoke', 100 - NPC_SMOKE_SECONDS, 100), 'finished', 'an old gesture is not replayed late')
   assert.equal(requestNpcGesture(h, 'smoke', 119.5, 120), 'started')
-  pose(h, 120); assert.ok(h.smokeContact!.smokeAge > .49, 'starts part-way, in step with the sender')
+  pose(h, 120); assert.ok(Math.abs(h.smokeContact!.smokeAge - .5) < 1e-9, 'starts part-way, in step with the sender')
   assert.equal(requestNpcGesture(h, 'sip', 121, 121), 'queued')
-  pose(h, 122); assert.ok(h.drinkContact!.sipAge < 0 || h.drinkContact!.phase === 'rest', 'the sip must wait for the cigar to go back')
+  assert.deepEqual(h.pending, [{ gesture: 'sip', at: 121 }])
+  pose(h, 122); assert.equal(h.drinkContact!.phase, 'rest', 'the sip waits for the cigar to go back')
   const free = npcHandFreeAt(h)
-  pose(h, free + .01); assert.ok(Math.abs(h.sipAt - (free + .01)) < 1e-9, 'queued sip plays once the hand is free')
-  // Order: the glass never changes in the fingers, only on the coaster.
+  assert.ok(Math.abs(free - (119.5 + NPC_SMOKE_SECONDS)) < 1e-9)
+  pose(h, free + .1)
+  assert.ok(Math.abs(h.sipAt - free) < 1e-9, 'queued sip starts exactly when the hand is free, not at the next frame')
+  assert.notEqual(h.drinkContact!.phase, 'rest'); assert.equal(h.pending.length, 0)
   h.wantDrink = 'wine'; pose(h, free + 1)
   assert.equal(h.drink.kind, h.characterDrink, 'held glass is not swapped mid-sip')
   pose(h, free + NPC_SIP_SECONDS + .1); assert.equal(h.drink.kind, 'wine')
-  // An NPC keeps both ambient gestures, and they never overlap.
+})
+
+test('ambient NPC sips and smokes keep their scheduling windows apart', () => {
   const bot = buildHuman(4, new BoxGeometry(), humanMaterial())
-  let smokes = 0, sips = 0
+  const windows: { start: number; end: number; kind: string }[] = []
+  let lastSip = bot.sipAt, lastSmoke = bot.smokeAt
   for (let time = 0; time < 240; time += .1) {
     pose(bot, time)
-    const sipping = bot.drinkContact!.phase !== 'rest', smoking = bot.smokeContact!.phase !== 'rest'
-    assert.ok(!(sipping && smoking), `t${time.toFixed(1)}: both gestures at once`)
-    if (Math.abs(bot.smokeAt - time) < 1e-9) smokes++
-    if (Math.abs(bot.sipAt - time) < 1e-9) sips++
+    if (bot.sipAt !== lastSip) { lastSip = bot.sipAt; windows.push({ start: bot.sipAt, end: bot.sipAt + NPC_SIP_SECONDS, kind: 'sip' }) }
+    if (bot.smokeAt !== lastSmoke) { lastSmoke = bot.smokeAt; windows.push({ start: bot.smokeAt, end: bot.smokeAt + NPC_SMOKE_SECONDS, kind: 'smoke' }) }
   }
-  assert.ok(smokes >= 3 && sips >= 3, `ambient smokes ${smokes}, sips ${sips}`)
+  windows.sort((a, b) => a.start - b.start)
+  for (let i = 1; i < windows.length; i++)
+    assert.ok(windows[i].start >= windows[i - 1].end - 1e-9, `${windows[i].kind} at ${windows[i].start} starts inside ${windows[i - 1].kind} ${windows[i - 1].start}-${windows[i - 1].end}`)
+  assert.ok(windows.filter(w => w.kind === 'sip').length >= 3 && windows.filter(w => w.kind === 'smoke').length >= 3, JSON.stringify(windows))
+  // A driven seat has no ambient schedule at all.
+  const person = buildHuman(4, new BoxGeometry(), humanMaterial()); person.driven = true
+  for (let time = 0; time < 240; time += .5) pose(person, time)
+  assert.equal(person.sipAt, -100); assert.equal(person.smokeAt, -100)
 })
 
 test('the NPC cigar route is isolated from player ownership, camera and poker state', () => {

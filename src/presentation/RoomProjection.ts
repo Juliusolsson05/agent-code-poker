@@ -26,7 +26,7 @@ function copyLeisure(value: unknown): SeatLeisure | null {
   if (!value || typeof value !== 'object') return null
   const l = value as Record<string, unknown>
   const count = (n: unknown) => Number.isSafeInteger(n) && Number(n) >= 0
-  if (!count(l.seq) || !(l.action === null || l.action === 'smoke' || l.action === 'sip' || l.action === 'order') ||
+  if (!count(l.seq) || !(l.action === null || l.action === 'smoke' || l.action === 'sip') ||
     !(l.ageMs === null || count(l.ageMs)) || (l.action === null) !== (l.ageMs === null) ||
     !(l.drinkKind === null || isDrinkKind(l.drinkKind))) return null
   return { seq: Number(l.seq), action: l.action, ageMs: l.ageMs === null ? null : Number(l.ageMs), drinkKind: l.drinkKind as SeatLeisure['drinkKind'] }
