@@ -322,7 +322,17 @@ export class PokerRoom {
     mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh
   }
   private glow(color: string, x: number, y: number, z: number, sx: number, sy: number, sz: number, strength = 3): void {
-    const mesh = new THREE.Mesh(this.geometry, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: strength }))
+    // createRoomPlan() is pinned to recorded captures, including the two broad
+    // table pendants. Their underside used the generic glow strength 5, which
+    // bloomed into stark white plates against a cozy timber ceiling. Interpret
+    // only that authored pendant shape as amber diffusing glass here; all
+    // positions and the immutable room plan remain byte-for-byte unchanged.
+    const pendant = y > 2.6 && sx > .4 && sz > .25
+    const surface = pendant ? '#b87942' : color
+    const mesh = new THREE.Mesh(this.geometry, new THREE.MeshStandardMaterial({
+      color: surface, emissive: surface, emissiveIntensity: pendant ? 1.25 : strength,
+      roughness: pendant ? .86 : 1,
+    }))
     mesh.position.set(x, y, z); mesh.scale.set(sx, sy, sz); this.scene.add(mesh)
   }
   private buildRoom(): void {
