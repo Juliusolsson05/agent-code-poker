@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { MAX_VOICE_BYTES, base64ToBytes, bytesToBase64, looksLikeMpegAudio } from '../src/voice/audioClip'
-import { ELEVENLABS_ORIGIN, createElevenLabsProvider, normalizeVoiceSettings, type VoiceHttpRequest } from '../src/voice/ElevenLabs'
+import { ELEVENLABS_ORIGIN, VOICE_FAILURE_TEXT, createElevenLabsProvider, normalizeVoiceSettings, type VoiceHttpRequest } from '../src/voice/ElevenLabs'
 import { brokeredVoiceHttp } from '../src/voice/transports'
 import { browserVoiceSettingsStore, agentCodeVoiceSettingsStore } from '../src/voice/settingsStore'
 import { ChatVoice } from '../server/client/ChatVoice'
@@ -64,7 +64,7 @@ test('recorded ElevenLabs failures map to closed reasons; nothing echoes the key
     async () => ({ status, contentType: 'application/json', bytes: json(body) })).synthesize('hi'))
   assert.deepEqual(await classify(401, { detail: { status: 'quota_exceeded', message: 'quota' } }), { ok: false, reason: 'quota' })
   assert.deepEqual(await classify(429, { detail: { status: 'too_many_concurrent_requests' } }), { ok: false, reason: 'busy' })
-  assert.deepEqual(await classify(503, '<html>oops</html>'), { ok: false, reason: 'failed' })
+  assert.deepEqual(await classify(500, '<html>oops</html>'), { ok: false, reason: 'failed' })
   const network = createElevenLabsProvider(() => settings, async () => { throw new Error(`fetch failed with ${KEY}`) })
   assert.deepEqual(await network.synthesize('hi'), { ok: false, reason: 'network' }, 'transport text (even one holding the key) is dropped')
   const notAudio = createElevenLabsProvider(() => settings, async () => ({ status: 200, contentType: 'audio/mpeg', bytes: json({ ok: true }) }))
@@ -212,4 +212,25 @@ test('a relayed clip expires ttlMs after its CHAT LINE, however late the upload 
   assert.equal(relay.put(7, 'm', sender, mp3), 'stored')
   now = sender.at + VOICE_RELAY_LIMITS.ttlMs; assert.ok(relay.has(7))
   now += 1; assert.equal(relay.has(7), false)
+})
+
+test('documented 401/403/402/404/429/503 causes map to specific reasons; a bare 401 is never blamed on the key', async () => {
+  const documented = JSON.parse(readFileSync(new URL('documented-errors.json', fixtures), 'utf8')).responses as
+    { expect: string; status: number; body: unknown }[]
+  for (const response of documented) {
+    const provider = createElevenLabsProvider(() => settings, async () => ({ status: response.status, contentType: 'application/json', bytes: json(response.body) }))
+    assert.deepEqual(await provider.synthesize('hi'), { ok: false, reason: response.expect }, JSON.stringify(response.body))
+  }
+  // No body at all (a proxy page, an empty 401): not "your key is wrong".
+  const bare = createElevenLabsProvider(() => settings, async () => ({ status: 401, contentType: 'text/html', bytes: new Uint8Array() }))
+  assert.deepEqual(await bare.synthesize('hi'), { ok: false, reason: 'refused' })
+})
+
+test('every failure has product copy that names the cause and never contains key material', () => {
+  assert.match(VOICE_FAILURE_TEXT['missing-permissions'], /Text to Speech permission/)
+  assert.match(VOICE_FAILURE_TEXT['unusual-activity'], /VPN or proxy/)
+  for (const [reason, text] of Object.entries(VOICE_FAILURE_TEXT)) {
+    assert.ok(text.length > 20, reason)
+    assert.ok(!text.includes(KEY) && !/sk_/.test(text), reason)
+  }
 })

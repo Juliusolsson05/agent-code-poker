@@ -31,7 +31,8 @@ export type VoiceHttpRequest = { url: string; headers: Record<string, string>; b
 export type VoiceHttpResponse = { status: number; contentType: string; bytes: Uint8Array }
 export type VoiceHttp = (request: VoiceHttpRequest) => Promise<VoiceHttpResponse>
 
-export type VoiceFailure = 'not-configured' | 'invalid-key' | 'quota' | 'voice-not-found' | 'busy' | 'network' | 'invalid-response' | 'failed'
+export type VoiceFailure = 'not-configured' | 'invalid-key' | 'missing-permissions' | 'unusual-activity' | 'plan' | 'quota' |
+  'voice-not-found' | 'busy' | 'refused' | 'network' | 'invalid-response' | 'failed'
 export type VoiceResult = { ok: true; audio: Uint8Array } | { ok: false; reason: VoiceFailure }
 /** The one interface the chat UI depends on. Tests and the automated
  * two-browser acceptance install a fake that satisfies exactly this. */
@@ -41,10 +42,14 @@ export type VoiceProvider = { synthesize(text: string): Promise<VoiceResult> }
  * refused", never an echo of what was typed. */
 export const VOICE_FAILURE_TEXT: Record<VoiceFailure, string> = {
   'not-configured': 'Add your ElevenLabs API key and voice ID in the table menu to speak.',
-  'invalid-key': 'ElevenLabs refused the API key. Check it in the table menu.',
+  'invalid-key': 'ElevenLabs does not recognise this API key. Check it in the table menu.',
+  'missing-permissions': 'Your ElevenLabs key lacks Text to Speech permission. Enable it for this key in ElevenLabs → API keys.',
+  'unusual-activity': 'ElevenLabs blocked this account for unusual activity. This is common on free plans behind a VPN or proxy: turn it off, or use a paid plan.',
+  plan: 'Your ElevenLabs plan does not include this voice or model. Pick a voice you own, or upgrade the plan.',
   quota: 'Your ElevenLabs quota is used up. Messages stay text-only.',
   'voice-not-found': 'ElevenLabs did not recognise that voice ID.',
   busy: 'ElevenLabs is busy. This message stays text-only.',
+  refused: 'ElevenLabs refused this request for a reason this table does not recognise. Check the key’s permissions and plan in ElevenLabs.',
   network: 'Could not reach ElevenLabs. This message stays text-only.',
   'invalid-response': 'ElevenLabs returned something that is not audio.',
   failed: 'ElevenLabs could not speak this message.',
@@ -67,19 +72,50 @@ export function normalizeVoiceSettings(raw: { apiKey?: unknown; voiceId?: unknow
  * clip (a 200-char message is ~60 KB at the chosen format). */
 const MAX_RESPONSE_BYTES = 512 * 1024
 
-/** Map a non-2xx response. `detail.status` first (recorded shapes:
- * tests/fixtures/elevenlabs/), HTTP status second, because ElevenLabs uses 401
- * for BOTH a bad key and an exhausted quota; only the body tells them apart. */
+/** ElevenLabs error identifiers → our closed reasons. Sources:
+ * - RECORDED (testing/fixtures/elevenlabs/recorded-errors.json, no key):
+ *   invalid_api_key, needs_authorization (401), invalid_uid (400).
+ * - REAL-USER (2026-09-23): a valid key without the Text to Speech permission
+ *   came back 401 and was reported as "refused the API key". ElevenLabs
+ *   answers 401 for missing_permissions and detected_unusual_activity too,
+ *   which is why a bare 401 must NOT mean "bad key" (the bug this table fixes).
+ * - DOCUMENTED (elevenlabs.io/docs/developers/resources/errors, fetched
+ *   2026-09-23): the `code` table, e.g. missing_api_key, insufficient_permissions,
+ *   subscription_required, voice_access_denied, insufficient_credits,
+ *   concurrent_limit_exceeded, service_unavailable.
+ * Unknown identifiers fall through to the HTTP status, and an unknown 401/403
+ * becomes 'refused' rather than a guess about the key. */
+const ELEVENLABS_ERRORS: Record<string, VoiceFailure> = {
+  invalid_api_key: 'invalid-key', missing_api_key: 'invalid-key', needs_authorization: 'invalid-key',
+  invalid_authorization_header: 'invalid-key',
+  missing_permissions: 'missing-permissions', insufficient_permissions: 'missing-permissions',
+  detected_unusual_activity: 'unusual-activity',
+  subscription_required: 'plan', feature_not_available: 'plan', voice_access_denied: 'plan', model_access_denied: 'plan',
+  quota_exceeded: 'quota', insufficient_credits: 'quota', payment_required: 'quota',
+  voice_not_found: 'voice-not-found', invalid_uid: 'voice-not-found', invalid_voice_id: 'voice-not-found',
+  too_many_concurrent_requests: 'busy', concurrent_limit_exceeded: 'busy', rate_limit_exceeded: 'busy',
+  system_busy: 'busy', service_unavailable: 'busy', maintenance: 'busy',
+}
+
+/** Map a non-2xx response. ElevenLabs' body carries `detail.status` (legacy
+ * but still the specific one: the recorded invalid-key body has the generic
+ * code "unauthorized" and the specific status "invalid_api_key") and
+ * `detail.code` (the documented field). Specific wins: status, then code,
+ * then the HTTP status. Only these identifiers are read; ElevenLabs' free-text
+ * message is never shown, so no server text reaches the UI. */
 export function classifyElevenLabsError(status: number, bytes: Uint8Array): VoiceFailure {
-  let detail = ''
+  let detail: { status?: unknown; code?: unknown } = {}
   try {
-    const parsed = JSON.parse(new TextDecoder().decode(bytes.subarray(0, 4096))) as { detail?: { status?: unknown } }
-    if (typeof parsed?.detail?.status === 'string') detail = parsed.detail.status
+    const parsed = JSON.parse(new TextDecoder().decode(bytes.subarray(0, 4096))) as { detail?: { status?: unknown; code?: unknown } }
+    if (parsed?.detail && typeof parsed.detail === 'object') detail = parsed.detail
   } catch { /* Non-JSON error page: fall through to the HTTP status. */ }
-  if (detail === 'quota_exceeded' || status === 402) return 'quota'
-  if (detail === 'invalid_api_key' || detail === 'needs_authorization' || status === 401) return 'invalid-key'
-  if (detail === 'voice_not_found' || detail === 'invalid_uid' || status === 404) return 'voice-not-found'
-  if (status === 429 || detail === 'too_many_concurrent_requests' || detail === 'system_busy') return 'busy'
+  for (const id of [detail.status, detail.code]) {
+    if (typeof id === 'string' && Object.hasOwn(ELEVENLABS_ERRORS, id)) return ELEVENLABS_ERRORS[id]
+  }
+  if (status === 402) return 'quota'
+  if (status === 404) return 'voice-not-found'
+  if (status === 429 || status === 503) return 'busy'
+  if (status === 401 || status === 403) return 'refused'
   return 'failed'
 }
 
